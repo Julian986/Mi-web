@@ -50,7 +50,7 @@ export default function Hero3D({ onClickItem = () => {} }: Hero3DProps) {
         <Fisheye zoom={0}>
           <CameraControls minPolarAngle={0} maxPolarAngle={Math.PI / 1.6} />
           <ambientLight intensity={1} />
-          <group scale={20} position={[5, -11, -5]}>
+          <group scale={12} position={[2, -6, -2]}>
             <Suspense fallback={<Html center>Loading 3D...</Html>}>
               <Level />
               <Sudo />
@@ -62,7 +62,7 @@ export default function Hero3D({ onClickItem = () => {} }: Hero3DProps) {
             </Suspense>
           </group>
           <Environment preset="city" background blur={1} />
-          <PerspectiveCamera makeDefault position={[0, 0, 18.5]} />
+          <PerspectiveCamera makeDefault position={[12, 15, 12]} />
         </Fisheye>
       </Canvas>
       <Loader />

@@ -132,3 +132,134 @@ export function Box({ scale = 1, position }: BoxProps) {
     </mesh>
   );
 }
+
+// Piso superior rediseñado - más sutil y elegante
+export function UpperFloor() {
+  return (
+    <group>
+      {/* Plataforma superior más pequeña y elegante */}
+      <mesh position={[0, 1.8, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[2.5, 2]} />
+        <meshStandardMaterial color="#F5F5F5" />
+      </mesh>
+      
+      {/* Pared trasera del piso superior */}
+      <mesh position={[0, 2.2, -1]} rotation={[0, 0, 0]}>
+        <planeGeometry args={[2.5, 1.2]} />
+        <meshStandardMaterial color="#E8E8E8" />
+      </mesh>
+    </group>
+  );
+}
+
+// Escaleras más elegantes
+export function Stairs() {
+  return (
+    <group position={[0.8, 0, -0.5]}>
+      {Array.from({ length: 6 }, (_, i) => (
+        <mesh key={i} position={[0, i * 0.15, i * 0.1]} rotation={[-Math.PI / 2, 0, 0]}>
+          <boxGeometry args={[0.6, 0.08, 0.25]} />
+          <meshStandardMaterial color="#F0F0F0" />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Telescopio más pequeño y elegante
+export function Telescope() {
+  const ref = useRef<THREE.Group>(null);
+  
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.3) * 0.05;
+    }
+  });
+
+  return (
+    <group ref={ref} position={[0, 1.9, 0]}>
+      {/* Base del telescopio */}
+      <mesh position={[0, -0.1, 0]}>
+        <cylinderGeometry args={[0.08, 0.08, 0.1]} />
+        <meshStandardMaterial color="#4A90E2" />
+      </mesh>
+      
+      {/* Tubo del telescopio */}
+      <mesh position={[0, 0.1, 0]} rotation={[0, 0, Math.PI / 8]}>
+        <cylinderGeometry args={[0.03, 0.05, 0.4]} />
+        <meshStandardMaterial color="#2C5F8A" />
+      </mesh>
+    </group>
+  );
+}
+
+// Ventana espacial más sutil
+export function GalaxyWindow() {
+  const ref = useRef<THREE.Mesh>(null);
+  
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.rotation.z = state.clock.elapsedTime * 0.05;
+    }
+  });
+
+  return (
+    <group position={[0, 2.5, -0.95]}>
+      {/* Marco de la ventana */}
+      <mesh>
+        <torusGeometry args={[0.4, 0.03, 16, 32]} />
+        <meshStandardMaterial color="#333333" />
+      </mesh>
+      
+      {/* Galaxia espiral más sutil */}
+      <mesh ref={ref}>
+        <planeGeometry args={[0.7, 0.7]} />
+        <meshStandardMaterial 
+          color="#6A4C93"
+          transparent
+          opacity={0.6}
+          emissive="#2D1B69"
+          emissiveIntensity={0.2}
+        />
+      </mesh>
+      
+      {/* Estrellas más pequeñas */}
+      {Array.from({ length: 8 }, (_, i) => (
+        <mesh 
+          key={i} 
+          position={[
+            (Math.random() - 0.5) * 0.6,
+            (Math.random() - 0.5) * 0.6,
+            0.01
+          ]}
+        >
+          <sphereGeometry args={[0.005]} />
+          <meshStandardMaterial color="#FFFFFF" emissive="#FFFFFF" emissiveIntensity={0.3} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Luces más suaves y elegantes
+export function UpperFloorLights() {
+  return (
+    <group>
+      {/* Luz principal más suave */}
+      <pointLight 
+        position={[0.5, 2.2, 0]} 
+        color="#FFB366" 
+        intensity={1.2} 
+        distance={3}
+      />
+      
+      {/* Luz ambiental */}
+      <pointLight 
+        position={[-0.5, 2.0, 0.5]} 
+        color="#FFD700" 
+        intensity={0.8} 
+        distance={2.5}
+      />
+    </group>
+  );
+}
