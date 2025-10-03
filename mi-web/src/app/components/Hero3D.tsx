@@ -43,9 +43,9 @@ function InteractiveBox(props: { position?: [number, number, number]; scale?: nu
   );
 }
 
-export default function Hero3D({ onClickItem = () => {} }: Hero3DProps) {
+export function Scene3D({ onClickItem = () => {} }: Hero3DProps) {
   return (
-    <section className="relative w-full h-[80vh] md:h-[85vh]">
+    <div className="relative w-full h-full">
       <Canvas flat>
         <Fisheye zoom={0}>
           <CameraControls minPolarAngle={0} maxPolarAngle={Math.PI / 1.6} />
@@ -66,6 +66,6 @@ export default function Hero3D({ onClickItem = () => {} }: Hero3DProps) {
         </Fisheye>
       </Canvas>
       <Loader />
-    </section>
+    </div>
   );
 }
