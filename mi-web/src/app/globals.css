@@ -5,8 +5,8 @@
 
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a; /* Next.js dark */
+  --foreground: #e5e7eb; /* neutral-200 */
 }
 
 @theme inline {
@@ -16,12 +16,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* Conservamos un esquema oscuro por defecto para todo el sitio */
 
 body {
   background: var(--background);
