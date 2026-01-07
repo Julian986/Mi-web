@@ -9,6 +9,7 @@ Tipos para elegir el nombre del negocio:
 - Dominio disponible
 
 Posibles nombres:
+- Glotum - glotum.com
 
 me gustan pero no estan disponibles
 - azus
@@ -28,7 +29,8 @@ Tasks
 - en servicios podemos poner mockups de pantalla de compu, tablet y celular
 - logo en la izquierda del header
 - funcion cambio de color de la web
-
+- que tenga un menu izquierdo como redit
+- Color claro y oscuro
 
 
 Notas
@@ -44,7 +46,7 @@ Notas
 
 - Podriamos tener seccion de proyectos en produccion y en desarrollo - una escala, un status, el primer nivel y siguiente nivel
 
-
+- Estilo shadcn
 
 Webs para basarse
 - nextjs

@@ -60,7 +60,7 @@ export default function CompanyCore() {
         description: "Landings, sitios corporativos y performance budgets para escalar adquisición.",
         x: 220,
         y: 175,
-        accentRgb: "0,112,243",
+        accentRgb: "88,101,242",
       },
       {
         id: "ecommerce",
@@ -108,14 +108,18 @@ export default function CompanyCore() {
   return (
     <div className="relative mx-auto w-full max-w-6xl">
       {/* Marco + brillo sutil */}
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] shadow-[0_18px_70px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.06)]">
+      <div className="relative overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.10)]">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-grid opacity-[0.10] [mask-image:radial-gradient(550px_circle_at_50%_40%,black,transparent_72%)]"
+          className="pointer-events-none absolute inset-0 bg-grid opacity-[0.32] [mask-image:radial-gradient(560px_circle_at_50%_40%,black,transparent_74%)]"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(124,58,237,0.14),transparent_62%)] blur-2xl"
+          className="pointer-events-none absolute left-1/2 top-1/2 h-[520px] w-[820px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(88,101,242,0.16),transparent_64%)] blur-2xl"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-44 right-[-160px] h-[520px] w-[520px] rounded-full bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.14),transparent_62%)] blur-3xl"
         />
 
         {/* Contenedor con ratio responsivo */}
@@ -130,7 +134,7 @@ export default function CompanyCore() {
           >
             <defs>
               <filter id="coreGlow" x="-80%" y="-80%" width="260%" height="260%">
-                <feGaussianBlur stdDeviation="9" result="blur" />
+                <feGaussianBlur stdDeviation="10" result="blur" />
                 <feColorMatrix
                   in="blur"
                   type="matrix"
@@ -147,16 +151,16 @@ export default function CompanyCore() {
                 </feMerge>
               </filter>
 
-              <radialGradient id="coreFill" cx="50%" cy="45%" r="60%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.95)" />
-                <stop offset="35%" stopColor="rgba(255,255,255,0.35)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0.08)" />
+              <radialGradient id="coreFill" cx="50%" cy="42%" r="62%">
+                <stop offset="0%" stopColor="rgba(255,255,255,1)" />
+                <stop offset="40%" stopColor="rgba(255,255,255,0.92)" />
+                <stop offset="100%" stopColor="rgba(255,255,255,0.66)" />
               </radialGradient>
 
               <linearGradient id="cableBase" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.05)" />
-                <stop offset="50%" stopColor="rgba(255,255,255,0.18)" />
-                <stop offset="100%" stopColor="rgba(255,255,255,0.05)" />
+                <stop offset="0%" stopColor="rgba(15,23,42,0.06)" />
+                <stop offset="50%" stopColor="rgba(15,23,42,0.18)" />
+                <stop offset="100%" stopColor="rgba(15,23,42,0.06)" />
               </linearGradient>
             </defs>
 
@@ -182,7 +186,7 @@ export default function CompanyCore() {
                       initial={{ pathLength: 0, opacity: 0 }}
                       animate={{
                         pathLength: 1,
-                        opacity: dimOthers ? 0.16 : isActive ? 0.58 : 0.34,
+                        opacity: dimOthers ? 0.14 : isActive ? 0.55 : 0.32,
                       }}
                       transition={{
                         duration: reduceMotion ? 0 : 1.25,
@@ -230,9 +234,9 @@ export default function CompanyCore() {
                 cx={CORE_X}
                 cy={CORE_Y}
                 r={56}
-                fill="rgba(0,0,0,0.25)"
+                fill={activeProject ? `rgba(${activeProject.accentRgb}, 0.10)` : "rgba(88,101,242,0.08)"}
                 animate={{
-                  opacity: anyActive ? 0.55 : 0.38,
+                  opacity: anyActive ? 0.85 : 0.65,
                   scale: anyActive ? 1.02 : 1,
                 }}
                 transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
@@ -253,7 +257,7 @@ export default function CompanyCore() {
                 cy={CORE_Y}
                 r={72}
                 fill="transparent"
-                stroke={activeProject ? `rgba(${activeProject.accentRgb}, 0.40)` : "rgba(255,255,255,0.12)"}
+                stroke={activeProject ? `rgba(${activeProject.accentRgb}, 0.40)` : "rgba(15,23,42,0.14)"}
                 strokeWidth={1.5}
                 animate={{
                   opacity: anyActive ? 0.9 : 0.55,
@@ -268,7 +272,7 @@ export default function CompanyCore() {
                 cy={CORE_Y}
                 r={92}
                 fill="transparent"
-                stroke={activeProject ? `rgba(${activeProject.accentRgb}, 0.22)` : "rgba(255,255,255,0.08)"}
+                stroke={activeProject ? `rgba(${activeProject.accentRgb}, 0.22)` : "rgba(15,23,42,0.09)"}
                 strokeWidth={1}
                 strokeDasharray="6 14"
                 animate={{
@@ -306,12 +310,12 @@ export default function CompanyCore() {
                   className={[
                     "group absolute -translate-x-1/2 -translate-y-1/2 text-left",
                     "w-[190px] sm:w-[260px] md:w-[280px]",
-                    "rounded-xl border bg-black/30 backdrop-blur",
+                    "rounded-xl border bg-white/85 backdrop-blur",
                     "transition-all duration-200",
-                    "focus:outline-none focus:ring-2 focus:ring-white/20",
+                    "focus:outline-none focus:ring-2 focus:ring-black/10",
                     isActive
-                      ? "border-white/25 shadow-[0_18px_55px_rgba(0,0,0,0.55),0_1px_0_rgba(255,255,255,0.08)]"
-                      : "border-white/10 hover:border-white/20 hover:bg-black/35",
+                      ? "border-black/20 shadow-[0_18px_45px_rgba(2,6,23,0.14)]"
+                      : "border-black/10 hover:border-black/20 hover:bg-white",
                   ].join(" ")}
                   style={{ left: `${leftPct}%`, top: `${topPct}%` }}
                   aria-label={`${p.title}. ${p.tag}. ${p.description}`}
@@ -326,10 +330,10 @@ export default function CompanyCore() {
                           boxShadow: `0 0 0 4px rgba(${p.accentRgb}, 0.12), 0 0 28px rgba(${p.accentRgb}, 0.35)`,
                         }}
                       />
-                      <span className="text-xs font-medium text-white/70">{p.tag}</span>
+                      <span className="text-xs font-medium text-slate-600">{p.tag}</span>
                     </div>
-                    <div className="mt-2 text-sm font-semibold text-white">{p.title}</div>
-                    <div className="mt-1 hidden text-xs leading-relaxed text-white/60 sm:block">{p.description}</div>
+                    <div className="mt-2 text-sm font-semibold text-slate-900">{p.title}</div>
+                    <div className="mt-1 hidden text-xs leading-relaxed text-slate-600 sm:block">{p.description}</div>
                   </div>
                 </button>
               );
@@ -340,10 +344,10 @@ export default function CompanyCore() {
 
       {/* Pie de sección */}
       <div className="mt-6 flex flex-col gap-2 text-center">
-        <div className="text-sm text-white/60">
-          <span className="text-white/80">Nexus Core</span> conecta producto, diseño y sistemas para entregar software sólido y escalable.
+        <div className="text-sm text-slate-600">
+          <span className="text-slate-900">Nexus Core</span> conecta producto, diseño y sistemas para entregar software sólido y escalable.
         </div>
-        <div className="text-xs text-white/45">
+        <div className="text-xs text-slate-500">
           Tip: pasá el mouse (o usá tab) sobre un proyecto para ver la energía recorriendo su conexión.
         </div>
       </div>

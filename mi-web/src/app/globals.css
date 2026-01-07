@@ -5,12 +5,14 @@
 
 
 :root {
-  --background: #000000; /* Vercel/Next.js black */
-  --foreground: #fafafa; /* near-white */
+  /* Light, premium */
+  --background: #ffffff;
+  --foreground: #0b0d12;
 
-  /* Accents (Vercel-ish) */
-  --accent-blue: 0, 112, 243;
+  /* Accents (Discord-ish + tech) */
+  --accent-blue: 88, 101, 242; /* blurple */
   --accent-violet: 124, 58, 237;
+  --accent-cyan: 34, 211, 238;
 }
 
 @theme inline {
@@ -25,24 +27,24 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  color-scheme: dark;
-  /* Subtle "Vercel" glow layers */
-  background-image:
-    radial-gradient(900px circle at 20% 10%, rgba(var(--accent-blue), 0.18), transparent 55%),
-    radial-gradient(700px circle at 85% 25%, rgba(255, 255, 255, 0.06), transparent 55%),
-    radial-gradient(800px circle at 50% 85%, rgba(var(--accent-violet), 0.12), transparent 60%);
-  background-attachment: fixed;
+  color-scheme: light;
+  /* Fondo completamente blanco */
+  background-image: none;
 }
 
 /* Subtle grid like nextjs.org (used as an overlay, not a full background) */
 .bg-grid {
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+    linear-gradient(to right, rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
   background-size: 72px 72px;
 }
 
 /* Gentle vignette to avoid “flat” blacks */
 .bg-vignette {
-  background-image: radial-gradient(1200px circle at 50% 20%, rgba(255, 255, 255, 0.06), transparent 60%);
+  background-image: radial-gradient(1200px circle at 50% 20%, rgba(15, 23, 42, 0.06), transparent 60%);
+}
+
+::selection {
+  background: rgba(var(--accent-blue), 0.22);
 }
