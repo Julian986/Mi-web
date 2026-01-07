@@ -2,15 +2,14 @@
 
 import React from "react";
 import { Loader } from "@react-three/drei";
-import { MacbookScene3D } from "./3d/Macbook";
+import dynamic from "next/dynamic";
 
-type Hero3DProps = {
-  onClickItem?: (id: string) => void;
-};
+const MacbookScene3D = dynamic(() => import("./3d/Macbook").then((m) => m.MacbookScene3D), {
+  ssr: false,
+  loading: () => null,
+});
 
-export function Scene3D({ onClickItem = () => {} }: Hero3DProps) {
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
+export function Scene3D() {
   return (
     <div className="relative w-full h-full">
       <MacbookScene3D />
@@ -19,6 +18,6 @@ export function Scene3D({ onClickItem = () => {} }: Hero3DProps) {
   );
 }
 
-export function Scene3DDisabled({ onClickItem = () => {} }: Hero3DProps) {
+export function Scene3DDisabled() {
   return null;
 }

@@ -5,8 +5,12 @@
 
 
 :root {
-  --background: #0a0a0a; /* Next.js dark */
-  --foreground: #e5e7eb; /* neutral-200 */
+  --background: #000000; /* Vercel/Next.js black */
+  --foreground: #fafafa; /* near-white */
+
+  /* Accents (Vercel-ish) */
+  --accent-blue: 0, 112, 243;
+  --accent-violet: 124, 58, 237;
 }
 
 @theme inline {
@@ -21,5 +25,24 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color-scheme: dark;
+  /* Subtle "Vercel" glow layers */
+  background-image:
+    radial-gradient(900px circle at 20% 10%, rgba(var(--accent-blue), 0.18), transparent 55%),
+    radial-gradient(700px circle at 85% 25%, rgba(255, 255, 255, 0.06), transparent 55%),
+    radial-gradient(800px circle at 50% 85%, rgba(var(--accent-violet), 0.12), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* Subtle grid like nextjs.org (used as an overlay, not a full background) */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+/* Gentle vignette to avoid “flat” blacks */
+.bg-vignette {
+  background-image: radial-gradient(1200px circle at 50% 20%, rgba(255, 255, 255, 0.06), transparent 60%);
 }

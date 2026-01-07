@@ -1,7 +1,7 @@
 
 
 Mi web
-npm run dev -- -p 9000
+npm run dev
 
 
 . Hero

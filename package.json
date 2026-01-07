@@ -1,0 +1,16 @@
+{
+  "name": "mi-web-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix mi-web run dev",
+    "build": "npm --prefix mi-web run build",
+    "start": "npm --prefix mi-web run start",
+    "lint": "npm --prefix mi-web run lint"
+  }
+}
+
+
+
+
+
+
