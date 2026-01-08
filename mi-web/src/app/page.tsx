@@ -1,7 +1,7 @@
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import CompanyCore from "./components/CompanyCore";
-import ServicesShowcase from "./components/ServicesShowcase";
+import ServicesDashboards from "./components/ServicesDashboards";
 
 export default function Home() {
   return (
@@ -17,7 +17,7 @@ export default function Home() {
           </p>
         </div>
 
-        <ServicesShowcase />
+        <ServicesDashboards />
       </section>
 
       <section id="work" className="border-t border-black/10 px-6 py-16 text-center">
