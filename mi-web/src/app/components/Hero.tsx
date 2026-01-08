@@ -12,7 +12,7 @@ export default function Hero() {
                   className="pointer-events-none absolute -inset-x-3 -inset-y-2 -z-10 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.10),transparent_70%)]"
                 />
                 <span className="bg-gradient-to-b from-slate-950 to-slate-700 bg-clip-text text-transparent">
-                  Glotum
+                  Glomun
                 </span>
                 <span
                   aria-hidden

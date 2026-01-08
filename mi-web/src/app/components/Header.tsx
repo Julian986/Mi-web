@@ -4,6 +4,8 @@ import React, { useState } from "react";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navItemClassName =
+    "inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-black/10";
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-black/10 bg-white/75 backdrop-blur-md">
@@ -12,30 +14,33 @@ export default function Header() {
         className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-black/15 to-transparent opacity-80"
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <div className="flex items-center">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-md bg-slate-900 shadow-[0_12px_35px_rgba(88,101,242,0.20)]" />
-              <span className="text-xl font-semibold text-slate-900">Glotum</span>
+        <div className="flex items-center justify-between h-16">
+          {/* Left: Logo + Navigation (juntos, más a la izquierda) */}
+          <div className="flex items-center gap-6">
+            {/* Logo */}
+            <div className="flex items-center">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-md bg-slate-900 shadow-[0_12px_35px_rgba(88,101,242,0.20)]" />
+                <span className="text-xl font-semibold text-slate-900">Glomun</span> 
+              </div>
             </div>
-          </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <a href="#top" className="text-slate-600 hover:text-slate-900 transition-colors">
-              Inicio
-            </a>
-            <a href="#services" className="text-slate-600 hover:text-slate-900 transition-colors">
-              Servicios
-            </a>
-            <a href="#work" className="text-slate-600 hover:text-slate-900 transition-colors">
-              Casos
-            </a>
-            <a href="#contact" className="text-slate-600 hover:text-slate-900 transition-colors">
-              Contacto
-            </a>
-          </nav>
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1">
+              <a href="#top" className={navItemClassName}>
+                Inicio
+              </a>
+              <a href="#services" className={navItemClassName}>
+                Servicios
+              </a>
+              <a href="#work" className={navItemClassName}>
+                Casos
+              </a>
+              <a href="#contact" className={navItemClassName}>
+                Contacto
+              </a>
+            </nav>
+          </div>
 
           {/* Right side buttons */}
           <div className="flex items-center space-x-4">
