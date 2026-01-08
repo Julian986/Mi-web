@@ -3,71 +3,15 @@
 import React, { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
-type Metric = { label: string; value: string; delta?: string };
-type Row = { label: string; value: string };
-
 type ServiceCard = {
   id: "web" | "ecommerce" | "custom";
   title: string;
-  subtitle: string;
-  accent: "blue" | "cyan";
-  metrics: Metric[];
-  chart: number[];
-  rows: Row[];
+  result: string;
+  bullets: string[];
+  delivery: string;
   ctaLabel: string;
+  accent: "blue" | "cyan";
 };
-
-function Sparkline({ values, accent }: { values: number[]; accent: ServiceCard["accent"] }) {
-  const w = 560;
-  const h = 120;
-  const pad = 8;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = Math.max(1, max - min);
-
-  const pts = values
-    .map((v, i) => {
-      const x = pad + (i * (w - pad * 2)) / Math.max(1, values.length - 1);
-      const y = pad + (1 - (v - min) / range) * (h - pad * 2);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-
-  const strokeMid = accent === "cyan" ? "rgba(34,211,238,0.60)" : "rgba(59,130,246,0.65)";
-  const fillTop = accent === "cyan" ? "rgba(34,211,238,0.14)" : "rgba(59,130,246,0.16)";
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-[120px] w-full" aria-hidden>
-      <defs>
-        <linearGradient id={`sparkStroke-${accent}`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="rgba(15,23,42,0.10)" />
-          <stop offset="50%" stopColor={strokeMid} />
-          <stop offset="100%" stopColor="rgba(15,23,42,0.10)" />
-        </linearGradient>
-        <linearGradient id={`sparkFill-${accent}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={fillTop} />
-          <stop offset="100%" stopColor="rgba(255,255,255,0.00)" />
-        </linearGradient>
-      </defs>
-
-      <g stroke="rgba(15,23,42,0.08)" strokeWidth="1">
-        <path d={`M ${pad} ${h / 2} H ${w - pad}`} />
-        <path d={`M ${pad} ${pad} H ${w - pad}`} />
-        <path d={`M ${pad} ${h - pad} H ${w - pad}`} />
-      </g>
-
-      <path d={`M ${pad} ${h - pad} L ${pts} L ${w - pad} ${h - pad} Z`} fill={`url(#sparkFill-${accent})`} opacity={0.95} />
-      <polyline
-        fill="none"
-        stroke={`url(#sparkStroke-${accent})`}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        points={pts}
-      />
-    </svg>
-  );
-}
 
 function DashboardCard({
   data,
@@ -82,18 +26,20 @@ function DashboardCard({
 }) {
   const reduceMotion = useReducedMotion();
   const dot = data.accent === "cyan" ? "bg-[rgba(34,211,238,0.60)]" : "bg-[rgba(59,130,246,0.55)]";
-  const badge = data.accent === "cyan" ? "bg-[rgba(34,211,238,0.10)]" : "bg-[rgba(59,130,246,0.10)]";
   const halo = data.accent === "cyan" ? "rgba(34,211,238,0.10)" : "rgba(59,130,246,0.10)";
+  const halo2 = data.accent === "cyan" ? "rgba(34,211,238,0.06)" : "rgba(59,130,246,0.06)";
+  const topLine = data.accent === "cyan" ? "rgba(34,211,238,0.55)" : "rgba(59,130,246,0.55)";
 
   return (
     <motion.div
-      className={["relative", offsetClassName ?? ""].join(" ")}
+      className={["relative will-change-transform", offsetClassName ?? ""].join(" ")}
       initial={false}
       animate={
         reduceMotion
           ? undefined
           : {
-              y: [0, -10, 0],
+              y: [0, -22, 0],
+              rotate: [0, 0.35, 0],
             }
       }
       transition={
@@ -102,65 +48,51 @@ function DashboardCard({
           : {
               duration: floatDuration,
               repeat: Infinity,
-              ease: "easeInOut",
+              ease: [0.45, 0, 0.55, 1],
+              repeatType: "mirror",
               delay: floatDelay,
             }
       }
     >
-      <div aria-hidden className="pointer-events-none absolute -inset-6 -z-10 rounded-3xl" style={{ background: `radial-gradient(circle at 30% 20%, ${halo}, transparent 55%)` }} />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-8 -z-10 rounded-3xl"
+        style={{
+          background: `radial-gradient(circle at 30% 20%, ${halo}, transparent 55%), radial-gradient(circle at 80% 60%, ${halo2}, transparent 52%)`,
+        }}
+      />
 
-      <div className="group overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.10)] transition-transform duration-200 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(2,6,23,0.14)]">
-        <div className="flex items-center justify-between border-b border-black/10 px-5 py-4">
+      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.10)] transition-transform duration-200 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(2,6,23,0.14)]">
+        {/* Top accent line (minimal premium) */}
+        <div aria-hidden className="h-px w-full" style={{ background: `linear-gradient(to right, transparent, ${topLine}, transparent)` }} />
+
+        <div className="flex items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2">
             <div className={["h-2 w-2 rounded-full", dot].join(" ")} aria-hidden />
-            <div className="text-sm font-semibold text-slate-900">{data.title}</div>
+            <div className="text-base font-semibold tracking-tight text-slate-900">{data.title}</div>
           </div>
-          <div className={["rounded-full border border-black/10 px-3 py-1 text-xs font-medium text-slate-700", badge].join(" ")}>
-            {data.subtitle}
+          <div className="rounded-full border border-black/10 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+            3 semanas
           </div>
         </div>
 
-        <div className="p-5">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {data.metrics.map((m) => (
-              <div key={m.label} className="rounded-xl border border-black/10 bg-white px-4 py-3">
-                <div className="text-xs font-medium text-slate-500">{m.label}</div>
-                <div className="mt-1 flex items-baseline justify-between gap-2">
-                  <div className="text-lg font-semibold text-slate-900">{m.value}</div>
-                  {m.delta ? (
-                    <div className={["rounded-full px-2 py-0.5 text-xs font-medium text-slate-700", badge].join(" ")}>
-                      {m.delta}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
+        <div className="px-6 pb-6">
+          <div className="text-balance text-[22px] font-semibold tracking-tight text-slate-900">{data.result}</div>
+          <ul className="mt-5 space-y-3 text-slate-600">
+            {data.bullets.map((b) => (
+              <li key={b} className="flex items-start gap-3">
+                <span
+                  aria-hidden
+                  className="mt-1 inline-flex h-5 w-5 items-center justify-center rounded-full border border-black/10 bg-white"
+                >
+                  <span className={["h-2 w-2 rounded-full", dot].join(" ")} />
+                </span>
+                <span className="text-base leading-relaxed">{b}</span>
+              </li>
             ))}
-          </div>
+          </ul>
 
-          <div className="mt-4 rounded-xl border border-black/10 bg-white p-3">
-            <div className="mb-2 flex items-center justify-between px-1">
-              <div className="text-xs font-medium text-slate-500">Tendencia</div>
-              <div className="text-xs text-slate-500">Últimos 30 días</div>
-            </div>
-            <Sparkline values={data.chart} accent={data.accent} />
-          </div>
-
-          <div className="mt-4 rounded-xl border border-black/10 bg-white">
-            <div className="flex items-center justify-between border-b border-black/10 px-4 py-3">
-              <div className="text-xs font-medium text-slate-500">Resumen</div>
-              <div className="text-xs text-slate-500">Estado</div>
-            </div>
-            <div className="divide-y divide-black/10">
-              {data.rows.map((r) => (
-                <div key={r.label} className="flex items-center justify-between px-4 py-3">
-                  <div className="text-sm text-slate-700">{r.label}</div>
-                  <div className="text-sm font-medium text-slate-900">{r.value}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-5 flex items-center justify-between gap-3">
+          <div className="mt-7 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => {}}
@@ -168,7 +100,7 @@ function DashboardCard({
             >
               {data.ctaLabel}
             </button>
-            <div className="text-xs text-slate-500">Estimación en 48h</div>
+            <div className="text-xs text-slate-500">Sin compromiso</div>
           </div>
         </div>
       </div>
@@ -182,55 +114,28 @@ export default function ServicesDashboards() {
       {
         id: "web",
         title: "Sitios web",
-        subtitle: "Web",
+        result: "Más consultas con un sitio rápido y claro",
+        bullets: ["Diseño que guía al cliente a contactarte", "SEO técnico y performance reales", "Medición y mejoras iterativas"],
+        delivery: "3 semanas",
         accent: "blue",
-        metrics: [
-          { label: "Visitas", value: "48k", delta: "+18%" },
-          { label: "Leads", value: "1,240", delta: "+22%" },
-          { label: "Velocidad", value: "92/100", delta: "+14" },
-        ],
-        chart: [12, 14, 13, 16, 18, 17, 21, 24, 23, 26, 29, 31],
-        rows: [
-          { label: "Landing", value: "optimizada" },
-          { label: "SEO", value: "técnico" },
-          { label: "Analytics", value: "medición" },
-        ],
         ctaLabel: "Quiero una web",
       },
       {
         id: "ecommerce",
         title: "Tienda online",
-        subtitle: "E‑commerce",
+        result: "Vendé más con un checkout sin fricción",
+        bullets: ["Checkout optimizado para convertir", "Pagos e integraciones listos", "Panel de pedidos, stock y envíos"],
+        delivery: "3 semanas",
         accent: "cyan",
-        metrics: [
-          { label: "Pedidos", value: "860", delta: "+11%" },
-          { label: "Conversión", value: "2.9%", delta: "+0.6" },
-          { label: "Ticket", value: "$42", delta: "+9%" },
-        ],
-        chart: [18, 16, 17, 20, 22, 21, 19, 23, 26, 25, 27, 30],
-        rows: [
-          { label: "Checkout", value: "rápido" },
-          { label: "Pagos", value: "integrados" },
-          { label: "Operación", value: "simple" },
-        ],
         ctaLabel: "Quiero una tienda",
       },
       {
         id: "custom",
         title: "Aplicación a medida",
-        subtitle: "A medida",
+        result: "Automatizá procesos y ganá control operativo",
+        bullets: ["Dashboards y permisos por rol", "Integraciones con tus sistemas", "Workflows que ahorran horas cada semana"],
+        delivery: "3 semanas",
         accent: "blue",
-        metrics: [
-          { label: "Horas/sem", value: "–28h", delta: "↓" },
-          { label: "Errores", value: "–34%", delta: "↓" },
-          { label: "Operaciones", value: "12.4k", delta: "+7%" },
-        ],
-        chart: [10, 11, 12, 14, 13, 15, 16, 18, 19, 21, 22, 24],
-        rows: [
-          { label: "Automatización", value: "activa" },
-          { label: "Integraciones", value: "APIs" },
-          { label: "Permisos", value: "roles" },
-        ],
         ctaLabel: "Quiero una app",
       },
     ],
@@ -240,9 +145,9 @@ export default function ServicesDashboards() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="grid gap-6 lg:grid-cols-3 lg:gap-7">
-        <DashboardCard data={cards[0]} floatDelay={0.0} floatDuration={6.4} offsetClassName="lg:translate-y-6" />
-        <DashboardCard data={cards[1]} floatDelay={0.4} floatDuration={7.2} offsetClassName="lg:-translate-y-2" />
-        <DashboardCard data={cards[2]} floatDelay={0.2} floatDuration={6.8} offsetClassName="lg:translate-y-10" />
+        <DashboardCard data={cards[0]} floatDelay={0.0} floatDuration={10.5} />
+        <DashboardCard data={cards[1]} floatDelay={0.7} floatDuration={11.4} />
+        <DashboardCard data={cards[2]} floatDelay={0.3} floatDuration={10.9} />
       </div>
     </div>
   );
