@@ -113,7 +113,7 @@ export default function ServicesDashboards() {
     () => [
       {
         id: "web",
-        title: "Sitios web",
+        title: "Sitio web",
         result: "Más consultas con un sitio rápido y claro",
         bullets: ["Diseño que guía al cliente a contactarte", "SEO técnico y performance reales", "Medición y mejoras iterativas"],
         delivery: "3 semanas",

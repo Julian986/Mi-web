@@ -345,7 +345,7 @@ export default function CompanyCore() {
       {/* Pie de sección */}
       <div className="mt-6 flex flex-col gap-2 text-center">
         <div className="text-sm text-slate-600">
-          <span className="text-slate-900">Nexus Core</span> conecta producto, diseño y sistemas para entregar software sólido y escalable.
+          <span className="text-slate-900">Glomun Core</span> conecta producto, diseño y sistemas para entregar software sólido y escalable.
         </div>
         <div className="text-xs text-slate-500">
           Tip: pasá el mouse (o usá tab) sobre un proyecto para ver la energía recorriendo su conexión.

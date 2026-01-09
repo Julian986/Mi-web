@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSidebar } from "./sidebar/SidebarProvider";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { openSidebar } = useSidebar();
   const navItemClassName =
     "inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-black/10";
 
@@ -20,6 +22,16 @@ export default function Header() {
             {/* Logo */}
             <div className="flex items-center">
               <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={openSidebar}
+                  className="mr-1 inline-flex h-10 w-10 items-center justify-center rounded-md border border-black/10 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10"
+                  aria-label="Abrir sidebar"
+                >
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                </button>
                 <div className="w-8 h-8 rounded-md bg-slate-900 shadow-[0_12px_35px_rgba(88,101,242,0.20)]" />
                 <span className="text-xl font-semibold text-slate-900">Glomun</span> 
               </div>

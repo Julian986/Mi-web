@@ -3,7 +3,10 @@ Actualizar a la ultima version de next
 
 Tasks:
 - El modo de presentar los servicios
+- El modo en el que presentamos los desarrollos
+- Sidebar
 
+. Que queremos mostrar?
 
 Mi web personal - Nexus Software
 
@@ -35,6 +38,9 @@ Tasks
 - funcion cambio de color de la web
 - que tenga un menu izquierdo como redit
 - Color claro y oscuro
+- podemos poner una ia en la web
+- Poner en el menu un botón de idioma, podemos ponerlo reemplazando la lupa
+- Poner un carrousel de marcas/herramientas/lenguajes?
 
 
 Notas
@@ -54,11 +60,12 @@ Notas
 
 Webs para basarse
 - nextjs
-redit
-discord
+- redit
+- discord
 - https://clickup.com/lp/brain/agents-camp?utm_source=google&utm_medium=cpc&utm_campaign=gs_cpc_latam-lv_nnc_nb_trial_all-devices_troas_lp_x_all-departments_x_ai-business&utm_content=all-countries_kw-target_text_x_all-features_all-use-cases_ai-business&utm_term=business%20name%20generator&utm_creative=783022082121__&utm_custom1=&utm_custom2=&utm_lptheme=&utm_lpmod=&utm_mt=b&gad_source=1&gad_campaignid=23233761579&gbraid=0AAAAACR5vIL0NsItZIMCRp_iKhZa4BVw_&gclid=Cj0KCQiApfjKBhC0ARIsAMiR_Is4e3QgU9MK8vSuGbeh0uRmSBBVtGxfYZgI3JETXdi7FEfBjyH8a1UaAoXhEALw_wcB
 
-
+Diseño
+- Dribble
 
 
 Empresas:

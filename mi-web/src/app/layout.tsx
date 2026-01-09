@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus — Desarrollo de software",
-  description: "Nexus es una startup de desarrollo de software en Argentina. Sitios web, plataforma e-commerce y software a medida.",
+  title: "Glomun — Desarrollo de software",
+  description: "Glomun es un estudio de desarrollo de software en Argentina. Sitios web, tiendas online y aplicaciones a medida de alto rendimiento.",
 };
 
 export default function RootLayout({
