@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useSidebar } from "./SidebarProvider";
 
 type NavItem = { label: string; href: string };
@@ -20,8 +20,18 @@ function getFocusable(container: HTMLElement) {
 }
 
 export default function DrawerSidebar() {
-  const reduceMotion = useReducedMotion();
+  const [reduceMotion, setReduceMotion] = useState(false);
   const { open, closeSidebar } = useSidebar();
+
+  // Check for reduced motion preference only on client
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduceMotion(mediaQuery.matches);
+    
+    const handleChange = (e: MediaQueryListEvent) => setReduceMotion(e.matches);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);

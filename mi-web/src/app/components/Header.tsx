@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { useState } from "react";
 import { useSidebar } from "./sidebar/SidebarProvider";
 
@@ -21,7 +22,7 @@ export default function Header() {
           <div className="flex items-center gap-6">
             {/* Logo */}
             <div className="flex items-center">
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center gap-0">
                 <button
                   type="button"
                   onClick={openSidebar}
@@ -32,7 +33,17 @@ export default function Header() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
                 </button>
-                <div className="w-8 h-8 rounded-md bg-slate-900 shadow-[0_12px_35px_rgba(88,101,242,0.20)]" />
+                <div className="relative flex items-center">
+                  <Image
+                    /* src="/Glomun_logo.png" */
+                    src="/gotita_loca.png"
+                    alt="Glomun"
+                    width={40}
+                    height={40}
+                    priority
+                    className="object-contain"
+                  />
+                </div>
                 <span className="text-xl font-semibold text-slate-900">Glomun</span> 
               </div>
             </div>

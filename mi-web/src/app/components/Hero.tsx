@@ -22,7 +22,7 @@ export default function Hero() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-600">
-              Somos un estudio de desarrollo de software especializado en sitios web, tiendas online y aplicaciones a medida de alto rendimiento.
+              Somos una empresa de desarrollo de software especializada en sitios web, tiendas online y aplicaciones a medida de alto rendimiento.
             </p>
 
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:justify-center">
