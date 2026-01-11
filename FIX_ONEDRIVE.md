@@ -11,21 +11,21 @@ Los errores `ENOENT` con archivos temporales de Next.js suelen ocurrir cuando:
 
 ### Opción 1: Excluir `.next` de OneDrive (RECOMENDADO)
 
-1. Click derecho en la carpeta `Mi-web`
+1. Click derecho en la carpeta `mi-web`
 2. Selecciona "Liberar espacio" o "Siempre mantener en este dispositivo"
 3. O mejor: Excluir la carpeta `.next` específicamente
 
 **Pasos detallados:**
 1. Abre OneDrive → Configuración
 2. Ve a "Copia de seguridad" → "Administrar copia de seguridad"
-3. O usa: Click derecho en `Mi-web` → "Liberar espacio"
+3. O usa: Click derecho en `mi-web` → "Liberar espacio"
 
 ### Opción 2: Mover el proyecto fuera de OneDrive
 
 Mover el proyecto a una carpeta fuera de OneDrive:
 ```
-C:\Dev\Mi-web
-C:\Projects\Mi-web
+C:\Dev\mi-web
+C:\Projects\mi-web
 ```
 
 ### Opción 3: Reiniciar el servidor limpiamente
