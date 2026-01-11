@@ -26,7 +26,7 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={openSidebar}
-                  className="mr-1 inline-flex h-10 w-10 items-center justify-center rounded-md border border-black/10 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10"
+                  className="mr-1 inline-flex h-10 w-10 items-center justify-center rounded-md border-none cursor-pointer bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10"
                   aria-label="Abrir sidebar"
                 >
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

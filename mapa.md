@@ -1,5 +1,12 @@
 Actualizar a la ultima version de next
+Permormance de la app
 
+Lo ultimo...
+Bien, pusiste 3 proyectos, pone 
+
+
+Diseño Card - Desarrollos/Casos
+- Tipo: Sito web, e-commerce, app
 
 Tasks:
 - El modo de presentar los servicios
@@ -41,6 +48,8 @@ Tasks
 - podemos poner una ia en la web
 - Poner en el menu un botón de idioma, podemos ponerlo reemplazando la lupa
 - Poner un carrousel de marcas/herramientas/lenguajes?
+- Que el usuario al poner quiero una web/tienda/app, lo lleve a elegir el diseño, luego a otra cosa, por pasos, como un proceso
+- Presionar en un proyecto/desarrollo y que salga mas informacion sobre ese desarrollo
 
 
 Notas

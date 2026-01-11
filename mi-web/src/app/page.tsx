@@ -1,6 +1,6 @@
 import Header from "./components/Header";
 import Hero from "./components/Hero";
-import CompanyCore from "./components/CompanyCore";
+import ProjectsShowcase from "./components/ProjectsShowcase";
 import ServicesDashboards from "./components/ServicesDashboards";
 import DrawerSidebar from "./components/sidebar/DrawerSidebar";
 import { SidebarProvider } from "./components/sidebar/SidebarProvider";
@@ -17,20 +17,22 @@ export default function Home() {
           <div className="mx-auto max-w-6xl">
             <h2 className="text-3xl font-bold mb-3">Servicios</h2>
             <p className="text-lg max-w-2xl text-slate-600 mb-10">
-              Elegí lo que querés construir. Te contamos alcance, tiempos y próximos pasos en simple.
+              Elegí lo que querés construir. Te contamos alcance, tiempos y próximos pasos en simples pasos.
             </p>
           </div>
 
           <ServicesDashboards />
         </section>
 
-        <section id="work" className="border-t border-black/10 px-6 py-16 text-center">
-          <h2 className="text-3xl font-bold mb-4">Desarrollos / Casos</h2>
-          <p className="text-lg max-w-2xl mx-auto text-slate-600 mb-10">
-            Un núcleo tecnológico que conecta proyectos reales: webs, e‑commerce, apps e integraciones. Pasá el mouse (o tab) para ver el sistema “vivo”.
-          </p>
+        <section id="work" className="border-t border-black/10 py-16 text-center">
+          <div className="mx-auto max-w-7xl px-6 mb-10">
+            <h2 className="text-3xl font-bold mb-4">Desarrollos / Casos</h2>
+            <p className="text-lg max-w-2xl mx-auto text-slate-600">
+              Proyectos reales en producción: webs, tiendas online y aplicaciones que construimos para nuestros clientes. Pasá el mouse sobre cada desarrollo para ver la conexión.
+            </p>
+          </div>
 
-          <CompanyCore />
+          <ProjectsShowcase />
         </section>
 
         <section id="contact" className="border-t border-black/10 px-6 py-16 text-center">
