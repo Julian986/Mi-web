@@ -1,16 +1,23 @@
+import dynamic from "next/dynamic";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
-import ProjectsShowcase from "./components/ProjectsShowcase";
-import ServicesDashboards from "./components/ServicesDashboards";
-import DrawerSidebar from "./components/sidebar/DrawerSidebar";
 import { SidebarProvider } from "./components/sidebar/SidebarProvider";
+
+// Lazy load de componentes pesados para mejorar First Contentful Paint
+const ServicesDashboards = dynamic(() => import("./components/ServicesDashboards"), {
+  loading: () => <div className="h-96 animate-pulse bg-slate-50" />,
+});
+
+const ProjectsShowcase = dynamic(() => import("./components/ProjectsShowcase"), {
+  loading: () => <div className="h-96 animate-pulse bg-slate-50" />,
+});
 
 export default function Home() {
   return (
     <SidebarProvider>
       <div className="min-h-screen text-slate-900">
         <Header />
-        <DrawerSidebar />
+        {/* <DrawerSidebar /> */}
         <Hero />
 
         <section id="services" className="border-t border-black/10 px-6 py-16">

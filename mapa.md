@@ -65,6 +65,8 @@ Notas
 
 - Podriamos tener seccion de proyectos en produccion y en desarrollo - una escala, un status, el primer nivel y siguiente nivel
 
+Nota: Los archivos Hero3D.tsx y Macbook.tsx siguen en el código pero no se importan, así que no afectan el bundle. Si no los usarás, puedes eliminarlos también.
+
 - Estilo shadcn
 
 Webs para basarse

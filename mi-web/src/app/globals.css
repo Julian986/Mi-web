@@ -30,6 +30,13 @@ body {
   color-scheme: light;
   /* Fondo completamente blanco */
   background-image: none;
+  /* Optimización de renderizado crítico */
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* Aplicar fuente personalizada solo cuando esté cargada */
+body.font-loaded {
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
 /* Subtle grid like nextjs.org (used as an overlay, not a full background) */

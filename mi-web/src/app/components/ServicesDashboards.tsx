@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect, memo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
 type ServiceCard = {
@@ -13,16 +13,18 @@ type ServiceCard = {
   accent: "blue" | "cyan";
 };
 
-function DashboardCard({
+const DashboardCard = memo(function DashboardCard({
   data,
   floatDelay,
   floatDuration,
   offsetClassName,
+  isScrolling,
 }: {
   data: ServiceCard;
   floatDelay: number;
   floatDuration: number;
   offsetClassName?: string;
+  isScrolling: boolean;
 }) {
   const reduceMotion = useReducedMotion();
   const dot = data.accent === "cyan" ? "bg-[rgba(34,211,238,0.60)]" : "bg-[rgba(59,130,246,0.55)]";
@@ -35,7 +37,7 @@ function DashboardCard({
       className={["relative will-change-transform", offsetClassName ?? ""].join(" ")}
       initial={false}
       animate={
-        reduceMotion
+        reduceMotion || isScrolling
           ? undefined
           : {
               y: [0, -22, 0],
@@ -43,7 +45,7 @@ function DashboardCard({
             }
       }
       transition={
-        reduceMotion
+        reduceMotion || isScrolling
           ? undefined
           : {
               duration: floatDuration,
@@ -62,7 +64,9 @@ function DashboardCard({
         }}
       />
 
-      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.10)] transition-transform duration-200 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(2,6,23,0.14)]">
+      {/* Sombras comentadas para pruebas de rendimiento */}
+      {/* <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/10 bg-white shadow-[0_18px_55px_rgba(2,6,23,0.10)] transition-transform duration-200 hover:-translate-y-1 hover:shadow-[0_26px_70px_rgba(2,6,23,0.14)]"> */}
+      <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-black/10 bg-white transition-transform duration-200 hover:-translate-y-1">
         {/* Top accent line (minimal premium) */}
         <div aria-hidden className="h-px w-full" style={{ background: `linear-gradient(to right, transparent, ${topLine}, transparent)` }} />
 
@@ -106,9 +110,28 @@ function DashboardCard({
       </div>
     </motion.div>
   );
-}
+});
 
 export default function ServicesDashboards() {
+  const [isScrolling, setIsScrolling] = useState(false);
+
+  // Pausar animaciones durante el scroll
+  useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout;
+    const handleScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        setIsScrolling(false);
+      }, 150);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
+
   const cards = useMemo<ServiceCard[]>(
     () => [
       {
@@ -145,9 +168,9 @@ export default function ServicesDashboards() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="grid gap-6 lg:grid-cols-3 lg:gap-7">
-        <DashboardCard data={cards[0]} floatDelay={0.0} floatDuration={10.5} />
-        <DashboardCard data={cards[1]} floatDelay={0.7} floatDuration={11.4} />
-        <DashboardCard data={cards[2]} floatDelay={0.3} floatDuration={10.9} />
+        <DashboardCard data={cards[0]} floatDelay={0.0} floatDuration={10.5} isScrolling={isScrolling} />
+        <DashboardCard data={cards[1]} floatDelay={0.7} floatDuration={11.4} isScrolling={isScrolling} />
+        <DashboardCard data={cards[2]} floatDelay={0.3} floatDuration={10.9} isScrolling={isScrolling} />
       </div>
     </div>
   );

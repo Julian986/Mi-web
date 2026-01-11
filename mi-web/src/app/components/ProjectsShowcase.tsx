@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
+import { ChartNoAxesCombined, Wrench } from "lucide-react";
 
 type Development = {
   id: string;
@@ -19,63 +20,92 @@ type Development = {
   accentRgb: string;
 };
 
-const STACK_X = 50; // Porcentaje (centro)
-const STACK_Y = 20; // Porcentaje (arriba)
+// Código comentado para stack y cables (desactivado para pruebas de rendimiento)
+// const STACK_X = 50; // Porcentaje (centro)
+// const STACK_Y = 20; // Porcentaje (arriba)
 
-function clamp(n: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, n));
-}
+// function clamp(n: number, min: number, max: number) {
+//   return Math.max(min, Math.min(max, n));
+// }
 
-// ViewBox fijo para SVG responsive
-const VB_W = 1000;
-const VB_H = 600;
+// // ViewBox fijo para SVG responsive
+// const VB_W = 1000;
+// const VB_H = 600;
 
-function makeCablePath(sx: number, sy: number, cx: number, cy: number) {
-  // Convertir porcentajes a coordenadas del viewBox
-  const stackX = (sx / 100) * VB_W;
-  const stackY = (sy / 100) * VB_H;
-  const cardX = (cx / 100) * VB_W;
-  const cardY = (cy / 100) * VB_H;
+// function makeCablePath(sx: number, sy: number, cx: number, cy: number) {
+//   // Convertir porcentajes a coordenadas del viewBox
+//   const stackX = (sx / 100) * VB_W;
+//   const stackY = (sy / 100) * VB_H;
+//   const cardX = (cx / 100) * VB_W;
+//   const cardY = (cy / 100) * VB_H;
 
-  const dx = cardX - stackX;
-  const dy = cardY - stackY;
-  const dist = Math.hypot(dx, dy) || 1;
+//   const dx = cardX - stackX;
+//   const dy = cardY - stackY;
+//   const dist = Math.hypot(dx, dy) || 1;
 
-  // Curvatura: más distancia => curva más amplia (pero limitada)
-  const k = clamp(dist / 3.2, 100, 200);
+//   // Curvatura: más distancia => curva más amplia (pero limitada)
+//   const k = clamp(dist / 3.2, 100, 200);
 
-  // Vector normalizado
-  const nx = dx / dist;
-  const ny = dy / dist;
+//   // Vector normalizado
+//   const nx = dx / dist;
+//   const ny = dy / dist;
   
-  // Vector perpendicular para curvar
-  const perpX = -ny;
-  const perpY = nx;
-  const bend = clamp(dist / 12, 25, 60);
+//   // Vector perpendicular para curvar
+//   const perpX = -ny;
+//   const perpY = nx;
+//   const bend = clamp(dist / 12, 25, 60);
 
-  // Puntos de control para curva cúbica suave
-  const c1x = stackX + nx * k + perpX * bend;
-  const c1y = stackY + ny * k + perpY * bend;
-  const c2x = cardX - nx * k + perpX * (bend * 0.7);
-  const c2y = cardY - ny * k + perpY * (bend * 0.7);
+//   // Puntos de control para curva cúbica suave
+//   const c1x = stackX + nx * k + perpX * bend;
+//   const c1y = stackY + ny * k + perpY * bend;
+//   const c2x = cardX - nx * k + perpX * (bend * 0.7);
+//   const c2y = cardY - ny * k + perpY * (bend * 0.7);
 
-  return `M ${stackX} ${stackY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${cardX} ${cardY}`;
-}
+//   return `M ${stackX} ${stackY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${cardX} ${cardY}`;
+// }
 
 export default function ProjectsShowcase() {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const reduceMotion = useReducedMotion();
+
+  // Pausar animaciones durante el scroll para mejorar rendimiento
+  useEffect(() => {
+    let scrollTimeout: NodeJS.Timeout;
+    const handleScroll = () => {
+      setIsScrolling(true);
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        setIsScrolling(false);
+      }, 150);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(scrollTimeout);
+    };
+  }, []);
+
+  // Memoizar callbacks para evitar re-renders
+  const handleMouseEnter = useCallback((id: string) => {
+    setActiveId(id);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setActiveId(null);
+  }, []);
 
   // Datos de desarrollos reales (placeholder por ahora, se pueden agregar más)
   const developments: Development[] = useMemo(
     () => [
       {
         id: "dev-1",
-        title: "E-commerce Premium",
-        domain: "tienda-ejemplo.com",
-        url: "https://tienda-ejemplo.com",
+        title: "Amo mi casa",
+        domain: "amomicasahome.com",
+        url: "https://amomicasahome.com",
         type: "ecommerce",
         technology: "Next.js",
-        image: "/next.svg", // Placeholder, cambiar por imagen real
+        image: "/amo-mi-casa.png",
         cableX: 20,
         cableY: 85,
         accentRgb: "88,101,242",
@@ -108,41 +138,50 @@ export default function ProjectsShowcase() {
     []
   );
 
-  const anyActive = activeId !== null;
-  const activeDevelopment = activeId ? developments.find((d) => d.id === activeId) : null;
+  // Variables comentadas (usadas solo en código de stack/cables desactivado)
+  // const anyActive = activeId !== null;
+  // const activeDevelopment = activeId ? developments.find((d) => d.id === activeId) : null;
 
   return (
     <div className="relative mx-auto w-full max-w-7xl px-6 py-12">
-      {/* Stack/Pila arriba */}
-      <div className="relative mb-16 flex justify-center">
+      {/* Stack/Pila arriba - COMENTADO PARA PRUEBAS DE RENDIMIENTO */}
+      {/* <div className="relative mb-16 flex justify-center">
         <div className="relative">
-          {/* Glow effect */}
           <motion.div
-            className="absolute inset-0 rounded-full blur-2xl"
+            className="absolute inset-0 rounded-full blur-2xl will-change-transform"
             style={{
               background: `radial-gradient(circle, rgba(${anyActive && activeDevelopment ? activeDevelopment.accentRgb : "59,130,246"}, 0.3) 0%, transparent 70%)`,
             }}
-            animate={{
-              scale: anyActive ? [1, 1.2, 1] : 1,
-              opacity: anyActive ? [0.4, 0.6, 0.4] : 0.2,
-            }}
+            animate={
+              reduceMotion || isScrolling
+                ? {}
+                : {
+                    scale: anyActive ? [1, 1.2, 1] : 1,
+                    opacity: anyActive ? [0.4, 0.6, 0.4] : 0.2,
+                  }
+            }
             transition={{
               duration: 2,
-              repeat: anyActive ? Infinity : 0,
+              repeat: anyActive && !isScrolling ? Infinity : 0,
               ease: "easeInOut",
             }}
           />
 
-          {/* Stack core */}
           <motion.div
-            className="relative h-24 w-24 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
-            animate={{
-              scale: anyActive ? 1.05 : 1,
+            className="relative h-24 w-24 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-[0_8px_32px_rgba(0,0,0,0.12)] will-change-transform"
+            animate={
+              reduceMotion
+                ? {}
+                : {
+                    scale: anyActive ? 1.05 : 1,
+                  }
+            }
+            transition={{ duration: 0.3 }}
+            style={{
               boxShadow: anyActive
                 ? `0 12px 48px rgba(${activeDevelopment?.accentRgb || "59,130,246"}, 0.25)`
                 : "0 8px 32px rgba(0,0,0,0.12)",
             }}
-            transition={{ duration: 0.3 }}
           >
             <div className="flex h-full items-center justify-center">
               <div className="grid grid-cols-3 gap-1 p-3">
@@ -161,7 +200,6 @@ export default function ProjectsShowcase() {
         </div>
       </div>
 
-      {/* SVG Container para cables */}
       <div className="relative mb-8 h-[400px] w-full md:h-[500px]">
         <svg
           className="absolute inset-0 h-full w-full"
@@ -185,7 +223,6 @@ export default function ProjectsShowcase() {
             ))}
           </defs>
 
-          {/* Cables */}
           {developments.map((dev) => {
             const path = makeCablePath(STACK_X, STACK_Y, dev.cableX, dev.cableY);
             const isActive = activeId === dev.id;
@@ -200,12 +237,16 @@ export default function ProjectsShowcase() {
                 strokeLinecap="round"
                 initial={{ pathLength: 0, opacity: 0 }}
                 animate={{
-                  pathLength: 1,
+                  pathLength: reduceMotion ? 1 : 1,
                   opacity: isActive ? 1 : 0.4,
                   strokeWidth: isActive ? 2.5 : 1.5,
                 }}
                 transition={{
-                  pathLength: { duration: 1.2, delay: developments.indexOf(dev) * 0.2, ease: "easeInOut" },
+                  pathLength: {
+                    duration: reduceMotion ? 0 : 1.2,
+                    delay: reduceMotion ? 0 : developments.indexOf(dev) * 0.2,
+                    ease: "easeInOut",
+                  },
                   opacity: { duration: 0.3 },
                   strokeWidth: { duration: 0.3 },
                 }}
@@ -213,27 +254,34 @@ export default function ProjectsShowcase() {
             );
           })}
 
-          {/* Glow effect en el punto de conexión del cable activo */}
-          {activeDevelopment && (
+          {activeDevelopment && !isScrolling && (
             <motion.circle
               cx={(activeDevelopment.cableX / 100) * VB_W}
               cy={(activeDevelopment.cableY / 100) * VB_H}
               r="8"
               fill={`rgb(${activeDevelopment.accentRgb})`}
               initial={{ opacity: 0, r: 4 }}
-              animate={{
-                opacity: [0.3, 1, 0.3],
-                r: [6, 10, 6],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              animate={
+                reduceMotion
+                  ? { opacity: 0.7, r: 8 }
+                  : {
+                      opacity: [0.3, 1, 0.3],
+                      r: [6, 10, 6],
+                    }
+              }
+              transition={
+                reduceMotion
+                  ? {}
+                  : {
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }
+              }
             />
           )}
         </svg>
-      </div>
+      </div> */}
 
       {/* Grid de Cards */}
       <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -241,11 +289,11 @@ export default function ProjectsShowcase() {
           const isActive = activeId === dev.id;
 
           return (
-            <motion.div
+              <motion.div
               key={dev.id}
               className="group relative"
-              onMouseEnter={() => setActiveId(dev.id)}
-              onMouseLeave={() => setActiveId(null)}
+              onMouseEnter={() => handleMouseEnter(dev.id)}
+              onMouseLeave={handleMouseLeave}
               initial={{ opacity: 0, y: 20 }}
               animate={{
                 opacity: 1,
@@ -258,23 +306,34 @@ export default function ProjectsShowcase() {
             >
               <motion.div
                 onClick={() => window.open(dev.url, "_blank", "noopener,noreferrer")}
-                className="relative block cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] transition-all duration-300 hover:shadow-[0_12px_48px_rgba(0,0,0,0.15)]"
-                animate={{
-                  y: isActive ? -8 : [0, -4, 0],
-                  scale: isActive ? 1.02 : 1,
+                className="relative block cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] will-change-transform"
+                animate={
+                  reduceMotion || isScrolling
+                    ? {
+                        scale: isActive ? 1.02 : 1,
+                      }
+                    : {
+                        y: isActive ? -8 : [0, -4, 0],
+                        scale: isActive ? 1.02 : 1,
+                      }
+                }
+                transition={
+                  reduceMotion || isScrolling
+                    ? { scale: { duration: 0.3 } }
+                    : {
+                        y: {
+                          duration: 2,
+                          repeat: Infinity,
+                          repeatType: "mirror" as const,
+                          ease: "easeInOut",
+                        },
+                        scale: { duration: 0.3 },
+                      }
+                }
+                style={{
                   boxShadow: isActive
                     ? `0 16px 64px rgba(${dev.accentRgb}, 0.25)`
                     : "0 4px 24px rgba(0,0,0,0.08)",
-                }}
-                transition={{
-                  y: {
-                    duration: 2,
-                    repeat: Infinity,
-                    repeatType: "mirror" as const,
-                    ease: "easeInOut",
-                  },
-                  scale: { duration: 0.3 },
-                  boxShadow: { duration: 0.3 },
                 }}
               >
                 {/* Top accent line */}
@@ -291,8 +350,11 @@ export default function ProjectsShowcase() {
                     src={dev.image}
                     alt={dev.title}
                     fill
-                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    loading="lazy"
+                    className="object-cover object-[center_top] transition-transform duration-500 group-hover:scale-110"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    placeholder="blur"
+                    blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PC9zdmc+"
                   />
                   {/* Overlay sutil en hover */}
                   <div
@@ -306,14 +368,14 @@ export default function ProjectsShowcase() {
                 {/* Content */}
                 <div className="p-6">
                   {/* Type badge */}
-                  <div className="mb-3">
-                    <span
-                      className="inline-block rounded-full px-3 py-1 text-xs font-medium uppercase tracking-wider"
+                  <div className="mb-3 flex items-center gap-2">
+                    <div
+                      className="h-1.5 w-1.5 rounded-full"
                       style={{
-                        backgroundColor: `rgba(${dev.accentRgb}, 0.1)`,
-                        color: `rgb(${dev.accentRgb})`,
+                        backgroundColor: `rgb(${dev.accentRgb})`,
                       }}
-                    >
+                    />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {dev.type === "web" ? "Sitio Web" : dev.type === "ecommerce" ? "E-commerce" : "App"}
                     </span>
                   </div>
@@ -323,25 +385,7 @@ export default function ProjectsShowcase() {
 
                   {/* Technology */}
                   <div className="mb-4 flex items-center gap-2">
-                    <svg
-                      className="h-4 w-4 text-slate-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                      />
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                      />
-                    </svg>
+                    <Wrench className="h-4 w-4 text-slate-500" />
                     <span className="text-sm font-medium text-slate-700">{dev.technology}</span>
                   </div>
 
@@ -370,19 +414,7 @@ export default function ProjectsShowcase() {
                         {dev.domain}
                       </span>
                     </div>
-                    <svg
-                      className="h-4 w-4 text-slate-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                      />
-                    </svg>
+                    <ChartNoAxesCombined className="h-4 w-4 text-slate-400" />
                   </div>
 
                   {/* Arrow indicator */}
