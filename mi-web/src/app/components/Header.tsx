@@ -36,7 +36,7 @@ export default function Header() {
                 <div className="relative flex items-center">
                   <Image
                     /* src="/Glomun_logo.png" */
-                    src="/gotita_loca.png"
+                    src="https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/gotita_loca_iskndh.webp"
                     alt="Glomun"
                     width={40}
                     height={40}

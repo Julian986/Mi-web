@@ -105,7 +105,7 @@ export default function ProjectsShowcase() {
         url: "https://amomicasahome.com",
         type: "ecommerce",
         technology: "Next.js",
-        image: "/amo-mi-casa.png",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/amo-mi-casa_qwg5tb.webp",
         cableX: 20,
         cableY: 85,
         accentRgb: "88,101,242",
