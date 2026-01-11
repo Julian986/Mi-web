@@ -143,7 +143,7 @@ export default function ProjectsShowcase() {
   // const activeDevelopment = activeId ? developments.find((d) => d.id === activeId) : null;
 
   return (
-    <div className="relative mx-auto w-full max-w-7xl px-6 py-12">
+    <div className="relative mx-auto w-full max-w-7xl px-6 py-12 overflow-x-hidden">
       {/* Stack/Pila arriba - COMENTADO PARA PRUEBAS DE RENDIMIENTO */}
       {/* <div className="relative mb-16 flex justify-center">
         <div className="relative">

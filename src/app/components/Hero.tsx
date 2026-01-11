@@ -1,10 +1,10 @@
 export default function Hero() {
   return (
-    <section className="relative">
+    <section className="relative overflow-x-hidden">
       <div className="mx-auto max-w-6xl px-6 lg:px-8">
         <div id="top" className="flex min-h-[calc(100vh-64px)] items-center justify-center pb-16 pt-28">
-          {/* Hero simple, blanco y centrado (texto “en el aire”) */}
-          <div className="w-full max-w-3xl text-center">
+          {/* Hero simple, blanco y centrado (texto "en el aire") */}
+          <div className="w-full max-w-3xl text-center overflow-x-hidden">
             <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
               <span className="relative inline-block">
                 <span

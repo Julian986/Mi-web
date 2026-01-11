@@ -24,6 +24,11 @@
 
 /* Conservamos un esquema oscuro por defecto para todo el sitio */
 
+html {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -32,6 +37,8 @@ body {
   background-image: none;
   /* Optimización de renderizado crítico */
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* Aplicar fuente personalizada solo cuando esté cargada */

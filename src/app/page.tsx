@@ -15,12 +15,12 @@ const ProjectsShowcase = dynamic(() => import("./components/ProjectsShowcase"), 
 export default function Home() {
   return (
     <SidebarProvider>
-      <div className="min-h-screen text-slate-900">
+      <div className="min-h-screen overflow-x-hidden text-slate-900">
         <Header />
         {/* <DrawerSidebar /> */}
         <Hero />
 
-        <section id="services" className="border-t border-black/10 px-6 py-16">
+        <section id="services" className="border-t border-black/10 px-6 py-16 overflow-x-hidden">
           <div className="mx-auto max-w-6xl">
             <h2 className="text-3xl font-bold mb-3">Servicios</h2>
             <p className="text-lg max-w-2xl text-slate-600 mb-10">
@@ -31,7 +31,7 @@ export default function Home() {
           <ServicesDashboards />
         </section>
 
-        <section id="work" className="border-t border-black/10 py-16 text-center">
+        <section id="work" className="border-t border-black/10 py-16 text-center overflow-x-hidden">
           <div className="mx-auto max-w-7xl px-6 mb-10">
             <h2 className="text-3xl font-bold mb-4">Desarrollos / Casos</h2>
             <p className="text-lg max-w-2xl mx-auto text-slate-600">
@@ -42,7 +42,7 @@ export default function Home() {
           <ProjectsShowcase />
         </section>
 
-        <section id="contact" className="border-t border-black/10 px-6 py-16 text-center">
+        <section id="contact" className="border-t border-black/10 px-6 py-16 text-center overflow-x-hidden">
           <h2 className="text-3xl font-bold mb-6">Contacto</h2>
           <p className="text-lg max-w-2xl mx-auto text-slate-600 mb-8">
             Contanos qué querés construir. Te respondemos con estimación y próximos pasos.
