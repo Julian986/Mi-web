@@ -2,6 +2,9 @@ import dynamic from "next/dynamic";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import { SidebarProvider } from "./components/sidebar/SidebarProvider";
+import DrawerSidebar from "./components/sidebar/DrawerSidebar";
+import FAQ from "./components/FAQ";
+import Footer from "./components/Footer";
 
 // Lazy load de componentes pesados para mejorar First Contentful Paint
 const ServicesDashboards = dynamic(() => import("./components/ServicesDashboards"), {
@@ -17,7 +20,7 @@ export default function Home() {
     <SidebarProvider>
       <div className="min-h-screen overflow-x-hidden text-slate-900">
         <Header />
-        {/* <DrawerSidebar /> */}
+        <DrawerSidebar />
         <Hero />
 
         <section id="services" className="overflow-x-hidden">
@@ -34,6 +37,8 @@ export default function Home() {
 
           <ProjectsShowcase />
         </section>
+
+        <FAQ />
 
         <section id="contact" className="border-t border-black/10 px-6 py-16 text-center overflow-x-hidden">
           <h2 className="text-3xl font-bold mb-6">Contacto</h2>
@@ -55,6 +60,8 @@ export default function Home() {
             </a>
           </div>
         </section>
+
+        <Footer />
       </div>
     </SidebarProvider>
   );

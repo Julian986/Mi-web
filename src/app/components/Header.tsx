@@ -7,10 +7,21 @@ import { useSidebar } from "./sidebar/SidebarProvider";
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
   const languageMenuRef = useRef<HTMLDivElement>(null);
   const { openSidebar } = useSidebar();
-  const navItemClassName =
-    "inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-black/10";
+
+  // Detectar la sección activa basada en el hash de la URL
+  useEffect(() => {
+    const updateActiveSection = () => {
+      const hash = window.location.hash;
+      setActiveSection(hash || "#top");
+    };
+
+    updateActiveSection();
+    window.addEventListener("hashchange", updateActiveSection);
+    return () => window.removeEventListener("hashchange", updateActiveSection);
+  }, []);
 
   // Cerrar el menú de idioma al hacer clic fuera
   useEffect(() => {
@@ -69,17 +80,89 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
-              <a href="#top" className={navItemClassName}>
+              <a 
+                href="#top" 
+                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                  activeSection === "#top" || activeSection === ""
+                    ? "text-slate-900"
+                    : "hover:text-slate-700"
+                }`}
+              >
                 Inicio
+                <span 
+                  className={`absolute left-1/2 -translate-x-1/2 h-0.5 w-4/5 transition-all duration-200 z-10 ${
+                    activeSection === "#top" || activeSection === ""
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
+                  }`}
+                  style={{ 
+                    bottom: "-18px", 
+                    backgroundColor: activeSection === "#top" || activeSection === "" ? "#3b59a3" : "#9ca3af" 
+                  }}
+                />
               </a>
-              <a href="#services" className={navItemClassName}>
+              <a 
+                href="#services" 
+                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                  activeSection === "#services"
+                    ? "text-slate-900"
+                    : "hover:text-slate-700"
+                }`}
+              >
                 Servicios
+                <span 
+                  className={`absolute left-1/2 -translate-x-1/2 h-0.5 w-4/5 transition-all duration-200 z-10 ${
+                    activeSection === "#services"
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
+                  }`}
+                  style={{ 
+                    bottom: "-18px", 
+                    backgroundColor: activeSection === "#services" ? "#3b59a3" : "#9ca3af" 
+                  }}
+                />
               </a>
-              <a href="#work" className={navItemClassName}>
+              <a 
+                href="#work" 
+                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                  activeSection === "#work"
+                    ? "text-slate-900"
+                    : "hover:text-slate-700"
+                }`}
+              >
                 Casos
+                <span 
+                  className={`absolute left-1/2 -translate-x-1/2 h-0.5 w-4/5 transition-all duration-200 z-10 ${
+                    activeSection === "#work"
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
+                  }`}
+                  style={{ 
+                    bottom: "-18px", 
+                    backgroundColor: activeSection === "#work" ? "#3b59a3" : "#9ca3af" 
+                  }}
+                />
               </a>
-              <a href="#contact" className={navItemClassName}>
+              <a 
+                href="#contact" 
+                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                  activeSection === "#contact"
+                    ? "text-slate-900"
+                    : "hover:text-slate-700"
+                }`}
+              >
                 Contacto
+                <span 
+                  className={`absolute left-1/2 -translate-x-1/2 h-0.5 w-4/5 transition-all duration-200 z-10 ${
+                    activeSection === "#contact"
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
+                  }`}
+                  style={{ 
+                    bottom: "-18px", 
+                    backgroundColor: activeSection === "#contact" ? "#3b59a3" : "#9ca3af" 
+                  }}
+                />
               </a>
             </nav>
           </div>

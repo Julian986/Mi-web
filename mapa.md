@@ -2,12 +2,21 @@ Actualizar a la ultima version de next 16✅
 Permormance de la app
 
 Lo ultimo...
-Bien, pusiste 3 proyectos, pone 
+item activo del menu de navegacion 
+sidebar
+agregar desarrollos
+preguntas frecuentes
+carrousel de marcas
 
 - Usar componentes de Tailwind, son bomba
 
 Diseño Card - Desarrollos/Casos
 - Tipo: Sito web, e-commerce, app
+
+Estadisticas - Rendimiendo
+Mostra las metricas de LCP, etc, 
+mostra en los milisegundos que cargan tus productos
+
 
 Tasks:
 - El modo de presentar los servicios

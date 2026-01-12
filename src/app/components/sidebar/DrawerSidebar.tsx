@@ -3,8 +3,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSidebar } from "./SidebarProvider";
+import Image from "next/image";
+import { 
+  Home, 
+  Briefcase, 
+  FolderKanban, 
+  Mail, 
+  MoreVertical,
+  Github
+} from "lucide-react";
 
-type NavItem = { label: string; href: string };
+type NavItem = { label: string; href: string; icon: React.ComponentType<{ className?: string }> };
 type NavSection = { title: string; items: NavItem[] };
 
 function getFocusable(container: HTMLElement) {
@@ -21,7 +30,20 @@ function getFocusable(container: HTMLElement) {
 
 export default function DrawerSidebar() {
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
   const { open, closeSidebar } = useSidebar();
+
+  // Detectar la sección activa basada en el hash de la URL
+  useEffect(() => {
+    const updateActiveSection = () => {
+      const hash = window.location.hash;
+      setActiveSection(hash || "#top");
+    };
+
+    updateActiveSection();
+    window.addEventListener("hashchange", updateActiveSection);
+    return () => window.removeEventListener("hashchange", updateActiveSection);
+  }, []);
 
   // Check for reduced motion preference only on client
   useEffect(() => {
@@ -39,17 +61,13 @@ export default function DrawerSidebar() {
   const sections = useMemo<NavSection[]>(
     () => [
       {
-        title: "Navegación",
+        title: "Navigation",
         items: [
-          { label: "Inicio", href: "#top" },
-          { label: "Servicios", href: "#services" },
-          { label: "Casos", href: "#work" },
-          { label: "Contacto", href: "#contact" },
+          { label: "Inicio", href: "#top", icon: Home },
+          { label: "Servicios", href: "#services", icon: Briefcase },
+          { label: "Casos", href: "#work", icon: FolderKanban },
+          { label: "Contacto", href: "#contact", icon: Mail },
         ],
-      },
-      {
-        title: "Recursos",
-        items: [{ label: "Cómo trabajamos", href: "#process" }],
       },
     ],
     []
@@ -60,8 +78,20 @@ export default function DrawerSidebar() {
     if (!open) return;
     restoreFocusRef.current = (document.activeElement as HTMLElement | null) ?? null;
 
-    const prevOverflow = document.body.style.overflow;
+    // Guardar los valores originales
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyPosition = document.body.style.position;
+    const prevBodyWidth = document.body.style.width;
+    
+    // Calcular el ancho del scrollbar para evitar el shift
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+    // Bloquear scroll en body y html
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.width = `calc(100% - ${scrollbarWidth}px)`;
 
     // Focus first interactive element inside panel
     const t = window.setTimeout(() => {
@@ -73,7 +103,11 @@ export default function DrawerSidebar() {
 
     return () => {
       window.clearTimeout(t);
-      document.body.style.overflow = prevOverflow;
+      // Restaurar valores originales
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.position = prevBodyPosition;
+      document.body.style.width = prevBodyWidth;
       restoreFocusRef.current?.focus?.();
       restoreFocusRef.current = null;
     };
@@ -160,63 +194,87 @@ export default function DrawerSidebar() {
             tabIndex={-1}
             className={[
               "absolute left-0 top-0 h-full",
-              "w-[min(85vw,340px)] md:w-[320px]",
-              "border-r border-black/10 bg-white shadow-[0_30px_90px_rgba(0,0,0,0.18)]",
+              "w-[min(85vw,280px)] md:w-[280px]",
+              "bg-[#0f172a] border-r border-slate-800",
               "outline-none",
             ].join(" ")}
           >
             <div className="flex h-full flex-col">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-black/10 px-4 py-4">
+              <div className="flex items-center justify-between px-4 py-4 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-slate-900" aria-hidden />
-                  <div className="text-base font-semibold text-slate-900">Glomun</div>
+                  <div className="relative h-8 w-8">
+                    <Image
+                      src="https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/gotita_loca_iskndh.webp"
+                      alt="Glomun"
+                      width={32}
+                      height={32}
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="text-base font-semibold text-white">Glomun</div>
                 </div>
                 <button
                   type="button"
                   onClick={closeSidebar}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-black/10 bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600"
                   aria-label="Cerrar"
                 >
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M18 6l-12 12" />
-                  </svg>
+                  <MoreVertical className="h-5 w-5" />
                 </button>
               </div>
 
               {/* Sections */}
               <div className="flex-1 overflow-y-auto px-3 py-4">
                 {sections.map((section) => (
-                  <div key={section.title} className="mb-5">
-                    <div className="px-2 pb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                  <div key={section.title} className="mb-6">
+                    <div className="px-3 pb-2 text-xs font-medium uppercase tracking-wider text-slate-400">
                       {section.title}
                     </div>
                     <div className="space-y-1">
-                      {section.items.map((item) => (
-                        <a
-                          key={item.label}
-                          href={item.href}
-                          onClick={() => closeSidebar()}
-                          className="flex items-center rounded-lg px-3 py-2.5 text-[15px] font-medium text-slate-900 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10"
-                        >
-                          {item.label}
-                        </a>
-                      ))}
+                      {section.items.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = activeSection === item.href || (item.href === "#top" && (activeSection === "" || activeSection === "#top"));
+                        return (
+                          <a
+                            key={item.label}
+                            href={item.href}
+                            onClick={() => closeSidebar()}
+                            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 ${
+                              isActive
+                                ? "bg-slate-800 text-white font-semibold"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                            }`}
+                          >
+                            <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`} />
+                            {item.label}
+                          </a>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Footer */}
-              <div className="border-t border-black/10 p-4">
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(2,6,23,0.14)] transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
-                >
-                  Agendar llamada
-                </button>
-                <div className="mt-3 text-center text-xs text-slate-500">Atajos: ESC para cerrar</div>
+              {/* Footer - User Profile */}
+              <div className="border-t border-slate-800 p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-10 w-10 rounded-full bg-slate-700 flex items-center justify-center text-white font-semibold text-sm">
+                    GB
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-white truncate">Glomun</span>
+                      <svg className="h-4 w-4 text-purple-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Github className="h-3.5 w-3.5 text-slate-400" />
+                      <span className="text-xs text-slate-400 truncate">@glomun</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </motion.aside>
