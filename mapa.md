@@ -1,9 +1,10 @@
-Actualizar a la ultima version de next
+Actualizar a la ultima version de next 16✅
 Permormance de la app
 
 Lo ultimo...
 Bien, pusiste 3 proyectos, pone 
 
+- Usar componentes de Tailwind, son bomba
 
 Diseño Card - Desarrollos/Casos
 - Tipo: Sito web, e-commerce, app
@@ -12,6 +13,7 @@ Tasks:
 - El modo de presentar los servicios
 - El modo en el que presentamos los desarrollos
 - Sidebar
+- Footer
 
 . Que queremos mostrar?
 

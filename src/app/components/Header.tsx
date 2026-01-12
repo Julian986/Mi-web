@@ -1,14 +1,33 @@
 "use client";
 
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSidebar } from "./sidebar/SidebarProvider";
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const languageMenuRef = useRef<HTMLDivElement>(null);
   const { openSidebar } = useSidebar();
   const navItemClassName =
     "inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap rounded-full px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-black/10";
+
+  // Cerrar el menú de idioma al hacer clic fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target as Node)) {
+        setIsLanguageMenuOpen(false);
+      }
+    };
+
+    if (isLanguageMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isLanguageMenuOpen]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-black/10 bg-white/75 backdrop-blur-md">
@@ -81,12 +100,43 @@ export default function Header() {
               >
                 Ver servicios
               </a>
-              <button className="text-slate-500 hover:text-slate-900 p-2" aria-label="Buscar">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </button>
-              <button className="text-slate-500 hover:text-slate-900 p-2" aria-label="Tema">
+              <div className="relative" ref={languageMenuRef}>
+                <button 
+                  className="text-slate-500 hover:text-slate-900 p-2 relative cursor-pointer" 
+                  aria-label="Seleccionar idioma"
+                  onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
+                </button>
+                {isLanguageMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 rounded-lg border border-black/10 bg-white shadow-lg py-1 z-50">
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      onClick={() => setIsLanguageMenuOpen(false)}
+                    >
+                      <span className="text-base">🇪🇸</span>
+                      <span>Español</span>
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      onClick={() => setIsLanguageMenuOpen(false)}
+                    >
+                      <span className="text-base">🇺🇸</span>
+                      <span>English</span>
+                    </button>
+                    <button
+                      className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                      onClick={() => setIsLanguageMenuOpen(false)}
+                    >
+                      <span className="text-base">🇫🇷</span>
+                      <span>Français</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button className="text-slate-500 hover:text-slate-900 p-2 cursor-pointer" aria-label="Tema">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
@@ -131,10 +181,46 @@ export default function Header() {
                 </a>
                 <a
                   href="#services"
-                  className="block w-full rounded-lg border border-black/10 bg-white px-4 py-2 text-center text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50"
+                  className="mb-2 block w-full rounded-lg border border-black/10 bg-white px-4 py-2 text-center text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50"
                 >
                   Ver servicios
                 </a>
+                <div className="relative mt-2">
+                  <button
+                    className="w-full rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50 flex items-center justify-center gap-2 cursor-pointer"
+                    onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                    <span>Idioma</span>
+                  </button>
+                  {isLanguageMenuOpen && (
+                    <div className="mt-2 w-full rounded-lg border border-black/10 bg-white shadow-lg py-1">
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        onClick={() => setIsLanguageMenuOpen(false)}
+                      >
+                        <span className="text-base">🇪🇸</span>
+                        <span>Español</span>
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        onClick={() => setIsLanguageMenuOpen(false)}
+                      >
+                        <span className="text-base">🇺🇸</span>
+                        <span>English</span>
+                      </button>
+                      <button
+                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                        onClick={() => setIsLanguageMenuOpen(false)}
+                      >
+                        <span className="text-base">🇫🇷</span>
+                        <span>Français</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

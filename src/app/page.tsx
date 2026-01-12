@@ -20,14 +20,7 @@ export default function Home() {
         {/* <DrawerSidebar /> */}
         <Hero />
 
-        <section id="services" className="border-t border-black/10 px-6 py-16 overflow-x-hidden">
-          <div className="mx-auto max-w-6xl">
-            <h2 className="text-3xl font-bold mb-3">Servicios</h2>
-            <p className="text-lg max-w-2xl text-slate-600 mb-10">
-              Elegí lo que querés construir. Te contamos alcance, tiempos y próximos pasos en simples pasos.
-            </p>
-          </div>
-
+        <section id="services" className="overflow-x-hidden">
           <ServicesDashboards />
         </section>
 
