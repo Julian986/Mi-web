@@ -53,7 +53,7 @@ export default function Header() {
             {/* Logo */}
             <div className="flex items-center">
               <div className="flex items-center gap-0">
-                <button
+                {/* <button
                   type="button"
                   onClick={openSidebar}
                   className="mr-1 inline-flex h-10 w-10 items-center justify-center rounded-md border-none cursor-pointer bg-white text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10"
@@ -62,7 +62,7 @@ export default function Header() {
                   <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
-                </button>
+                </button> */}
                 <div className="relative flex items-center">
                   <Image
                     /* src="/Glomun_logo.png" */
@@ -82,9 +82,9 @@ export default function Header() {
             <nav className="hidden md:flex items-center gap-1">
               <a 
                 href="#top" 
-                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                   activeSection === "#top" || activeSection === ""
-                    ? "text-slate-900"
+                    ? ""
                     : "hover:text-slate-700"
                 }`}
               >
@@ -96,16 +96,16 @@ export default function Header() {
                       : "opacity-0 group-hover:opacity-100"
                   }`}
                   style={{ 
-                    bottom: "-18px", 
+                    bottom: "-12px", 
                     backgroundColor: activeSection === "#top" || activeSection === "" ? "#3b59a3" : "#9ca3af" 
                   }}
                 />
               </a>
               <a 
                 href="#services" 
-                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                   activeSection === "#services"
-                    ? "text-slate-900"
+                    ? ""
                     : "hover:text-slate-700"
                 }`}
               >
@@ -117,16 +117,16 @@ export default function Header() {
                       : "opacity-0 group-hover:opacity-100"
                   }`}
                   style={{ 
-                    bottom: "-18px", 
+                    bottom: "-12px", 
                     backgroundColor: activeSection === "#services" ? "#3b59a3" : "#9ca3af" 
                   }}
                 />
               </a>
               <a 
                 href="#work" 
-                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                   activeSection === "#work"
-                    ? "text-slate-900"
+                    ? ""
                     : "hover:text-slate-700"
                 }`}
               >
@@ -138,16 +138,16 @@ export default function Header() {
                       : "opacity-0 group-hover:opacity-100"
                   }`}
                   style={{ 
-                    bottom: "-18px", 
+                    bottom: "-12px", 
                     backgroundColor: activeSection === "#work" ? "#3b59a3" : "#9ca3af" 
                   }}
                 />
               </a>
               <a 
                 href="#contact" 
-                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-[15px] font-normal !leading-none text-center text-black transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                   activeSection === "#contact"
-                    ? "text-slate-900"
+                    ? ""
                     : "hover:text-slate-700"
                 }`}
               >
@@ -159,7 +159,7 @@ export default function Header() {
                       : "opacity-0 group-hover:opacity-100"
                   }`}
                   style={{ 
-                    bottom: "-18px", 
+                    bottom: "-12px", 
                     backgroundColor: activeSection === "#contact" ? "#3b59a3" : "#9ca3af" 
                   }}
                 />
@@ -243,16 +243,16 @@ export default function Header() {
         {isMenuOpen && (
           <div className="md:hidden border-t border-black/10">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <a href="#top" className="block px-3 py-2 text-slate-700 hover:text-slate-900">
+              <a href="#top" className="block px-3 py-2 text-sm/6 font-semibold text-slate-900 hover:text-slate-700">
                 Inicio
               </a>
-              <a href="#services" className="block px-3 py-2 text-slate-700 hover:text-slate-900">
+              <a href="#services" className="block px-3 py-2 text-sm/6 font-semibold text-slate-900 hover:text-slate-700">
                 Servicios
               </a>
-              <a href="#work" className="block px-3 py-2 text-slate-700 hover:text-slate-900">
+              <a href="#work" className="block px-3 py-2 text-sm/6 font-semibold text-slate-900 hover:text-slate-700">
                 Casos
               </a>
-              <a href="#contact" className="block px-3 py-2 text-slate-700 hover:text-slate-900">
+              <a href="#contact" className="block px-3 py-2 text-sm/6 font-semibold text-slate-900 hover:text-slate-700">
                 Contacto
               </a>
               <div className="px-3 py-2">

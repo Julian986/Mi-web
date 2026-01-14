@@ -203,7 +203,7 @@ export default function DrawerSidebar() {
               {/* Header */}
               <div className="flex items-center justify-between px-4 py-4 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="relative h-8 w-8">
+                  <div className="relative h-8 w-8 flex items-center justify-center">
                     <Image
                       src="https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/gotita_loca_iskndh.webp"
                       alt="Glomun"
@@ -212,7 +212,7 @@ export default function DrawerSidebar() {
                       className="object-contain"
                     />
                   </div>
-                  <div className="text-base font-semibold text-white">Glomun</div>
+                  <div className="text-base font-semibold text-white leading-none">Glomun</div>
                 </div>
                 <button
                   type="button"
@@ -240,10 +240,10 @@ export default function DrawerSidebar() {
                             key={item.label}
                             href={item.href}
                             onClick={() => closeSidebar()}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-[15px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 ${
+                            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm/6 font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 ${
                               isActive
-                                ? "bg-slate-800 text-white font-semibold"
-                                : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                ? "bg-slate-800"
+                                : "hover:bg-slate-800/50"
                             }`}
                           >
                             <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`} />

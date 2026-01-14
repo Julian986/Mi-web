@@ -48,7 +48,7 @@ export default function Footer() {
           {/* Logo */}
           <div className="md:col-span-1">
             <a href="#top" className="flex items-center gap-2 mb-4">
-              <div className="relative h-8 w-8">
+              <div className="relative h-8 w-8 flex items-center justify-center">
                 <Image
                   src="https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/gotita_loca_iskndh.webp"
                   alt="Glomun"
@@ -57,7 +57,7 @@ export default function Footer() {
                   className="object-contain"
                 />
               </div>
-              <span className="text-lg font-semibold text-slate-900">Glomun</span>
+              <span className="text-lg font-semibold text-slate-900 leading-none">Glomun</span>
             </a>
           </div>
 

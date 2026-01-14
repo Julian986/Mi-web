@@ -2,7 +2,7 @@ import dynamic from "next/dynamic";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import { SidebarProvider } from "./components/sidebar/SidebarProvider";
-import DrawerSidebar from "./components/sidebar/DrawerSidebar";
+// import DrawerSidebar from "./components/sidebar/DrawerSidebar";
 import FAQ from "./components/FAQ";
 import Footer from "./components/Footer";
 
@@ -20,7 +20,7 @@ export default function Home() {
     <SidebarProvider>
       <div className="min-h-screen overflow-x-hidden text-slate-900">
         <Header />
-        <DrawerSidebar />
+        {/* <DrawerSidebar /> */}
         <Hero />
 
         <section id="services" className="overflow-x-hidden">
@@ -31,11 +31,12 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-6 mb-10">
             <h2 className="text-3xl font-bold mb-4">Desarrollos / Casos</h2>
             <p className="text-lg max-w-2xl mx-auto text-slate-600">
-              Proyectos reales en producción: webs, tiendas online y aplicaciones que construimos para nuestros clientes. Pasá el mouse sobre cada desarrollo para ver la conexión.
+              Proyectos reales en producción: webs, tiendas online y aplicaciones que construimos para nuestros clientes.
             </p>
           </div>
 
           <ProjectsShowcase />
+
         </section>
 
         <FAQ />

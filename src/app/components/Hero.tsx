@@ -5,14 +5,10 @@ export default function Hero() {
         <div id="top" className="flex min-h-[calc(100vh-64px)] items-center justify-center pb-16 pt-28">
           {/* Hero simple, blanco y centrado (texto "en el aire") */}
           <div className="w-full max-w-3xl text-center overflow-x-hidden">
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+            <h1 className="text-5xl font-semibold tracking-tight text-balance text-slate-900 sm:text-6xl">
               <span className="relative inline-block">
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute -inset-x-3 -inset-y-2 -z-10 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.10),transparent_70%)]"
-                />
-                <span className="bg-gradient-to-b from-slate-950 to-slate-700 bg-clip-text text-transparent">
-                  Glomun
+                <span>
+                  Desarrollo de Software
                 </span>
                 <span
                   aria-hidden

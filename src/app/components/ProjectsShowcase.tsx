@@ -100,6 +100,18 @@ export default function ProjectsShowcase() {
     () => [
       {
         id: "dev-1",
+        title: "Kinesiología y Salud",
+        domain: "kinesiologiaysalud.com",
+        url: "https://kinesiologiaysalud.com",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768397026/kinesioysalud_1_qhmym6.webp",
+        cableX: 50,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-2",
         title: "Amo mi casa",
         domain: "amomicasahome.com",
         url: "https://amomicasahome.com",
@@ -108,31 +120,163 @@ export default function ProjectsShowcase() {
         image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/amo-mi-casa_qwg5tb.webp",
         cableX: 20,
         cableY: 85,
-        accentRgb: "88,101,242",
-      },
-      {
-        id: "dev-2",
-        title: "Sitio Corporativo",
-        domain: "empresa-ejemplo.com",
-        url: "https://empresa-ejemplo.com",
-        type: "web",
-        technology: "React",
-        image: "/vercel.svg", // Placeholder, cambiar por imagen real
-        cableX: 50,
-        cableY: 90,
-        accentRgb: "124,58,237",
+        accentRgb: "38,59,119",
       },
       {
         id: "dev-3",
-        title: "App Web Progresiva",
-        domain: "app-ejemplo.com",
-        url: "https://app-ejemplo.com",
+        title: "Pedri",
+        domain: "app.pedriapp.com",
+        url: "https://app.pedriapp.com",
         type: "app",
         technology: "Next.js",
-        image: "/next.svg", // Placeholder, cambiar por imagen real
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768398036/pedri_czzsak.webp",
         cableX: 80,
         cableY: 85,
-        accentRgb: "34,211,238",
+        accentRgb: "80,124,201",
+      },
+      {
+        id: "dev-4",
+        title: "Salud Dental",
+        domain: "odontologiajgoroso.com",
+        url: "https://odontologiajgoroso.com/",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768398451/jesica_1_dvkreb.webp",
+        cableX: 35,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-5",
+        title: "Lic. Natalia Domecq",
+        domain: "psicodomecq.com",
+        url: "https://psicodomecq.com",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768400848/natalia_xqpuen.webp",
+        cableX: 65,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-6",
+        title: "Nutrición Integral",
+        domain: "mvnutricionconsciente.com",
+        url: "https://mvnutricionconsciente.com",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768402054/maria_wxw23y.webp",
+        cableX: 15,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-andrea-cohen",
+        title: "Lic. Andrea Cohen",
+        domain: "andreacohennutricionista.com",
+        url: "https://lic-andrea-cohen-nutricionista.vercel.app",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768407494/Captura_de_pantalla_413_byhtvk.webp",
+        cableX: 25,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-7",
+        title: "Estudio Jurídico",
+        domain: "ezequielabogado.com",
+        url: "https://ezequiel-cortes-abogado.vercel.app/",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768402491/ezequiel_wgolbc.webp",
+        cableX: 50,
+        cableY: 85,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-8",
+        title: "Lic. Pablo Pérez",
+        domain: "pabloperezkinesiologia.com",
+        url: "https://lic-pablo-perez.vercel.app",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768407201/pablo_perez_ozno0c.webp",
+        cableX: 80,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-9",
+        title: "A-Mar Salud",
+        domain: "amarsalud.com",
+        url: "https://a-mar-salud.vercel.app",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768403276/a-marSalud_npy0iz.webp",
+        cableX: 20,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-10",
+        title: "Eukinesia",
+        domain: "eukinesia.com",
+        url: "https://eukinesiakinesiologia.vercel.app/",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768403724/eukinesia_qmblft.webp",
+        cableX: 65,
+        cableY: 85,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-11",
+        title: "CRS Informática",
+        domain: "crsinformatica.com",
+        url: "https://crsinformaticapc.vercel.app",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768404579/crsinformatica_fgptjr.webp",
+        cableX: 35,
+        cableY: 85,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-12",
+        title: "Lic. Wanda Perrin",
+        domain: "wandakinesiologia.com",
+        url: "https://lic-wanda-perrin-kinesiologia.vercel.app/",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768405888/Captura_de_pantalla_411_u8phlz.webp",
+        cableX: 50,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-13",
+        title: "AACI",
+        domain: "aaci.com",
+        url: "https://aaci.vercel.app/",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768403016/aaci_xkz9sg.webp",
+        cableX: 15,
+        cableY: 90,
+        accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-14",
+        title: "Lic. Victoria Nazra",
+        domain: "victorianazrapsicologa.com",
+        url: "https://victoria-psicologa.vercel.app/",
+        type: "web",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768408990/victoria_hpxsnn.webp",
+        cableX: 80,
+        cableY: 90,
+        accentRgb: "132,185,237",
       },
     ],
     []
@@ -284,7 +428,7 @@ export default function ProjectsShowcase() {
       </div> */}
 
       {/* Grid de Cards */}
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 max-w-4xl mx-auto">
         {developments.map((dev, index) => {
           const isActive = activeId === dev.id;
 
@@ -306,127 +450,112 @@ export default function ProjectsShowcase() {
             >
               <motion.div
                 onClick={() => window.open(dev.url, "_blank", "noopener,noreferrer")}
-                className="relative block cursor-pointer overflow-hidden rounded-2xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.08)] will-change-transform"
+                className="relative flex items-center cursor-pointer overflow-hidden rounded-xl bg-white border border-black/10 hover:border-black/20 transition-all will-change-transform"
                 animate={
                   reduceMotion || isScrolling
                     ? {
-                        scale: isActive ? 1.02 : 1,
+                        scale: isActive ? 1.01 : 1,
                       }
                     : {
-                        y: isActive ? -8 : [0, -4, 0],
-                        scale: isActive ? 1.02 : 1,
+                        y: isActive ? -2 : 0,
+                        scale: isActive ? 1.01 : 1,
                       }
                 }
                 transition={
                   reduceMotion || isScrolling
-                    ? { scale: { duration: 0.3 } }
+                    ? { scale: { duration: 0.2 } }
                     : {
-                        y: {
-                          duration: 2,
-                          repeat: Infinity,
-                          repeatType: "mirror" as const,
-                          ease: "easeInOut",
-                        },
-                        scale: { duration: 0.3 },
+                        y: { duration: 0.2 },
+                        scale: { duration: 0.2 },
                       }
                 }
                 style={{
                   boxShadow: isActive
-                    ? `0 16px 64px rgba(${dev.accentRgb}, 0.25)`
-                    : "0 4px 24px rgba(0,0,0,0.08)",
+                    ? `0 4px 12px rgba(${dev.accentRgb}, 0.15)`
+                    : "0 1px 3px rgba(0,0,0,0.05)",
                 }}
               >
-                {/* Top accent line */}
-                <div
-                  className="h-1 w-full"
+                {/* Thumbnail Image */}
+                <div 
+                  className="relative w-36 h-24 md:w-40 md:h-24 flex-shrink-0 overflow-hidden rounded-xl border flex items-center justify-center transition-colors ml-4"
                   style={{
-                    background: `linear-gradient(90deg, rgb(${dev.accentRgb}) 0%, rgba(${dev.accentRgb}, 0.3) 100%)`,
+                    backgroundColor: dev.id === "dev-3" ? "rgb(12, 16, 21)" : `rgba(${dev.accentRgb}, 0.08)`,
+                    borderColor: `rgba(${dev.accentRgb}, 0.15)`,
                   }}
-                />
-
-                {/* Imagen */}
-                <div className="relative aspect-video overflow-hidden bg-slate-100">
-                  <Image
-                    src={dev.image}
-                    alt={dev.title}
-                    fill
-                    loading="lazy"
-                    className="object-cover object-[center_top] transition-transform duration-500 group-hover:scale-110"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    placeholder="blur"
-                    blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjFmNWY5Ii8+PC9zdmc+"
-                  />
-                  {/* Overlay sutil en hover */}
-                  <div
-                    className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-10"
-                    style={{
-                      background: `linear-gradient(135deg, rgb(${dev.accentRgb}) 0%, transparent 100%)`,
-                    }}
-                  />
+                >
+                  <div className="relative w-full h-full flex items-center justify-center p-3">
+                    <Image
+                      src={dev.image}
+                      alt={dev.title}
+                      fill
+                      loading="lazy"
+                      className="object-contain object-center transition-transform duration-300 group-hover:scale-110"
+                      sizes="160px"
+                    />
+                  </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
-                  {/* Type badge */}
-                  <div className="mb-3 flex items-center gap-2">
-                    <div
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{
-                        backgroundColor: `rgb(${dev.accentRgb})`,
-                      }}
-                    />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      {dev.type === "web" ? "Sitio Web" : dev.type === "ecommerce" ? "E-commerce" : "App"}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <h3 className="mb-2 text-xl font-bold text-slate-900">{dev.title}</h3>
-
-                  {/* Technology */}
-                  <div className="mb-4 flex items-center gap-2">
-                    <Wrench className="h-4 w-4 text-slate-500" />
-                    <span className="text-sm font-medium text-slate-700">{dev.technology}</span>
-                  </div>
-
-                  {/* Domain and Stats */}
-                  <div className="mb-4 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                      <svg
-                        className="h-4 w-4 text-slate-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-                        />
-                      </svg>
-                      <span
-                        className="text-sm font-medium text-slate-700 transition-colors"
+                <div className="flex-1 p-4 pr-6 flex flex-col justify-between min-w-0">
+                  <div>
+                    {/* Type badge */}
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <div
+                        className="h-1.5 w-1.5 rounded-full"
                         style={{
-                          color: isActive ? `rgb(${dev.accentRgb})` : undefined,
+                          backgroundColor: `rgb(${dev.accentRgb})`,
                         }}
-                      >
-                        {dev.domain}
+                      />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                        {dev.type === "web" ? "Sitio Web" : dev.type === "ecommerce" ? "E-commerce" : "App"}
                       </span>
                     </div>
-                    <ChartNoAxesCombined className="h-4 w-4 text-slate-400" />
+
+                    {/* Title */}
+                    <h3 className="mb-2 text-base font-bold text-slate-900 text-left">{dev.title}</h3>
+
+                    {/* Technology and Domain */}
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
+                      <div className="flex items-center gap-1.5">
+                        <Wrench className="h-3.5 w-3.5 text-slate-400" />
+                        <span>{dev.technology}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <svg
+                          className="h-3.5 w-3.5 text-slate-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                          />
+                        </svg>
+                        <span
+                          className="font-medium transition-colors"
+                          style={{
+                            color: isActive ? `rgb(${dev.accentRgb})` : undefined,
+                          }}
+                        >
+                          {dev.domain}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Arrow indicator */}
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mt-2">
                     <span>Ver desarrollo</span>
                     <motion.svg
-                      className="h-4 w-4"
+                      className="h-3.5 w-3.5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
-                      animate={{ x: isActive ? 4 : 0 }}
-                      transition={{ duration: 0.3 }}
+                      animate={{ x: isActive ? 3 : 0 }}
+                      transition={{ duration: 0.2 }}
                     >
                       <path
                         strokeLinecap="round"
@@ -437,10 +566,34 @@ export default function ProjectsShowcase() {
                     </motion.svg>
                   </div>
                 </div>
+
+                {/* Statistics Icon */}
+                <div className="absolute bottom-3 right-3 opacity-50 md:opacity-40 md:group-hover:opacity-60 transition-opacity">
+                  <ChartNoAxesCombined 
+                    className="h-4 w-4" 
+                    style={{ color: "lab(33 -1.89 -15.95)" }}
+                  />
+                </div>
               </motion.div>
             </motion.div>
           );
         })}
+      </div>
+
+      {/* Cita al final */}
+      <div className="mt-12 text-center">
+        <motion.p
+          className="text-lg md:text-xl text-slate-600 italic font-medium"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            delay: developments.length * 0.1 + 0.2,
+            duration: 0.5,
+          }}
+        >
+          {/* En Glomun los mantenemos, actualizamos y aseguramos de forma continua. */}
+          Todos los desarrollos cuentan con mantenimiento, actualizaciones y medidas de seguridad continuas.
+        </motion.p>
       </div>
     </div>
   );

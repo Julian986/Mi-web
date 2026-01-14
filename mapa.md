@@ -2,11 +2,21 @@ Actualizar a la ultima version de next 16✅
 Permormance de la app
 
 Lo ultimo...
+desarrollos faltan: apps: peliculas, barberia, internet retro
+
+diseño de la card de desarrollo
 item activo del menu de navegacion 
 sidebar
 agregar desarrollos
 preguntas frecuentes
 carrousel de marcas
+
+
+
+- Colores para puntos de la Seccion de Desarrollos
+    . rgb(38 59 119) ecommerce
+    . rgb(132 185 237) sitio web
+    . rgb(80 124 201) app
 
 - Usar componentes de Tailwind, son bomba
 
