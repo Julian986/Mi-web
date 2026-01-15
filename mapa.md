@@ -2,14 +2,17 @@ Actualizar a la ultima version de next 16✅
 Permormance de la app
 
 Lo ultimo...
-desarrollos faltan: apps: peliculas, barberia, internet retro
+Pasos en la compra de servicios, quitar el scroll
+desarrollos faltan: apps: peliculas, barberia, internet retro✅
+reflexionar sobre productos para clientes y desarrollos propios
 
 diseño de la card de desarrollo
 item activo del menu de navegacion 
 sidebar
 agregar desarrollos
 preguntas frecuentes
-carrousel de marcas
+carrousel de marcas - puede ser sino una seccion de marcas como tiene tailwind(convertite en sponsor)
+
 
 
 

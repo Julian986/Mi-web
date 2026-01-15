@@ -73,7 +73,7 @@ export default function FAQ() {
               >
                 <button
                   onClick={() => toggleItem(index)}
-                  className={`w-full px-6 py-4 flex items-center justify-between text-left focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:ring-offset-2 ${
+                  className={`w-full px-6 py-4 flex items-center justify-between text-left cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:ring-offset-2 ${
                     isOpen ? "border-b border-black/10" : ""
                   }`}
                   aria-expanded={isOpen}

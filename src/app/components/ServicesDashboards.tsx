@@ -1,10 +1,13 @@
 "use client";
 
 import React, { useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 
+type ServiceType = "web" | "ecommerce" | "custom";
+
 type Service = {
-  id: "web" | "ecommerce" | "custom";
+  id: ServiceType;
   name: string;
   description: string;
   features: string[];
@@ -17,6 +20,8 @@ function classNames(...classes: (string | boolean | undefined)[]): string {
 }
 
 export default function ServicesDashboards() {
+  const router = useRouter();
+
   const services = useMemo<Service[]>(
     () => [
       {
@@ -123,18 +128,18 @@ export default function ServicesDashboards() {
                 </li>
               ))}
             </ul>
-            <a
-              href="#contact"
+            <button
+              onClick={() => router.push(`/services/${service.id}`)}
               aria-describedby={service.id}
               className={classNames(
                 service.featured
                   ? "bg-white text-slate-900 hover:bg-slate-50 focus-visible:outline-white"
                   : "bg-slate-900 text-white ring-1 ring-inset ring-black/10 hover:bg-slate-800 focus-visible:outline-slate-900",
-                "mt-8 block rounded-md px-3.5 py-2.5 text-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 sm:mt-10"
+                "mt-8 w-full rounded-md px-3.5 py-2.5 text-center text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 sm:mt-10 cursor-pointer"
               )}
             >
               {service.ctaLabel}
-            </a>
+            </button>
           </div>
         ))}
       </div>

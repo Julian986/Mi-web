@@ -67,6 +67,7 @@ type Development = {
 export default function ProjectsShowcase() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const reduceMotion = useReducedMotion();
 
   // Pausar animaciones durante el scroll para mejorar rendimiento
@@ -195,6 +196,18 @@ export default function ProjectsShowcase() {
         accentRgb: "132,185,237",
       },
       {
+        id: "dev-tuturno",
+        title: "Tu Turno Barbería",
+        domain: "tuturnobarberia.com",
+        url: "https://tu-turno-jet.vercel.app",
+        type: "app",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768422963/Captura_de_pantalla_416_fyohyw.webp",
+        cableX: 50,
+        cableY: 85,
+        accentRgb: "80,124,201",
+      },
+      {
         id: "dev-8",
         title: "Lic. Pablo Pérez",
         domain: "pabloperezkinesiologia.com",
@@ -205,6 +218,30 @@ export default function ProjectsShowcase() {
         cableX: 80,
         cableY: 90,
         accentRgb: "132,185,237",
+      },
+      {
+        id: "dev-peliculas",
+        title: "Tienda de Películas",
+        domain: "bibliotecapeliculas.com",
+        url: "https://biblioteca-peliculas-ywrn.vercel.app/",
+        type: "app",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768424107/Captura_de_pantalla_417_xteyjt.webp",
+        cableX: 70,
+        cableY: 85,
+        accentRgb: "80,124,201",
+      },
+      {
+        id: "dev-internet-retro",
+        title: "Internet Retro",
+        domain: "internet-retro.com",
+        url: "https://internet-retro.vercel.app",
+        type: "app",
+        technology: "React",
+        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768424523/Captura_de_pantalla_418_pqeuvd.webp",
+        cableX: 60,
+        cableY: 85,
+        accentRgb: "80,124,201",
       },
       {
         id: "dev-9",
@@ -281,6 +318,28 @@ export default function ProjectsShowcase() {
     ],
     []
   );
+
+  // Calcular las cards visibles (hasta "Tienda de Películas" si showAll es false)
+  const visibleDevelopments = useMemo(() => {
+    if (showAll) return developments;
+    const peliculasIndex = developments.findIndex((d) => d.id === "dev-peliculas");
+    if (peliculasIndex === -1) return developments;
+    // Incluir "Tienda de Películas" (peliculasIndex + 1)
+    return developments.slice(0, peliculasIndex + 1);
+  }, [developments, showAll]);
+
+  // Verificar si hay cards ocultas
+  const hasMoreCards = useMemo(() => {
+    if (showAll) return false;
+    const peliculasIndex = developments.findIndex((d) => d.id === "dev-peliculas");
+    return peliculasIndex !== -1 && peliculasIndex + 1 < developments.length;
+  }, [developments, showAll]);
+
+  // Calcular el índice inicial (cards que ya estaban visibles)
+  const initialVisibleCount = useMemo(() => {
+    const peliculasIndex = developments.findIndex((d) => d.id === "dev-peliculas");
+    return peliculasIndex !== -1 ? peliculasIndex + 1 : developments.length;
+  }, [developments]);
 
   // Variables comentadas (usadas solo en código de stack/cables desactivado)
   // const anyActive = activeId !== null;
@@ -429,8 +488,12 @@ export default function ProjectsShowcase() {
 
       {/* Grid de Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 max-w-4xl mx-auto">
-        {developments.map((dev, index) => {
+        {visibleDevelopments.map((dev, index) => {
           const isActive = activeId === dev.id;
+          // Para las nuevas cards que aparecen después de "Ver más", usar delay relativo desde 0
+          const isNewCard = showAll && index >= initialVisibleCount;
+          // Si es una nueva card, usar delay relativo desde 0. Si no, usar el delay basado en su índice
+          const animationDelay = isNewCard ? (index - initialVisibleCount) * 0.1 : index * 0.1;
 
           return (
               <motion.div
@@ -444,7 +507,7 @@ export default function ProjectsShowcase() {
                 y: 0,
               }}
               transition={{
-                delay: index * 0.1,
+                delay: animationDelay,
                 duration: 0.4,
               }}
             >
@@ -579,6 +642,25 @@ export default function ProjectsShowcase() {
           );
         })}
       </div>
+
+      {/* Texto Ver más / Más de 200 desarrollos */}
+      {hasMoreCards && (
+        <div className="mt-8 max-w-4xl mx-auto flex justify-end">
+          <span
+            onClick={() => setShowAll(true)}
+            className="text-sm text-slate-400 cursor-pointer hover:text-slate-500 transition-colors"
+          >
+            Ver más
+          </span>
+        </div>
+      )}
+      {showAll && (
+        <div className="mt-8 max-w-4xl mx-auto flex justify-end">
+          <span className="text-sm text-slate-400">
+            Más de 200 desarrollos
+          </span>
+        </div>
+      )}
 
       {/* Cita al final */}
       <div className="mt-12 text-center">
