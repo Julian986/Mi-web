@@ -3,6 +3,7 @@ Permormance de la app
 
 Lo ultimo...
 Pasos en la compra de servicios, quitar el scroll
+diseño de steps, flecha derecha conexion enganche de steps
 desarrollos faltan: apps: peliculas, barberia, internet retro✅
 reflexionar sobre productos para clientes y desarrollos propios
 

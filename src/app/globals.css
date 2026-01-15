@@ -62,3 +62,15 @@ body.font-loaded {
 ::selection {
   background: rgba(var(--accent-blue), 0.22);
 }
+
+/* Ocultar barra de scroll pero mantener funcionalidad de scroll */
+.scrollbar-hide {
+  /* Firefox */
+  scrollbar-width: none;
+  /* Safari y Chrome */
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
