@@ -118,12 +118,14 @@ export default function Stepper({ steps, activeColor = "#000000" }: StepperProps
             const styles = getStepStyles(step);
             const prevStep = index > 0 ? steps[index - 1] : null;
             const prevStepCompleted = prevStep?.status === "completed";
+            const nextStep = !isLast ? steps[index + 1] : null;
+            const nextStepCompleted = nextStep?.status === "completed";
             
             // El color de la flecha izquierda debe coincidir con el color del step actual
             // Solo si el step anterior está completado, aplicamos el overlay con el color del step actual
             const arrowLeftBg = !isFirst && prevStepCompleted ? styles.bg : null;
-            // Borde del pico de la flecha en gris claro para resaltar
-            const arrowBorderColor = "#cbd5e1"; // Gris claro (slate-300)
+            // Borde del pico de la flecha: gris claro por defecto, pero más visible (blanco o gris más claro) cuando ambos steps son negros
+            const arrowBorderColor = step.status === "completed" && nextStepCompleted ? "#ffffff" : "#cbd5e1";
 
             // Clip-path para crear la forma de flecha perfectamente encastrada
             // Si el step anterior está completado, extendemos el clip-path para cubrir el área triangular izquierda
@@ -193,7 +195,7 @@ export default function Stepper({ steps, activeColor = "#000000" }: StepperProps
                   />
                 )}
                 
-                {/* Borde del pico de la flecha derecha en gris claro */}
+                {/* Borde del pico de la flecha derecha - más visible cuando ambos steps son negros */}
                 {!isLast && (
                   <div
                     className="absolute"
@@ -202,7 +204,9 @@ export default function Stepper({ steps, activeColor = "#000000" }: StepperProps
                       top: 0,
                       bottom: 0,
                       width: `${arrowSize}px`,
-                      borderRight: `1px solid ${arrowBorderColor}`,
+                      borderRight: step.status === "completed" && nextStepCompleted 
+                        ? `2px solid ${arrowBorderColor}` 
+                        : `1px solid ${arrowBorderColor}`,
                       clipPath: `polygon(0 0, 100% 50%, 0 100%)`,
                       WebkitClipPath: `polygon(0 0, 100% 50%, 0 100%)`,
                       zIndex: 3,

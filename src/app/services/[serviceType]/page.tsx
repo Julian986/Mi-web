@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
+import Image from "next/image";
+import React, { useMemo, useState, useEffect } from "react";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowLeft } from "lucide-react";
 import Stepper from "@/app/components/Stepper";
-
-type ServiceType = "web" | "ecommerce" | "custom";
+import { getTemplatesForServiceType, type ServiceType } from "@/app/lib/templatesCatalog";
 
 type StepData = {
-  design?: string;
+  design?: string; // ahora representa el templateId elegido
   colorScheme?: string;
   features?: string[];
   customization?: string;
@@ -26,9 +26,12 @@ export default function ServiceFlowPage() {
   const router = useRouter();
   const params = useParams();
   const serviceType = (params?.serviceType as ServiceType) || "web";
+  const searchParams = useSearchParams();
   
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<StepData>({});
+
+  const templates = useMemo(() => getTemplatesForServiceType(serviceType), [serviceType]);
 
   // Validar que el serviceType sea válido
   useEffect(() => {
@@ -36,6 +39,15 @@ export default function ServiceFlowPage() {
       router.push("/");
     }
   }, [serviceType, router]);
+
+  // Si volvemos desde la página de detalle con ?template=..., sincronizamos selección
+  useEffect(() => {
+    const templateFromUrl = searchParams.get("template");
+    if (templateFromUrl && formData.design !== templateFromUrl) {
+      setFormData((prev) => ({ ...prev, design: templateFromUrl }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, serviceType]);
 
   const steps = [
     { id: "design", label: "Elige el diseño" },
@@ -80,13 +92,6 @@ export default function ServiceFlowPage() {
 
   // Step 1: Design Selection
   const renderDesignStep = () => {
-    const designs = [
-      { id: "modern", name: "Moderno", description: "Diseño limpio y contemporáneo" },
-      { id: "classic", name: "Clásico", description: "Estilo tradicional y profesional" },
-      { id: "minimalist", name: "Minimalista", description: "Simple y elegante" },
-      { id: "bold", name: "Atrevido", description: "Vibrante y llamativo" },
-    ];
-
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
@@ -94,26 +99,71 @@ export default function ServiceFlowPage() {
             Elige el diseño para tu {serviceNames[serviceType]}
           </h3>
           <p className="text-slate-600">
-            Selecciona el estilo que mejor represente tu marca
+            Elegí un diseño desde el catálogo. Al abrir uno vas a ver 3–5 pantallas.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-          {designs.map((design) => (
-            <button
-              key={design.id}
-              onClick={() => handleInputChange("design", design.id)}
-              className={`p-4 sm:p-6 rounded-lg border-2 text-left transition-all cursor-pointer ${
-                formData.design === design.id
-                  ? "border-[#6B5BCC] bg-[#6B5BCC]/5"
-                  : "border-slate-200 hover:border-slate-300"
-              }`}
-            >
-              <h4 className="font-semibold text-slate-900 mb-1">{design.name}</h4>
-              <p className="text-sm text-slate-600">{design.description}</p>
-            </button>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {templates.slice(0, 12).map((template) => {
+            const selected = formData.design === template.id;
+            return (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => router.push(`/services/${serviceType}/templates/${template.id}`)}
+                className={[
+                  "group overflow-hidden rounded-xl border text-left transition-all",
+                  "bg-white hover:bg-slate-50",
+                  selected ? "border-[#6B5BCC] ring-2 ring-[#6B5BCC]/20" : "border-slate-200",
+                ].join(" ")}
+              >
+                <div className="relative aspect-[16/10] bg-slate-50">
+                  <Image
+                    src={template.thumb}
+                    alt={template.title}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  />
+                </div>
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h4 className="font-semibold text-slate-900 truncate">{template.title}</h4>
+                      <p className="mt-1 text-xs text-slate-500 truncate">{template.id}</p>
+                    </div>
+                    {selected && (
+                      <span className="shrink-0 rounded-full bg-[#6B5BCC]/10 px-2 py-1 text-xs font-semibold text-[#6B5BCC]">
+                        Seleccionado
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {template.tags.slice(0, 3).map((t) => (
+                      <span
+                        key={`${template.id}-${t}`}
+                        className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600"
+                      >
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
+
+        {formData.design && (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm text-slate-700">
+              <span className="font-semibold">Seleccionado:</span> {formData.design}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">
+              Tip: podés abrir otro diseño y cambiar la selección cuando vuelvas.
+            </p>
+          </div>
+        )}
       </div>
     );
   };

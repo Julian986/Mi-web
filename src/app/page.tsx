@@ -29,7 +29,7 @@ export default function Home() {
 
         <section id="work" className="border-t border-black/10 py-16 text-center overflow-x-hidden">
           <div className="mx-auto max-w-7xl px-6 mb-10">
-            <h2 className="text-3xl font-bold mb-4">Desarrollos / Casos</h2>
+            <h2 className="text-3xl font-bold mb-4">Desarrollos {/* / Casos */}</h2>
             <p className="text-lg max-w-2xl mx-auto text-slate-600">
               Proyectos reales en producción: webs, tiendas online y aplicaciones que construimos para nuestros clientes.
             </p>

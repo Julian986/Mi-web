@@ -22,6 +22,20 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Glomun — Desarrollo de software",
   description: "Glomun es un estudio de desarrollo de software en Argentina. Sitios web, tiendas online y aplicaciones a medida de alto rendimiento.",
+  icons: {
+    icon: [
+      {
+        url: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/gotita_loca_iskndh.webp",
+        type: "image/webp",
+      },
+    ],
+    apple: [
+      {
+        url: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/gotita_loca_iskndh.webp",
+        type: "image/webp",
+      },
+    ],
+  },
   other: {
     // Preload crítico para mejorar LCP
     "dns-prefetch": "https://fonts.googleapis.com",
