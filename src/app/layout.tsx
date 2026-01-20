@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Glomun — Desarrollo de software",
+  title: "Glomun",
   description: "Glomun es un estudio de desarrollo de software en Argentina. Sitios web, tiendas online y aplicaciones a medida de alto rendimiento.",
   icons: {
     icon: [

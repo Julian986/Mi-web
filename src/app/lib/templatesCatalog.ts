@@ -43,7 +43,22 @@ export const TEMPLATE_CATALOG: Record<ServiceType, TemplateCatalogItem[]> = {
     "Landing SaaS",
     "Consulting",
     "Event Promo",
-  ]),
+  ]).map((t) => {
+    // web-01: reemplazo real de imágenes (primer diseño)
+    if (t.id !== "web-01") return t;
+    return {
+      ...t,
+      tags: ["web"],
+      thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/home_2_twtrzo.webp",
+      gallery: [
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/home_2_twtrzo.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/services_vdyexs.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918873/projects_xejhdd.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/pricings_dowihp.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/contact_ld5gje.webp",
+      ],
+    };
+  }),
   ecommerce: makeTemplates("ecommerce", [
     "Fashion Store",
     "Electronics Shop",

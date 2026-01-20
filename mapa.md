@@ -16,7 +16,13 @@ carrousel de marcas - puede ser sino una seccion de marcas como tiene tailwind(c
 
 
 
+Tenemos que trabajar en la propuesta
+Vos hoy, cuando le vendés un sitio web,
+¿qué le prometés explícitamente al cliente?
 
+Ofrecer ademas de apps a medida, apps como:
+    Turnera digital, etc
+    
 - Colores para puntos de la Seccion de Desarrollos
     . rgb(38 59 119) ecommerce
     . rgb(132 185 237) sitio web
@@ -99,6 +105,9 @@ Webs para basarse
 - redit
 - discord
 - https://clickup.com/lp/brain/agents-camp?utm_source=google&utm_medium=cpc&utm_campaign=gs_cpc_latam-lv_nnc_nb_trial_all-devices_troas_lp_x_all-departments_x_ai-business&utm_content=all-countries_kw-target_text_x_all-features_all-use-cases_ai-business&utm_term=business%20name%20generator&utm_creative=783022082121__&utm_custom1=&utm_custom2=&utm_lptheme=&utm_lpmod=&utm_mt=b&gad_source=1&gad_campaignid=23233761579&gbraid=0AAAAACR5vIL0NsItZIMCRp_iKhZa4BVw_&gclid=Cj0KCQiApfjKBhC0ARIsAMiR_Is4e3QgU9MK8vSuGbeh0uRmSBBVtGxfYZgI3JETXdi7FEfBjyH8a1UaAoXhEALw_wcB
+
+Top Web Development Companies 
+- https://clutch.co/web-developers?utm_source=google&utm_medium=cpc&utm_campaign=web_dev_search&utm_keyword=website+development&utm_term=website+development&hsa_acc=8061244831&hsa_cam=22616499746&hsa_grp=183266548514&hsa_ad=755136098625&hsa_src=g&hsa_tgt=kwd-14617361&hsa_kw=website+development&hsa_mt=p&hsa_net=adwords&hsa_ver=3&gad_source=1&gad_campaignid=22616499746&gbraid=0AAAAAD5DLZiDwYg20c7CPYU8H69a8ZJWd&gclid=CjwKCAiA7LzLBhAgEiwAjMWzCL_b-wHNpMQxO3uKKjd1qRpkTOkWuanh_kAo_EnIgGoYdAAQ97lsfxoCKdYQAvD_BwE
 
 Diseño
 - Dribble
