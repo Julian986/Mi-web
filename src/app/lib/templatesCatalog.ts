@@ -22,7 +22,8 @@ function makeTemplates(prefix: string, titles: string[]): TemplateCatalogItem[] 
     return {
       id: `${prefix}-${n}`,
       title,
-      tags: ["placeholder", prefix],
+      // Tags de ejemplo (vacíos por defecto). Luego podés poner tags reales tipo: "minimal", "corporativo", etc.
+      tags: [],
       thumb: PLACEHOLDER_THUMB,
       gallery: PLACEHOLDER_GALLERY,
     };
@@ -48,7 +49,7 @@ export const TEMPLATE_CATALOG: Record<ServiceType, TemplateCatalogItem[]> = {
     if (t.id !== "web-01") return t;
     return {
       ...t,
-      tags: ["web"],
+      tags: [],
       thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/home_2_twtrzo.webp",
       gallery: [
         "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/home_2_twtrzo.webp",
@@ -56,6 +57,66 @@ export const TEMPLATE_CATALOG: Record<ServiceType, TemplateCatalogItem[]> = {
         "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918873/projects_xejhdd.webp",
         "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/pricings_dowihp.webp",
         "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768918872/contact_ld5gje.webp",
+      ],
+    };
+  }).map((t) => {
+    // web-02: reemplazo real de imágenes (segundo diseño)
+    if (t.id !== "web-02") return t;
+    return {
+      ...t,
+      tags: [],
+      thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768924161/home_3_cy7tsn.webp",
+      gallery: [
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768924161/home_3_cy7tsn.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768924161/about_us_kwalmw.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768924161/services_2_zd3l1d.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768924161/prices_ajxnvj.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768924164/testimonials_jojmvg.webp",
+      ],
+    };
+  }).map((t) => {
+    // web-03: reemplazo real de imágenes (tercer diseño)
+    if (t.id !== "web-03") return t;
+    return {
+      ...t,
+      tags: [],
+      thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768927788/home_4_nxnlfj.webp",
+      gallery: [
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768927788/home_4_nxnlfj.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768927788/aboutus_cufkpe.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768927788/services_3_sgoukv.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768927788/preguntas_frecuentes_e74rqs.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768927788/contacto_mxnxla.webp",
+      ],
+    };
+  }).map((t) => {
+    // web-04: reemplazo real de imágenes (cuarto diseño)
+    if (t.id !== "web-04") return t;
+    return {
+      ...t,
+      tags: [],
+      thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768928537/home_5_gcdvca.webp",
+      gallery: [
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768928537/home_5_gcdvca.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768928537/aboutus_2_otfcgj.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768928538/habilidades_qk6sxs.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768928537/faq_q7xlhl.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768928538/footer_pmtyks.webp",
+      ],
+    };
+  }).map((t) => {
+    // web-05: reemplazo real de imágenes (quinto diseño)
+    if (t.id !== "web-05") return t;
+    return {
+      ...t,
+      tags: [],
+      thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929273/home_6_lx5ykv.webp",
+      gallery: [
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929273/home_6_lx5ykv.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929272/aboutus_3_ijmzzr.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929272/trabajos_dczzn1.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929275/servicios_icvmdz.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929274/testimonios_y9hmcf.webp",
       ],
     };
   }),

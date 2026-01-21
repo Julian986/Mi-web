@@ -22,7 +22,7 @@ Vos hoy, cuando le vendés un sitio web,
 
 Ofrecer ademas de apps a medida, apps como:
     Turnera digital, etc
-    
+
 - Colores para puntos de la Seccion de Desarrollos
     . rgb(38 59 119) ecommerce
     . rgb(132 185 237) sitio web
@@ -115,3 +115,12 @@ Diseño
 
 Empresas:
 - https://clutch.co/web-developers?utm_source=google&utm_medium=cpc&utm_campaign=web_dev_search&utm_keyword=web+development+tools&utm_term=web+development+tools&hsa_acc=8061244831&hsa_cam=22616499746&hsa_grp=183266548514&hsa_ad=755136098625&hsa_src=g&hsa_tgt=kwd-11109491&hsa_kw=web+development+tools&hsa_mt=b&hsa_net=adwords&hsa_ver=3&gad_source=1&gad_campaignid=22616499746&gbraid=0AAAAAD5DLZh7kgKN1Dyx29ViAkwqTlbH7&gclid=CjwKCAiA3-3KBhBiEiwA2x7FdAuWXVQHRTd_nHVhzrSAyIpL5lldZlLnta8CpATMdUO48sElws4aoxoCYr4QAvD_BwE
+
+
+
+Enlaces de Diseños de Envato
+
+WEB
+1. https://templates.framework-y.com/structura/pages/index.html?storefront=envato-elements
+2. https://jthemes.net/themes/html/mayo/demo.html?storefront=envato-elements#demos
+3. https://thetork.com/demos/html/torkbiz/index.html

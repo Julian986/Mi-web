@@ -112,7 +112,7 @@ export default function ServiceFlowPage() {
                 type="button"
                 onClick={() => router.push(`/services/${serviceType}/templates/${template.id}`)}
                 className={[
-                  "group overflow-hidden rounded-xl border text-left transition-all",
+                  "group overflow-hidden rounded-xl border text-left transition-all cursor-pointer",
                   "bg-white hover:bg-slate-50",
                   selected ? "border-[#6B5BCC] ring-2 ring-[#6B5BCC]/20" : "border-slate-200",
                 ].join(" ")}
@@ -138,16 +138,18 @@ export default function ServiceFlowPage() {
                       </span>
                     )}
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {template.tags.slice(0, 3).map((t) => (
-                      <span
-                        key={`${template.id}-${t}`}
-                        className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600"
-                      >
-                        {t}
-                      </span>
-                    ))}
-                  </div>
+                  {template.tags.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {template.tags.slice(0, 3).map((t) => (
+                        <span
+                          key={`${template.id}-${t}`}
+                          className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </button>
             );
