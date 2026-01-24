@@ -3,22 +3,9 @@
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { ChartNoAxesCombined, Wrench } from "lucide-react";
-
-type Development = {
-  id: string;
-  title: string;
-  domain: string;
-  url: string;
-  type: "web" | "ecommerce" | "app";
-  technology: string;
-  image: string;
-  /** Posición relativa para el cable (porcentaje del contenedor) */
-  cableX: number;
-  cableY: number;
-  /** Color RGB "r,g,b" para acento */
-  accentRgb: string;
-};
+import { getAllDevelopments, type Development } from "@/app/lib/developmentsCatalog";
 
 // Código comentado para stack y cables (desactivado para pruebas de rendimiento)
 // const STACK_X = 50; // Porcentaje (centro)
@@ -65,6 +52,7 @@ type Development = {
 // }
 
 export default function ProjectsShowcase() {
+  const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   const [showAll, setShowAll] = useState(false);
@@ -96,228 +84,8 @@ export default function ProjectsShowcase() {
     setActiveId(null);
   }, []);
 
-  // Datos de desarrollos reales (placeholder por ahora, se pueden agregar más)
-  const developments: Development[] = useMemo(
-    () => [
-      {
-        id: "dev-1",
-        title: "Kinesiología y Salud",
-        domain: "kinesiologiaysalud.com",
-        url: "https://kinesiologiaysalud.com",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768397026/kinesioysalud_1_qhmym6.webp",
-        cableX: 50,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-2",
-        title: "Amo mi casa",
-        domain: "amomicasahome.com",
-        url: "https://amomicasahome.com",
-        type: "ecommerce",
-        technology: "Next.js",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/amo-mi-casa_qwg5tb.webp",
-        cableX: 20,
-        cableY: 85,
-        accentRgb: "38,59,119",
-      },
-      {
-        id: "dev-3",
-        title: "Pedri",
-        domain: "app.pedriapp.com",
-        url: "https://app.pedriapp.com",
-        type: "app",
-        technology: "Next.js",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768398036/pedri_czzsak.webp",
-        cableX: 80,
-        cableY: 85,
-        accentRgb: "80,124,201",
-      },
-      {
-        id: "dev-4",
-        title: "Salud Dental",
-        domain: "odontologiajgoroso.com",
-        url: "https://odontologiajgoroso.com/",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768398451/jesica_1_dvkreb.webp",
-        cableX: 35,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-5",
-        title: "Lic. Natalia Domecq",
-        domain: "psicodomecq.com",
-        url: "https://psicodomecq.com",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768400848/natalia_xqpuen.webp",
-        cableX: 65,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-6",
-        title: "Nutrición Integral",
-        domain: "mvnutricionconsciente.com",
-        url: "https://mvnutricionconsciente.com",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768402054/maria_wxw23y.webp",
-        cableX: 15,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-andrea-cohen",
-        title: "Lic. Andrea Cohen",
-        domain: "andreacohennutricionista.com",
-        url: "https://lic-andrea-cohen-nutricionista.vercel.app",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768407494/Captura_de_pantalla_413_byhtvk.webp",
-        cableX: 25,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-7",
-        title: "Estudio Jurídico",
-        domain: "ezequielabogado.com",
-        url: "https://ezequiel-cortes-abogado.vercel.app/",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768402491/ezequiel_wgolbc.webp",
-        cableX: 50,
-        cableY: 85,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-tuturno",
-        title: "Tu Turno Barbería",
-        domain: "tuturnobarberia.com",
-        url: "https://tu-turno-jet.vercel.app",
-        type: "app",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768422963/Captura_de_pantalla_416_fyohyw.webp",
-        cableX: 50,
-        cableY: 85,
-        accentRgb: "80,124,201",
-      },
-      {
-        id: "dev-8",
-        title: "Lic. Pablo Pérez",
-        domain: "pabloperezkinesiologia.com",
-        url: "https://lic-pablo-perez.vercel.app",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768407201/pablo_perez_ozno0c.webp",
-        cableX: 80,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-peliculas",
-        title: "Tienda de Películas",
-        domain: "bibliotecapeliculas.com",
-        url: "https://biblioteca-peliculas-ywrn.vercel.app/",
-        type: "app",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768424107/Captura_de_pantalla_417_xteyjt.webp",
-        cableX: 70,
-        cableY: 85,
-        accentRgb: "80,124,201",
-      },
-      {
-        id: "dev-internet-retro",
-        title: "Internet Retro",
-        domain: "internet-retro.com",
-        url: "https://internet-retro.vercel.app",
-        type: "app",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768424523/Captura_de_pantalla_418_pqeuvd.webp",
-        cableX: 60,
-        cableY: 85,
-        accentRgb: "80,124,201",
-      },
-      {
-        id: "dev-9",
-        title: "A-Mar Salud",
-        domain: "amarsalud.com",
-        url: "https://a-mar-salud.vercel.app",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768403276/a-marSalud_npy0iz.webp",
-        cableX: 20,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-10",
-        title: "Eukinesia",
-        domain: "eukinesia.com",
-        url: "https://eukinesiakinesiologia.vercel.app/",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768403724/eukinesia_qmblft.webp",
-        cableX: 65,
-        cableY: 85,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-11",
-        title: "CRS Informática",
-        domain: "crsinformatica.com",
-        url: "https://crsinformaticapc.vercel.app",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768404579/crsinformatica_fgptjr.webp",
-        cableX: 35,
-        cableY: 85,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-12",
-        title: "Lic. Wanda Perrin",
-        domain: "wandakinesiologia.com",
-        url: "https://lic-wanda-perrin-kinesiologia.vercel.app/",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768405888/Captura_de_pantalla_411_u8phlz.webp",
-        cableX: 50,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-13",
-        title: "AACI",
-        domain: "aaci.com",
-        url: "https://aaci.vercel.app/",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768403016/aaci_xkz9sg.webp",
-        cableX: 15,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-      {
-        id: "dev-14",
-        title: "Lic. Victoria Nazra",
-        domain: "victorianazrapsicologa.com",
-        url: "https://victoria-psicologa.vercel.app/",
-        type: "web",
-        technology: "React",
-        image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768408990/victoria_hpxsnn.webp",
-        cableX: 80,
-        cableY: 90,
-        accentRgb: "132,185,237",
-      },
-    ],
-    []
-  );
+  // Datos de desarrollos desde el catálogo
+  const developments: Development[] = useMemo(() => getAllDevelopments(), []);
 
   // Calcular las cards visibles (hasta "Tienda de Películas" si showAll es false)
   const visibleDevelopments = useMemo(() => {
@@ -512,7 +280,7 @@ export default function ProjectsShowcase() {
               }}
             >
               <motion.div
-                onClick={() => window.open(dev.url, "_blank", "noopener,noreferrer")}
+                onClick={() => router.push(`/projects/${dev.id}`)}
                 className="relative flex items-center cursor-pointer overflow-hidden rounded-xl bg-white border border-black/10 hover:border-black/20 transition-all will-change-transform"
                 animate={
                   reduceMotion || isScrolling
