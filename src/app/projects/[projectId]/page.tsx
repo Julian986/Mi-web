@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink, Globe } from "lucide-react";
 import { getDevelopmentById } from "@/app/lib/developmentsCatalog";
+import VisitorsChart from "@/app/components/VisitorsChart";
 
 type PageProps = {
   params: Promise<{
@@ -117,13 +118,18 @@ export default async function ProjectDetailPage({ params }: PageProps) {
                 href={development.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#6B5BCC] px-6 py-3 text-base font-semibold text-white hover:bg-[#5a4ab8] transition-colors shadow-md hover:shadow-lg"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#84b9ed] px-6 py-3 text-base font-semibold text-white hover:bg-[#6ba3d9] transition-colors shadow-md hover:shadow-lg"
               >
                 Ver desarrollo en vivo
                 <ExternalLink className="w-5 h-5" />
               </a>
             </div>
           </div>
+        </div>
+
+        {/* Sección de Analytics */}
+        <div className="mt-12 lg:mt-16">
+          <VisitorsChart projectId={projectId} />
         </div>
       </div>
     </div>
