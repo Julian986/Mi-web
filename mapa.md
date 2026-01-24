@@ -124,3 +124,33 @@ WEB
 1. https://templates.framework-y.com/structura/pages/index.html?storefront=envato-elements
 2. https://jthemes.net/themes/html/mayo/demo.html?storefront=envato-elements#demos
 3. https://thetork.com/demos/html/torkbiz/index.html
+4. https://arcix-react-next-app.vercel.app/?storefront=envato-elements
+5. https://azim.commonsupport.com/Munson/index.html
+6. https://html.themewant.com/landing/invena/?storefront=envato-elements
+7. https://theme.nanoit.biz/tf-nickberg-demo/nick-berg/index-light.html
+8. https://fresheat-nextjs.vercel.app/?storefront=envato-elements
+9. https://wpolive.com/tf/php/bliize/?storefront=envato-elements
+
+10. https://symphonious-custard-b96af2.netlify.app/?storefront=envato-elements
+11. https://dentalux-html.ancorathemes.com/?storefront=envato-elements
+12. https://demo.web3canvas.com/themeforest/mentalpress/index.html
+
+ECOMMERCE
+1. https://demos.webicode.com/html/eco-shop-html/Single_Img_Demo/index.html
+2. https://demos.webicode.com/html/Bo-shop-html/?storefront=envato-elements
+3. https://themes.vsart.me/triablo/?storefront=envato-elements
+4. https://demoxml.com/html/petcare/index.html
+5. https://htmldemo.zcubethemes.com/marcus/?storefront=envato-elements
+6. https://htmldemo.net/furbar-1/furbar/index.html#
+7. https://codervent.com/shopingo/demo/shopingo_V1/index.html
+8. https://html.themexplosion.com/goru/?storefront=envato-elements
+9. https://htmlbeans.com/html/schon/contact-us2.html
+10. https://template.hasthemes.com/brancy/brancy/index.html
+11. https://freebw.com/templates/novas/index1.html
+12. http://unionagency.one/exzo/index1.html
+
+
+
+
+
+
