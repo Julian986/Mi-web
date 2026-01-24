@@ -38,7 +38,7 @@ export const DEVELOPMENTS: Development[] = [
     url: "https://amomicasahome.com",
     type: "ecommerce",
     technology: "Next.js",
-    image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/amo-mi-casa_qwg5tb.webp",
+    image: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1769297795/amo-mi-casa_qwg5tb_1_1_fxfgxf.webp",
     cableX: 20,
     cableY: 85,
     accentRgb: "38,59,119",

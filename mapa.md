@@ -1,6 +1,35 @@
 Actualizar a la ultima version de next 16✅
 Permormance de la app
 
+Objetivo: Salir al mercado.
+Temitas a trabajar antes de salir:
+
+- Revisar diseño de la card de servicios
+- Corregir imagen de 'amo mi casa'✅
+- 
+- Menu mobile
+- Pagina de Desarrollo Detail (agregar info como lcp, origen de visitantes, etc)
+- Flujo de compra de servicio (diseño, pago, etc, especificar que los desarrollo tienen diseño mobile)
+- Idiomas
+- Agregar alguna seccion mas a la pagina, poner carrousel de marcas
+- Color claro/oscuro
+
+Con eso ya salir al mercado luego seguimos mejorando Glomun.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Lo ultimo...
 Comenzar con el diseño de Desarrollo Detail
 
