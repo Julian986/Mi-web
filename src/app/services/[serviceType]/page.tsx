@@ -50,7 +50,7 @@ export default function ServiceFlowPage() {
   }, [searchParams, serviceType]);
 
   const steps = [
-    { id: "design", label: "Elige el diseño" },
+    { id: "design", label: serviceType === "custom" ? "Describe tu proyecto" : "Elige el diseño" },
     { id: "configuration", label: "Configuración" },
     { id: "review", label: "Revisión" },
     { id: "payment", label: "Pago" },
@@ -69,6 +69,21 @@ export default function ServiceFlowPage() {
   }));
 
   const handleNext = () => {
+    // Validación para el paso de diseño
+    if (currentStep === 0) {
+      if (serviceType === "custom") {
+        // Para custom, requerir que haya texto en el textarea
+        if (!formData.design || formData.design.trim().length === 0) {
+          return; // No avanzar si no hay descripción
+        }
+      } else {
+        // Para web y ecommerce, requerir que haya un diseño seleccionado
+        if (!formData.design) {
+          return; // No avanzar si no hay diseño seleccionado
+        }
+      }
+    }
+    
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     }
@@ -92,6 +107,39 @@ export default function ServiceFlowPage() {
 
   // Step 1: Design Selection
   const renderDesignStep = () => {
+    // Si es "custom", mostrar textarea para describir el proyecto
+    if (serviceType === "custom") {
+      return (
+        <div className="space-y-4 sm:space-y-6">
+          <div>
+            <h3 className="text-xl sm:text-2xl font-bold text-slate-900 mb-2">
+              Describí tu proyecto
+            </h3>
+            <p className="text-slate-600">
+              Contanos en detalle qué tipo de software necesitás, sus funcionalidades principales y cualquier requisito especial.
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Descripción del proyecto
+            </label>
+            <textarea
+              value={formData.design || ""}
+              onChange={(e) => handleInputChange("design", e.target.value)}
+              rows={8}
+              placeholder="Ejemplo: Necesito un sistema de gestión de inventario para mi tienda. Debe permitir registrar productos, controlar stock, generar reportes de ventas, y tener un panel de administración para múltiples usuarios con diferentes permisos..."
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent resize-y min-h-[200px]"
+            />
+            <p className="mt-2 text-xs text-slate-500">
+              Mientras más detalles proporciones, mejor podremos entender tu necesidad y ofrecerte una solución adecuada.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Para "web" y "ecommerce", mostrar la grilla de diseños
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
@@ -255,8 +303,14 @@ export default function ServiceFlowPage() {
           </div>
           {formData.design && (
             <div>
-              <span className="text-sm font-medium text-slate-600">Diseño:</span>
-              <p className="text-slate-900 capitalize">{formData.design}</p>
+              <span className="text-sm font-medium text-slate-600">
+                {serviceType === "custom" ? "Descripción del proyecto:" : "Diseño:"}
+              </span>
+              {serviceType === "custom" ? (
+                <p className="text-slate-900 mt-1 whitespace-pre-wrap">{formData.design}</p>
+              ) : (
+                <p className="text-slate-900 capitalize">{formData.design}</p>
+              )}
             </div>
           )}
           {formData.colorScheme && (

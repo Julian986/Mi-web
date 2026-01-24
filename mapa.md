@@ -2,6 +2,8 @@ Actualizar a la ultima version de next 16✅
 Permormance de la app
 
 Lo ultimo...
+Comenzar con el diseño de Desarrollo Detail
+
 Pasos en la compra de servicios, quitar el scroll
 diseño de steps, flecha derecha conexion enganche de steps
 desarrollos faltan: apps: peliculas, barberia, internet retro✅
