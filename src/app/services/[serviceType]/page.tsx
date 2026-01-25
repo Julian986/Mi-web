@@ -4,7 +4,7 @@ import Image from "next/image";
 import React, { useMemo, useState, useEffect } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowLeft } from "lucide-react";
+import { X, ArrowLeft, PenTool, AlertTriangle } from "lucide-react";
 import Stepper from "@/app/components/Stepper";
 import { getTemplatesForServiceType, type ServiceType } from "@/app/lib/templatesCatalog";
 
@@ -30,6 +30,7 @@ export default function ServiceFlowPage() {
   
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<StepData>({});
+  const [showAlert, setShowAlert] = useState(false);
 
   const templates = useMemo(() => getTemplatesForServiceType(serviceType), [serviceType]);
 
@@ -40,14 +41,42 @@ export default function ServiceFlowPage() {
     }
   }, [serviceType, router]);
 
-  // Si volvemos desde la página de detalle con ?template=..., sincronizamos selección
+  // Si volvemos desde la página de detalle con ?template=..., sincronizamos selección y hacemos scroll
   useEffect(() => {
     const templateFromUrl = searchParams.get("template");
     if (templateFromUrl && formData.design !== templateFromUrl) {
       setFormData((prev) => ({ ...prev, design: templateFromUrl }));
+      
+      // Hacer scroll al diseño seleccionado después de actualizar el estado
+      if (currentStep === 0) {
+        const scrollToSelected = () => {
+          const selectedElement = document.getElementById(`design-${templateFromUrl}`);
+          if (selectedElement) {
+            // Buscar el contenedor scrollable (el div con overflow-y-auto)
+            const scrollContainer = selectedElement.closest('.overflow-y-auto');
+            if (scrollContainer) {
+              const containerRect = scrollContainer.getBoundingClientRect();
+              const elementRect = selectedElement.getBoundingClientRect();
+              const yOffset = -120; // Offset para que no quede pegado arriba
+              const scrollTop = scrollContainer.scrollTop + (elementRect.top - containerRect.top) + yOffset;
+              scrollContainer.scrollTo({ top: Math.max(0, scrollTop), behavior: "smooth" });
+            } else {
+              // Fallback: usar window scroll si no encontramos el contenedor
+              const yOffset = -120;
+              const y = selectedElement.getBoundingClientRect().top + window.pageYOffset + yOffset;
+              window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+            }
+          }
+        };
+        
+        // Intentar múltiples veces para asegurar que el elemento esté disponible
+        setTimeout(scrollToSelected, 200);
+        setTimeout(scrollToSelected, 400);
+        setTimeout(scrollToSelected, 600);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, serviceType]);
+  }, [searchParams, serviceType, currentStep]);
 
   const steps = [
     { id: "design", label: serviceType === "custom" ? "Describe tu proyecto" : "Elige el diseño" },
@@ -74,11 +103,15 @@ export default function ServiceFlowPage() {
       if (serviceType === "custom") {
         // Para custom, requerir que haya texto en el textarea
         if (!formData.design || formData.design.trim().length === 0) {
+          setShowAlert(true);
+          setTimeout(() => setShowAlert(false), 3000);
           return; // No avanzar si no hay descripción
         }
       } else {
         // Para web y ecommerce, requerir que haya un diseño seleccionado
         if (!formData.design) {
+          setShowAlert(true);
+          setTimeout(() => setShowAlert(false), 3000);
           return; // No avanzar si no hay diseño seleccionado
         }
       }
@@ -129,7 +162,7 @@ export default function ServiceFlowPage() {
               onChange={(e) => handleInputChange("design", e.target.value)}
               rows={8}
               placeholder="Ejemplo: Necesito un sistema de gestión de inventario para mi tienda. Debe permitir registrar productos, controlar stock, generar reportes de ventas, y tener un panel de administración para múltiples usuarios con diferentes permisos..."
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent resize-y min-h-[200px]"
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent resize-y min-h-[200px]"
             />
             <p className="mt-2 text-xs text-slate-500">
               Mientras más detalles proporciones, mejor podremos entender tu necesidad y ofrecerte una solución adecuada.
@@ -151,18 +184,57 @@ export default function ServiceFlowPage() {
           </p>
         </div>
 
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Opción Personalizado - Primera posición */}
+          <button
+            id="design-personalizado"
+            type="button"
+            onClick={() => {
+              handleInputChange("design", "personalizado");
+            }}
+            className={[
+              "group overflow-hidden rounded-xl border text-left transition-all cursor-pointer",
+              "bg-white hover:bg-slate-50",
+              formData.design === "personalizado"
+                ? "border-[#84b9ed] ring-2 ring-[#84b9ed]/20"
+                : "border-slate-300 border-dashed",
+            ].join(" ")}
+          >
+            <div className="relative aspect-[16/10] bg-slate-50 flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center gap-3 text-slate-400 group-hover:text-slate-600 transition-colors">
+                <PenTool className="w-12 h-12" strokeWidth={1.5} />
+                <p className="text-sm font-medium">Diseño personalizado</p>
+              </div>
+            </div>
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h4 className="font-semibold text-slate-900">Diseño personalizado</h4>
+                  <p className="mt-1 text-xs text-slate-500">Crea algo único para tu negocio</p>
+                </div>
+                {formData.design === "personalizado" && (
+                  <span className="shrink-0 rounded-full bg-[#84b9ed]/10 px-2 py-1 text-xs font-semibold text-[#84b9ed]">
+                    Seleccionado
+                  </span>
+                )}
+              </div>
+            </div>
+          </button>
+
+          {/* Resto de los diseños del catálogo */}
           {templates.slice(0, 12).map((template) => {
             const selected = formData.design === template.id;
             return (
               <button
+                id={`design-${template.id}`}
                 key={template.id}
                 type="button"
                 onClick={() => router.push(`/services/${serviceType}/templates/${template.id}`)}
                 className={[
                   "group overflow-hidden rounded-xl border text-left transition-all cursor-pointer",
                   "bg-white hover:bg-slate-50",
-                  selected ? "border-[#6B5BCC] ring-2 ring-[#6B5BCC]/20" : "border-slate-200",
+                  selected ? "border-[#84b9ed] ring-2 ring-[#84b9ed]/20" : "border-slate-200",
                 ].join(" ")}
               >
                 <div className="relative aspect-[16/10] bg-slate-50">
@@ -181,7 +253,7 @@ export default function ServiceFlowPage() {
                       <p className="mt-1 text-xs text-slate-500 truncate">{template.id}</p>
                     </div>
                     {selected && (
-                      <span className="shrink-0 rounded-full bg-[#6B5BCC]/10 px-2 py-1 text-xs font-semibold text-[#6B5BCC]">
+                      <span className="shrink-0 rounded-full bg-[#84b9ed]/10 px-2 py-1 text-xs font-semibold text-[#84b9ed]">
                         Seleccionado
                       </span>
                     )}
@@ -207,10 +279,13 @@ export default function ServiceFlowPage() {
         {formData.design && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
             <p className="text-sm text-slate-700">
-              <span className="font-semibold">Seleccionado:</span> {formData.design}
+              <span className="font-semibold text-[#84b9ed]">Seleccionado:</span>{" "}
+              {formData.design === "personalizado" ? "Diseño personalizado" : formData.design}
             </p>
             <p className="mt-1 text-xs text-slate-500">
-              Tip: podés abrir otro diseño y cambiar la selección cuando vuelvas.
+              {formData.design === "personalizado"
+                ? "Diseñaremos algo único para tu negocio."
+                : "Tip: podés abrir otro diseño y cambiar la selección cuando vuelvas."}
             </p>
           </div>
         )}
@@ -236,32 +311,25 @@ export default function ServiceFlowPage() {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Esquema de colores
             </label>
-            <select
-              value={formData.colorScheme || ""}
-              onChange={(e) => handleInputChange("colorScheme", e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent cursor-pointer"
-            >
-              <option value="">Selecciona un esquema</option>
-              <option value="light">Claro</option>
-              <option value="dark">Oscuro</option>
-              <option value="custom">Personalizado</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Presupuesto aproximado
-            </label>
-            <select
-              value={formData.budget || ""}
-              onChange={(e) => handleInputChange("budget", e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent cursor-pointer"
-            >
-              <option value="">Selecciona un rango</option>
-              <option value="low">$500 - $1,500</option>
-              <option value="medium">$1,500 - $5,000</option>
-              <option value="high">$5,000+</option>
-            </select>
+            <div className="relative">
+              <select
+                value={formData.colorScheme || ""}
+                onChange={(e) => handleInputChange("colorScheme", e.target.value)}
+                className={`w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer appearance-none bg-white ${
+                  !formData.colorScheme ? "text-slate-400" : "text-slate-900"
+                }`}
+              >
+                <option value="" className="hidden">Selecciona un esquema</option>
+                <option value="light">Claro</option>
+                <option value="dark">Oscuro</option>
+                <option value="custom">Personalizado</option>
+              </select>
+              {!formData.colorScheme && (
+                <div className="absolute inset-0 flex items-center px-4 pointer-events-none">
+                  <span className="text-slate-400">Selecciona un esquema</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div>
@@ -273,7 +341,7 @@ export default function ServiceFlowPage() {
               onChange={(e) => handleInputChange("customization", e.target.value)}
               rows={3}
               placeholder="Describe cualquier personalización especial que necesites..."
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent resize-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent resize-none"
             />
           </div>
         </div>
@@ -309,7 +377,9 @@ export default function ServiceFlowPage() {
               {serviceType === "custom" ? (
                 <p className="text-slate-900 mt-1 whitespace-pre-wrap">{formData.design}</p>
               ) : (
-                <p className="text-slate-900 capitalize">{formData.design}</p>
+                <p className="text-slate-900 capitalize">
+                  {formData.design === "personalizado" ? "Personalizado" : formData.design}
+                </p>
               )}
             </div>
           )}
@@ -321,18 +391,24 @@ export default function ServiceFlowPage() {
               <p className="text-slate-900 capitalize">{formData.colorScheme}</p>
             </div>
           )}
-          {formData.budget && (
-            <div>
-              <span className="text-sm font-medium text-slate-600">Presupuesto:</span>
-              <p className="text-slate-900">
-                {formData.budget === "low"
-                  ? "$500 - $1,500"
-                  : formData.budget === "medium"
-                    ? "$1,500 - $5,000"
-                    : "$5,000+"}
-              </p>
-            </div>
-          )}
+          <div>
+            <span className="text-sm font-medium text-slate-600">
+              Mensualidad:
+            </span>
+            <p className="text-slate-900">
+              {serviceType === "web" ? (
+                <>
+                  <span className="font-semibold">$25.000 ARS</span> / $21 USD mensuales
+                </>
+              ) : serviceType === "ecommerce" ? (
+                <>
+                  <span className="font-semibold">$35.000 ARS</span> / $29 USD mensuales
+                </>
+              ) : (
+                "Consultar"
+              )}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -358,7 +434,7 @@ export default function ServiceFlowPage() {
             </label>
             <input
               type="text"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
               placeholder="Juan Pérez"
             />
           </div>
@@ -368,7 +444,7 @@ export default function ServiceFlowPage() {
             </label>
             <input
               type="email"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
               placeholder="juan@ejemplo.com"
             />
           </div>
@@ -378,7 +454,7 @@ export default function ServiceFlowPage() {
             </label>
             <input
               type="tel"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
               placeholder="+54 9 11 1234-5678"
             />
           </div>
@@ -427,7 +503,7 @@ export default function ServiceFlowPage() {
       case 0:
         return !!formData.design;
       case 1:
-        return !!formData.colorScheme && !!formData.budget;
+        return !!formData.colorScheme;
       case 2:
         return true;
       case 3:
@@ -465,8 +541,51 @@ export default function ServiceFlowPage() {
         <Stepper steps={stepperSteps} />
       </div>
 
+      {/* Alerta modal cuando no hay diseño seleccionado */}
+      <AnimatePresence>
+        {showAlert && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+            onClick={() => setShowAlert(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl shadow-2xl border border-yellow-100 p-8 max-w-md mx-4 relative"
+            >
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-yellow-50 flex items-center justify-center">
+                  <AlertTriangle className="w-8 h-8 text-yellow-500" strokeWidth={2} />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Diseño requerido
+                  </h3>
+                  <p className="text-sm text-slate-600">
+                    Debes seleccionar un diseño para continuar con el proceso
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAlert(false)}
+                  className="mt-2 px-6 py-2 bg-yellow-500 text-white rounded-lg font-medium hover:bg-yellow-600 transition-colors text-sm"
+                >
+                  Entendido
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Content */}
-      <div className="flex-1 overflow-y-auto scrollbar-hide p-6 sm:p-8 max-w-4xl mx-auto w-full">
+      <div className="flex-1 overflow-y-auto scrollbar-hide p-6 sm:p-8 pb-24 sm:pb-28 max-w-4xl mx-auto w-full">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
@@ -482,8 +601,9 @@ export default function ServiceFlowPage() {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between p-4 sm:p-6 border-t border-slate-200 bg-white max-w-4xl mx-auto w-full flex-shrink-0">
-        <button
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white shadow-lg">
+        <div className="max-w-4xl mx-auto w-full flex items-center justify-between p-4 sm:p-6">
+          <button
           onClick={handleBack}
           disabled={currentStep === 0}
           className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
@@ -502,23 +622,23 @@ export default function ServiceFlowPage() {
               alert("¡Gracias por tu compra! Te contactaremos pronto.");
               handleClose();
             }}
-            className="px-4 sm:px-6 py-2 bg-[#6B5BCC] text-white rounded-lg font-medium hover:bg-[#5a4ab8] transition-colors cursor-pointer text-sm sm:text-base"
+            className="px-4 sm:px-6 py-2 bg-[#84b9ed] text-white rounded-lg font-medium hover:bg-[#6ba3d9] transition-colors cursor-pointer text-sm sm:text-base"
           >
             Finalizar compra
           </button>
         ) : (
           <button
             onClick={handleNext}
-            disabled={!canProceed()}
             className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
               canProceed()
-                ? "bg-[#6B5BCC] text-white hover:bg-[#5a4ab8] cursor-pointer"
-                : "bg-slate-300 text-slate-500 cursor-not-allowed"
+                ? "bg-[#84b9ed] text-white hover:bg-[#6ba3d9] cursor-pointer"
+                : "bg-slate-300 text-slate-500 cursor-pointer"
             }`}
           >
             Continuar
           </button>
         )}
+        </div>
       </div>
     </div>
   );

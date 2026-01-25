@@ -17,7 +17,9 @@ export default function BackButton() {
       setTimeout(() => {
         const workSection = document.getElementById("work");
         if (workSection) {
-          workSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          const yOffset = -65; // Offset para enfocar un poco más arriba
+          const y = workSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: "smooth" });
         }
       }, 100);
     } else {
@@ -32,7 +34,7 @@ export default function BackButton() {
       className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
     >
       <ArrowLeft className="w-4 h-4" />
-      Volver a proyectos
+      Volver a desarrollos
     </a>
   );
 }

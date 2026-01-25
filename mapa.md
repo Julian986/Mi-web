@@ -7,8 +7,8 @@ Temitas a trabajar antes de salir:
 - Revisar diseño de la card de servicios✅
 - Corregir imagen de 'amo mi casa'✅
 - Agregar alguna seccion mas a la pagina, marcas✅
-- Corregir el Foco de 'volver a proyectos'
-- Pagina de Desarrollo Detail (agregar info como lcp, origen de visitantes, etc)
+- Corregir el Foco de 'volver a proyectos'✅
+- Pagina de Desarrollo Detail (agregar info como lcp, origen de visitantes, etc)✅
 - Flujo de compra de servicio (diseño, pago, etc, especificar que los desarrollos tienen diseño mobile)
 - Menu mobile
 - Idiomas
