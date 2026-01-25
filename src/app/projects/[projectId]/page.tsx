@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, Globe } from "lucide-react";
 import { getDevelopmentById } from "@/app/lib/developmentsCatalog";
 import VisitorsChart from "@/app/components/VisitorsChart";
 import PerformanceMetrics from "@/app/components/PerformanceMetrics";
+import BackButton from "./BackButton";
 
 type PageProps = {
   params: Promise<{
@@ -51,13 +52,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
       <div className="mx-auto max-w-7xl px-6 py-8 sm:py-12">
         {/* Header con botón volver */}
         <div className="mb-6 sm:mb-8">
-          <Link
-            href="/#projects"
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver a proyectos
-          </Link>
+          <BackButton />
         </div>
 
         {/* Contenido principal */}

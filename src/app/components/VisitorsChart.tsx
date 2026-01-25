@@ -36,7 +36,23 @@ type Period = "day" | "week" | "month";
 function generateDailyData(projectId: string): VisitorsData[] {
   const data: VisitorsData[] = [];
   const today = new Date();
-  const baseVisitors = 1200;
+  
+  // Generar base de visitantes variada según projectId (mínimo 19, máximo ~100)
+  const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const baseVariation = (hash % 15) + 1; // 1-15
+  // Distribución: algunos proyectos con 19-30, otros con 40-60, algunos con 70-100
+  let baseVisitors: number;
+  if (baseVariation <= 5) {
+    // 33% de proyectos: 19-30 promedio
+    baseVisitors = 19 + (hash % 12);
+  } else if (baseVariation <= 10) {
+    // 33% de proyectos: 40-60 promedio
+    baseVisitors = 40 + (hash % 21);
+  } else {
+    // 33% de proyectos: 70-100 promedio
+    baseVisitors = 70 + (hash % 31);
+  }
+  
   let trend = 0;
   const rng = new SeededRandom(projectId + "-day");
 
@@ -44,21 +60,25 @@ function generateDailyData(projectId: string): VisitorsData[] {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     
-    trend += rng.next() * 2 - 0.5;
+    trend += rng.next() * 0.3 - 0.1;
     const dayOfWeek = date.getDay();
     const weekendBoost = (dayOfWeek === 0 || dayOfWeek === 6) ? 1.15 : 1.0;
     const randomVariation = 0.7 + rng.next() * 0.6;
     
-    const visitors = Math.round((baseVisitors + trend * 10) * weekendBoost * randomVariation);
+    const visitors = Math.round((baseVisitors + trend * (baseVisitors * 0.1)) * weekendBoost * randomVariation);
     
     const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     const month = monthNames[date.getMonth()];
     const day = date.getDate();
     const dateStr = `${day} ${month}`;
 
+    // Límites dinámicos basados en el promedio base
+    const minVisitors = Math.max(10, Math.round(baseVisitors * 0.6));
+    const maxVisitors = Math.round(baseVisitors * 1.8);
+
     data.push({
       date: dateStr,
-      visitors: Math.max(800, visitors),
+      visitors: Math.max(minVisitors, Math.min(maxVisitors, visitors)),
     });
   }
 
@@ -69,7 +89,20 @@ function generateDailyData(projectId: string): VisitorsData[] {
 function generateWeeklyData(projectId: string): VisitorsData[] {
   const data: VisitorsData[] = [];
   const today = new Date();
-  const baseVisitors = 8400; // ~1200 diarios * 7 días
+  
+  // Calcular base semanal basado en el promedio diario del proyecto
+  const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const baseVariation = (hash % 15) + 1;
+  let dailyBase: number;
+  if (baseVariation <= 5) {
+    dailyBase = 19 + (hash % 12);
+  } else if (baseVariation <= 10) {
+    dailyBase = 40 + (hash % 21);
+  } else {
+    dailyBase = 70 + (hash % 31);
+  }
+  const baseVisitors = dailyBase * 7; // Promedio diario * 7 días
+  
   let trend = 0;
   const rng = new SeededRandom(projectId + "-week");
 
@@ -77,19 +110,22 @@ function generateWeeklyData(projectId: string): VisitorsData[] {
     const weekStart = new Date(today);
     weekStart.setDate(weekStart.getDate() - (i * 7 + weekStart.getDay()));
     
-    trend += rng.next() * 14 - 3.5; // Variación semanal más amplia
+    trend += rng.next() * (baseVisitors * 0.02) - (baseVisitors * 0.005);
     const randomVariation = 0.75 + rng.next() * 0.5;
     
-    const visitors = Math.round((baseVisitors + trend * 70) * randomVariation);
+    const visitors = Math.round((baseVisitors + trend) * randomVariation);
     
     const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     const month = monthNames[weekStart.getMonth()];
     const day = weekStart.getDate();
     const dateStr = `Sem ${i + 1} (${day} ${month})`;
 
+    const minVisitors = Math.round(baseVisitors * 0.6);
+    const maxVisitors = Math.round(baseVisitors * 1.8);
+
     data.push({
       date: dateStr,
-      visitors: Math.max(5600, visitors),
+      visitors: Math.max(minVisitors, Math.min(maxVisitors, visitors)),
     });
   }
 
@@ -100,26 +136,42 @@ function generateWeeklyData(projectId: string): VisitorsData[] {
 function generateMonthlyData(projectId: string): VisitorsData[] {
   const data: VisitorsData[] = [];
   const today = new Date();
-  const baseVisitors = 36000; // ~1200 diarios * 30 días
+  
+  // Calcular base mensual basado en el promedio diario del proyecto
+  const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const baseVariation = (hash % 15) + 1;
+  let dailyBase: number;
+  if (baseVariation <= 5) {
+    dailyBase = 19 + (hash % 12);
+  } else if (baseVariation <= 10) {
+    dailyBase = 40 + (hash % 21);
+  } else {
+    dailyBase = 70 + (hash % 31);
+  }
+  const baseVisitors = dailyBase * 30; // Promedio diario * 30 días
+  
   let trend = 0;
   const rng = new SeededRandom(projectId + "-month");
 
   for (let i = 11; i >= 0; i--) {
     const monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
     
-    trend += rng.next() * 60 - 15; // Variación mensual más amplia
+    trend += rng.next() * (baseVisitors * 0.05) - (baseVisitors * 0.01);
     const randomVariation = 0.8 + rng.next() * 0.4;
     
-    const visitors = Math.round((baseVisitors + trend * 300) * randomVariation);
+    const visitors = Math.round((baseVisitors + trend) * randomVariation);
     
     const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     const month = monthNames[monthDate.getMonth()];
     const year = monthDate.getFullYear();
     const dateStr = `${month} ${year}`;
 
+    const minVisitors = Math.round(baseVisitors * 0.6);
+    const maxVisitors = Math.round(baseVisitors * 1.8);
+
     data.push({
       date: dateStr,
-      visitors: Math.max(24000, visitors),
+      visitors: Math.max(minVisitors, Math.min(maxVisitors, visitors)),
     });
   }
 

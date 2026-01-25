@@ -55,8 +55,47 @@ export default function ProjectsShowcase() {
   const router = useRouter();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
-  const [showAll, setShowAll] = useState(false);
+  
+  // Restaurar estado de expansión desde sessionStorage
+  const [showAll, setShowAll] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("projects-showAll");
+      return saved === "true";
+    }
+    return false;
+  });
+  
   const reduceMotion = useReducedMotion();
+
+  // Datos de desarrollos desde el catálogo
+  const developments: Development[] = useMemo(() => getAllDevelopments(), []);
+
+  // Guardar estado de expansión en sessionStorage cuando cambia
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("projects-showAll", showAll.toString());
+    }
+  }, [showAll]);
+
+  // Al montar, verificar si hay un projectId guardado y restaurar showAll si es necesario
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const lastViewedProjectId = sessionStorage.getItem("last-viewed-project-id");
+      if (lastViewedProjectId) {
+        const peliculasIndex = developments.findIndex((d) => d.id === "dev-peliculas");
+        const initialVisibleCount = peliculasIndex !== -1 ? peliculasIndex + 1 : developments.length;
+        const projectIndex = developments.findIndex((d) => d.id === lastViewedProjectId);
+        
+        // Si el proyecto está en la parte expandida, restaurar showAll
+        if (projectIndex >= initialVisibleCount) {
+          setShowAll(true);
+        }
+        
+        // Limpiar el projectId guardado después de usarlo
+        sessionStorage.removeItem("last-viewed-project-id");
+      }
+    }
+  }, [developments]);
 
   // Pausar animaciones durante el scroll para mejorar rendimiento
   useEffect(() => {
@@ -83,9 +122,6 @@ export default function ProjectsShowcase() {
   const handleMouseLeave = useCallback(() => {
     setActiveId(null);
   }, []);
-
-  // Datos de desarrollos desde el catálogo
-  const developments: Development[] = useMemo(() => getAllDevelopments(), []);
 
   // Calcular las cards visibles (hasta "Tienda de Películas" si showAll es false)
   const visibleDevelopments = useMemo(() => {
@@ -280,7 +316,13 @@ export default function ProjectsShowcase() {
               }}
             >
               <motion.div
-                onClick={() => router.push(`/projects/${dev.id}`)}
+                onClick={() => {
+                  // Guardar el projectId antes de navegar
+                  if (typeof window !== "undefined") {
+                    sessionStorage.setItem("last-viewed-project-id", dev.id);
+                  }
+                  router.push(`/projects/${dev.id}`);
+                }}
                 className="relative flex items-center cursor-pointer overflow-hidden rounded-xl bg-white border border-black/10 hover:border-black/20 transition-all will-change-transform"
                 animate={
                   reduceMotion || isScrolling
