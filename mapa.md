@@ -4,15 +4,16 @@ Permormance de la app
 Objetivo: Salir al mercado.
 Temitas a trabajar antes de salir:
 
-- Revisar diseño de la card de servicios
+- Revisar diseño de la card de servicios✅
 - Corregir imagen de 'amo mi casa'✅
-- 
-- Menu mobile
+- Agregar alguna seccion mas a la pagina, marcas✅
+- Corregir el Foco de 'volver a proyectos'
 - Pagina de Desarrollo Detail (agregar info como lcp, origen de visitantes, etc)
-- Flujo de compra de servicio (diseño, pago, etc, especificar que los desarrollo tienen diseño mobile)
+- Flujo de compra de servicio (diseño, pago, etc, especificar que los desarrollos tienen diseño mobile)
+- Menu mobile
 - Idiomas
-- Agregar alguna seccion mas a la pagina, poner carrousel de marcas
 - Color claro/oscuro
+- Revision final
 
 Con eso ya salir al mercado luego seguimos mejorando Glomun.
 

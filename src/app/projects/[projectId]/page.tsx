@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft, ExternalLink, Globe } from "lucide-react";
 import { getDevelopmentById } from "@/app/lib/developmentsCatalog";
 import VisitorsChart from "@/app/components/VisitorsChart";
+import PerformanceMetrics from "@/app/components/PerformanceMetrics";
 
 type PageProps = {
   params: Promise<{
@@ -130,6 +131,11 @@ export default async function ProjectDetailPage({ params }: PageProps) {
         {/* Sección de Analytics */}
         <div className="mt-12 lg:mt-16">
           <VisitorsChart projectId={projectId} />
+        </div>
+
+        {/* Sección de Performance Metrics */}
+        <div className="mt-12 lg:mt-16">
+          <PerformanceMetrics projectId={projectId} />
         </div>
       </div>
     </div>

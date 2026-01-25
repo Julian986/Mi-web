@@ -4,6 +4,7 @@ import Hero from "./components/Hero";
 import { SidebarProvider } from "./components/sidebar/SidebarProvider";
 // import DrawerSidebar from "./components/sidebar/DrawerSidebar";
 import FAQ from "./components/FAQ";
+import Brands from "./components/Brands";
 import Footer from "./components/Footer";
 
 // Lazy load de componentes pesados para mejorar First Contentful Paint
@@ -40,6 +41,8 @@ export default function Home() {
         </section>
 
         <FAQ />
+
+        <Brands />
 
         <section id="contact" className="border-t border-black/10 px-6 py-16 text-center overflow-x-hidden">
           <h2 className="text-3xl font-bold mb-6">Contacto</h2>

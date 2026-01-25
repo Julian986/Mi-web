@@ -13,6 +13,10 @@ type Service = {
   features: string[];
   ctaLabel: string;
   featured: boolean;
+  price?: {
+    ars: string;
+    usd: string;
+  };
 };
 
 function classNames(...classes: (string | boolean | undefined)[]): string {
@@ -26,15 +30,20 @@ export default function ServicesDashboards() {
     () => [
       {
         id: "web",
-        name: "Sitios web",
+        name: "Sitio web",
         description: "Más consultas con un sitio rápido y claro",
         features: [
           "Diseño que guía al cliente a contactarte",
           "SEO técnico y performance reales",
           "Medición y mejoras iterativas",
+          "Soporte 24/7",
         ],
         ctaLabel: "Quiero una web",
         featured: false,
+        price: {
+          ars: "$25.000",
+          usd: "$21",
+        },
       },
       {
         id: "ecommerce",
@@ -44,9 +53,14 @@ export default function ServicesDashboards() {
           "Checkout optimizado para convertir",
           "Pagos e integraciones listos",
           "Panel de pedidos, stock y envíos",
+          "Soporte 24/7",
         ],
         ctaLabel: "Quiero una tienda",
         featured: true,
+        price: {
+          ars: "$35.000",
+          usd: "$29",
+        },
       },
       {
         id: "custom",
@@ -56,9 +70,14 @@ export default function ServicesDashboards() {
           "Dashboards y permisos por rol",
           "Integraciones con tus sistemas",
           "Workflows que ahorran horas cada semana",
+          "Soporte 24/7",
         ],
         ctaLabel: "Quiero software a medida",
         featured: false,
+        price: {
+          ars: "Consultar",
+          usd: "Consultar",
+        },
       },
     ],
     []
@@ -100,6 +119,22 @@ export default function ServicesDashboards() {
             >
               {service.name}
             </h3>
+            {service.price && (
+              <div className="mt-4">
+                <div className={classNames(
+                  service.featured ? "text-white" : "text-slate-900",
+                  "text-3xl font-bold"
+                )}>
+                  {service.price.ars} {service.price.ars !== "Consultar" && "ARS"}
+                </div>
+                <div className={classNames(
+                  service.featured ? "text-slate-400" : "text-slate-500",
+                  "text-sm mt-1"
+                )}>
+                  {service.price.usd} {service.price.usd !== "Consultar" && "USD / mes"}
+                </div>
+              </div>
+            )}
             <p
               className={classNames(
                 service.featured ? "text-slate-300" : "text-slate-600",

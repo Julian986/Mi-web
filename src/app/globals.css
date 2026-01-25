@@ -74,3 +74,39 @@ body.font-loaded {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Línea de fuego animada */
+.fire-line {
+  background: linear-gradient(
+    90deg,
+    #ff6b00 0%,
+    #ff8c00 20%,
+    #ffa500 40%,
+    #ff6b00 60%,
+    #ff4500 80%,
+    #ff6b00 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 2px;
+  animation: fire-flicker 1.5s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(255, 107, 0, 0.6), 0 0 12px rgba(255, 140, 0, 0.4);
+}
+
+@keyframes fire-flicker {
+  0%, 100% {
+    background-position: 0% 50%;
+    opacity: 1;
+  }
+  25% {
+    background-position: 50% 50%;
+    opacity: 0.9;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 1;
+  }
+  75% {
+    background-position: 50% 50%;
+    opacity: 0.95;
+  }
+}
