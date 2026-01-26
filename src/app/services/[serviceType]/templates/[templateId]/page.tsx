@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getTemplateById, type ServiceType } from "@/app/lib/templatesCatalog";
+import ScrollToTopButton from "./ScrollToTopButton";
 
 type PageProps = {
   params: Promise<{
@@ -94,6 +95,7 @@ export default async function TemplateDetailPage({ params }: PageProps) {
           ))}
         </div>
       </div>
+      <ScrollToTopButton />
     </div>
   );
 }

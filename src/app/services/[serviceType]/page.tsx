@@ -4,7 +4,7 @@ import Image from "next/image";
 import React, { useMemo, useState, useEffect } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowLeft, PenTool, AlertTriangle } from "lucide-react";
+import { X, ArrowLeft, PenTool, AlertTriangle, Upload, CheckCircle2 } from "lucide-react";
 import Stepper from "@/app/components/Stepper";
 import { getTemplatesForServiceType, type ServiceType } from "@/app/lib/templatesCatalog";
 
@@ -14,6 +14,11 @@ type StepData = {
   features?: string[];
   customization?: string;
   budget?: string;
+  paymentMethod?: "transfer" | "mercado-pago";
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  receiptFile?: File | null;
 };
 
 const serviceNames = {
@@ -126,7 +131,8 @@ export default function ServiceFlowPage() {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     } else {
-      router.back();
+      // En el paso 0, salir del flujo hacia la sección Servicios
+      router.push("/#services");
     }
   };
 
@@ -416,6 +422,15 @@ export default function ServiceFlowPage() {
 
   // Step 4: Payment
   const renderPaymentStep = () => {
+    // Calcular precios
+    const basePriceARS = serviceType === "web" ? 25000 : serviceType === "ecommerce" ? 35000 : 0;
+    const basePriceUSD = serviceType === "web" ? 21 : serviceType === "ecommerce" ? 29 : 0;
+    const commissionRate = 0.03; // 3% de comisión
+    const priceWithCommissionARS = Math.round(basePriceARS * (1 + commissionRate));
+    const priceWithCommissionUSD = Math.round(basePriceUSD * (1 + commissionRate));
+
+    const selectedPaymentMethod = formData.paymentMethod || "transfer";
+
     return (
       <div className="space-y-4 sm:space-y-6">
         <div>
@@ -427,57 +442,210 @@ export default function ServiceFlowPage() {
           </p>
         </div>
 
+        {/* Datos de contacto */}
         <div className="space-y-3 sm:space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Nombre completo
+              Nombre completo <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
+              value={formData.customerName || ""}
+              onChange={(e) => handleInputChange("customerName", e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
               placeholder="Juan Pérez"
+              required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Email
+              Email <span className="text-red-500">*</span>
             </label>
             <input
               type="email"
+              value={formData.customerEmail || ""}
+              onChange={(e) => handleInputChange("customerEmail", e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
               placeholder="juan@ejemplo.com"
+              required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Teléfono
+              Teléfono <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
+              value={formData.customerPhone || ""}
+              onChange={(e) => handleInputChange("customerPhone", e.target.value)}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
               placeholder="+54 9 11 1234-5678"
+              required
             />
           </div>
 
+          {/* Método de pago */}
           <div className="pt-4 border-t border-slate-200">
             <h4 className="font-semibold text-slate-900 mb-3">
-              Método de pago
+              Método de pago <span className="text-red-500">*</span>
             </h4>
             <div className="space-y-2 sm:space-y-3">
-              <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
-                <input type="radio" name="payment" value="transfer" defaultChecked />
-                <span>Transferencia bancaria</span>
+              {/* Transferencia bancaria - Destacada */}
+              <label
+                className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
+                  selectedPaymentMethod === "transfer"
+                    ? "border-[#84b9ed] bg-[#84b9ed]/5 ring-2 ring-[#84b9ed]/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  value="transfer"
+                  checked={selectedPaymentMethod === "transfer"}
+                  onChange={(e) => handleInputChange("paymentMethod", e.target.value)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900">Transferencia bancaria</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                      Recomendado
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Sin comisiones adicionales. Precio final: ${basePriceARS.toLocaleString("es-AR")} ARS
+                  </p>
+                </div>
               </label>
-              <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
-                <input type="radio" name="payment" value="card" />
-                <span>Tarjeta de crédito/débito</span>
-              </label>
-              <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
-                <input type="radio" name="payment" value="mercado-pago" />
-                <span>Mercado Pago</span>
+
+              {/* Mercado Pago */}
+              <label
+                className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
+                  selectedPaymentMethod === "mercado-pago"
+                    ? "border-[#84b9ed] bg-[#84b9ed]/5 ring-2 ring-[#84b9ed]/20"
+                    : "border-slate-200 hover:bg-slate-50"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  value="mercado-pago"
+                  checked={selectedPaymentMethod === "mercado-pago"}
+                  onChange={(e) => handleInputChange("paymentMethod", e.target.value)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900">Mercado Pago</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Incluye 3% de comisión. Precio final: ${priceWithCommissionARS.toLocaleString("es-AR")} ARS
+                  </p>
+                </div>
               </label>
             </div>
           </div>
+
+          {/* Datos bancarios - Solo si elige transferencia */}
+          {selectedPaymentMethod === "transfer" && (
+            <div className="pt-4 border-t border-slate-200 space-y-4">
+              <div>
+                <h4 className="font-semibold text-slate-900 mb-3">Datos para la transferencia</h4>
+                <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 uppercase">Alias</label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <code className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm text-slate-900">
+                        GLOMUN.WEB
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText("GLOMUN.WEB");
+                        }}
+                        className="px-3 py-2 text-xs font-medium text-[#84b9ed] hover:bg-[#84b9ed]/10 rounded-lg transition-colors"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 uppercase">CBU</label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <code className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm text-slate-900">
+                        0000000000000000000000
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText("0000000000000000000000");
+                        }}
+                        className="px-3 py-2 text-xs font-medium text-[#84b9ed] hover:bg-[#84b9ed]/10 rounded-lg transition-colors"
+                      >
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-slate-500 uppercase">Banco</label>
+                    <p className="mt-1 text-sm text-slate-900">Banco de ejemplo</p>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200">
+                    <p className="text-xs text-slate-600">
+                      Realizá la transferencia por el monto exacto de{" "}
+                      <span className="font-semibold">${basePriceARS.toLocaleString("es-AR")} ARS</span> y luego subí el comprobante.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Campo para subir comprobante */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Comprobante de transferencia <span className="text-slate-500">(opcional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      handleInputChange("receiptFile", file);
+                    }}
+                    className="hidden"
+                    id="receipt-upload"
+                  />
+                  <label
+                    htmlFor="receipt-upload"
+                    className="flex items-center gap-3 p-4 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-[#84b9ed] hover:bg-[#84b9ed]/5 transition-colors"
+                  >
+                    <Upload className="w-5 h-5 text-slate-400" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-700">
+                        {formData.receiptFile ? formData.receiptFile.name : "Subir comprobante"}
+                      </p>
+                      <p className="text-xs text-slate-500">JPG, PNG o PDF (máx. 5MB)</p>
+                    </div>
+                    {formData.receiptFile && (
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    )}
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Información de Mercado Pago - Solo si elige Mercado Pago */}
+          {selectedPaymentMethod === "mercado-pago" && (
+            <div className="pt-4 border-t border-slate-200">
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800">
+                  <span className="font-semibold">Importante:</span> Al elegir Mercado Pago, serás redirigido a su plataforma segura para completar el pago. El precio incluye una comisión del 3% por el procesamiento.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -503,11 +671,17 @@ export default function ServiceFlowPage() {
       case 0:
         return !!formData.design;
       case 1:
-        return !!formData.colorScheme;
+        return true; // Siempre habilitado en Configuración
       case 2:
         return true;
       case 3:
-        return true;
+        // Validar que tenga método de pago y datos de contacto
+        return !!(
+          formData.paymentMethod &&
+          formData.customerName &&
+          formData.customerEmail &&
+          formData.customerPhone
+        );
       default:
         return false;
     }
@@ -519,8 +693,9 @@ export default function ServiceFlowPage() {
       <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-200 bg-white flex-shrink-0">
         <div className="flex items-center gap-4">
           <button
-            onClick={handleClose}
+            onClick={handleBack}
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            aria-label="Atrás"
           >
             <ArrowLeft className="h-5 w-5 text-slate-600" />
           </button>
@@ -618,11 +793,27 @@ export default function ServiceFlowPage() {
         {currentStep === steps.length - 1 ? (
           <button
             onClick={() => {
-              // Aquí iría la lógica de pago
-              alert("¡Gracias por tu compra! Te contactaremos pronto.");
-              handleClose();
+              if (!canProceed()) {
+                return;
+              }
+              
+              if (formData.paymentMethod === "mercado-pago") {
+                // Redirigir a Mercado Pago (aquí iría la URL real de checkout)
+                alert("Serás redirigido a Mercado Pago para completar el pago.");
+                // window.location.href = "URL_DE_MERCADO_PAGO";
+                handleClose();
+              } else {
+                // Transferencia bancaria - mostrar confirmación
+                alert("¡Gracias por tu compra! Hemos recibido tu solicitud. Te contactaremos pronto para confirmar la transferencia y activar tu servicio.");
+                handleClose();
+              }
             }}
-            className="px-4 sm:px-6 py-2 bg-[#84b9ed] text-white rounded-lg font-medium hover:bg-[#6ba3d9] transition-colors cursor-pointer text-sm sm:text-base"
+            disabled={!canProceed()}
+            className={`px-4 sm:px-6 py-2 rounded-lg font-medium transition-colors text-sm sm:text-base ${
+              canProceed()
+                ? "bg-[#84b9ed] text-white hover:bg-[#6ba3d9] cursor-pointer"
+                : "bg-slate-300 text-slate-500 cursor-not-allowed"
+            }`}
           >
             Finalizar compra
           </button>
