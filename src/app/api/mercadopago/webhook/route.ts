@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { addMpWebhookEvent } from "@/app/lib/mpWebhookStore";
+import { insertMpWebhookEvent } from "@/app/lib/mpWebhookMongo";
 
 export const runtime = "nodejs";
 
@@ -103,7 +104,7 @@ export async function POST(req: NextRequest) {
     console.log("[mercadopago:webhook] received", { query, body });
 
     // Guardar evento para panel admin
-    addMpWebhookEvent({
+    const evt = {
       receivedAt: new Date().toISOString(),
       path: url.pathname,
       query,
@@ -114,7 +115,12 @@ export async function POST(req: NextRequest) {
       },
       body,
       signatureVerified,
-    });
+    };
+    addMpWebhookEvent(evt);
+    if (process.env.MONGODB_URI) {
+      // Persistir en MongoDB para que el panel funcione en Vercel (multi-instancia)
+      insertMpWebhookEvent(evt).catch((e) => console.error("[mercadopago:webhook] mongo insert failed", e));
+    }
 
     // Si tenemos token, consultamos el preapproval para saber estado real
     const id = extractId(query, body as any);
