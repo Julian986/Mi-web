@@ -15,6 +15,7 @@ export default function Admin92Page() {
   const [events, setEvents] = useState<MpWebhookEvent[]>([]);
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [source, setSource] = useState<"mongo" | "memory" | "unknown">("unknown");
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -35,6 +36,7 @@ export default function Admin92Page() {
         return;
       }
       setEvents(Array.isArray(data?.events) ? data.events : []);
+      setSource(data?.source === "mongo" || data?.source === "memory" ? data.source : "unknown");
     } catch (e: any) {
       setError(e?.message || "Error de red.");
     } finally {
@@ -53,7 +55,10 @@ export default function Admin92Page() {
         <div className="flex items-start justify-between gap-4 mb-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Admin Webhooks</h1>
-            <p className="text-sm text-slate-600">Eventos recibidos de Mercado Pago (debug).</p>
+            <p className="text-sm text-slate-600">
+              Eventos recibidos de Mercado Pago (debug). Fuente:{" "}
+              <span className="font-semibold text-slate-900">{source}</span>
+            </p>
           </div>
           <button
             type="button"
