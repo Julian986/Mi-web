@@ -112,16 +112,29 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify(payload),
     });
 
-    const mpData = await mpRes.json().catch(() => ({}));
+    const mpRaw = await mpRes.text();
+    let mpData: any = {};
+    try {
+      mpData = mpRaw ? JSON.parse(mpRaw) : {};
+    } catch {
+      mpData = { raw: mpRaw };
+    }
 
     if (!mpRes.ok) {
+      // Log útil para Vercel logs
+      console.log("[mercadopago:preapproval] error", {
+        status: mpRes.status,
+        payload,
+        mpData,
+      });
       return NextResponse.json(
         {
           error: "Mercado Pago respondió con error.",
-          status: mpRes.status,
+          mp_status: mpRes.status,
           details: mpData,
         },
-        { status: 502 },
+        // Devolvemos el mismo status de MP para debug (p.ej. 400)
+        { status: mpRes.status },
       );
     }
 
