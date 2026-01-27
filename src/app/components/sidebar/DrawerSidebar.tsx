@@ -10,8 +10,10 @@ import {
   FolderKanban, 
   Mail, 
   MoreVertical,
-  Github
+  Github,
+  User
 } from "lucide-react";
+import Link from "next/link";
 
 type NavItem = { label: string; href: string; icon: React.ComponentType<{ className?: string }> };
 type NavSection = { title: string; items: NavItem[] };
@@ -68,6 +70,10 @@ export default function DrawerSidebar() {
           { label: "Casos", href: "#work", icon: FolderKanban },
           { label: "Contacto", href: "#contact", icon: Mail },
         ],
+      },
+      {
+        title: "Cuenta",
+        items: [{ label: "Mi cuenta", href: "/account", icon: User }],
       },
     ],
     []
@@ -235,20 +241,37 @@ export default function DrawerSidebar() {
                       {section.items.map((item) => {
                         const Icon = item.icon;
                         const isActive = activeSection === item.href || (item.href === "#top" && (activeSection === "" || activeSection === "#top"));
+                        const isInternalRoute = item.href.startsWith("/");
                         return (
-                          <a
-                            key={item.label}
-                            href={item.href}
-                            onClick={() => closeSidebar()}
-                            className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm/6 font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 ${
-                              isActive
-                                ? "bg-slate-800"
-                                : "hover:bg-slate-800/50"
-                            }`}
-                          >
-                            <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`} />
-                            {item.label}
-                          </a>
+                          isInternalRoute ? (
+                            <Link
+                              key={item.label}
+                              href={item.href}
+                              onClick={() => closeSidebar()}
+                              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm/6 font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 ${
+                                isActive
+                                  ? "bg-slate-800"
+                                  : "hover:bg-slate-800/50"
+                              }`}
+                            >
+                              <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`} />
+                              {item.label}
+                            </Link>
+                          ) : (
+                            <a
+                              key={item.label}
+                              href={item.href}
+                              onClick={() => closeSidebar()}
+                              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm/6 font-semibold text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 ${
+                                isActive
+                                  ? "bg-slate-800"
+                                  : "hover:bg-slate-800/50"
+                              }`}
+                            >
+                              <Icon className={`h-5 w-5 ${isActive ? "text-white" : "text-slate-400"}`} />
+                              {item.label}
+                            </a>
+                          )
                         );
                       })}
                     </div>

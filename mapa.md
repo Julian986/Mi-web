@@ -10,6 +10,8 @@ Temitas a trabajar antes de salir:
 - Corregir el Foco de 'volver a proyectos'✅
 - Pagina de Desarrollo Detail (agregar info como lcp, origen de visitantes, etc)✅
 - Flujo de compra de servicio (diseño, pago, etc, especificar que los desarrollos tienen diseño mobile)
+- Hacer carrousel
+- Revisar el codigo/quitarlo
 - Menu mobile
 - Idiomas
 - Color claro/oscuro

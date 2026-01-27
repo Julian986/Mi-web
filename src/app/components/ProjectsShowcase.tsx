@@ -56,19 +56,20 @@ export default function ProjectsShowcase() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   
-  // Restaurar estado de expansión desde sessionStorage
-  const [showAll, setShowAll] = useState(() => {
-    if (typeof window !== "undefined") {
-      const saved = sessionStorage.getItem("projects-showAll");
-      return saved === "true";
-    }
-    return false;
-  });
+  // Importante (hidratación): iniciar determinístico y luego restaurar en cliente
+  const [showAll, setShowAll] = useState(false);
   
   const reduceMotion = useReducedMotion();
 
   // Datos de desarrollos desde el catálogo
   const developments: Development[] = useMemo(() => getAllDevelopments(), []);
+
+  // Restaurar estado de expansión desde sessionStorage (solo cliente)
+  useEffect(() => {
+    const saved = sessionStorage.getItem("projects-showAll");
+    if (saved === null) return;
+    setShowAll(saved === "true");
+  }, []);
 
   // Guardar estado de expansión en sessionStorage cuando cambia
   useEffect(() => {

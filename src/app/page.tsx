@@ -24,11 +24,11 @@ export default function Home() {
         {/* <DrawerSidebar /> */}
         <Hero />
 
-        <section id="services" className="overflow-x-hidden">
+        <section id="services" className="overflow-x-hidden scroll-mt-12">
           <ServicesDashboards />
         </section>
 
-        <section id="work" className="border-t border-black/10 py-16 text-center overflow-x-hidden">
+        <section id="work" className="border-t border-black/10 py-16 text-center overflow-x-hidden scroll-mt-12">
           <div className="mx-auto max-w-7xl px-6 mb-10">
             <h2 className="text-3xl font-bold mb-4">Desarrollos {/* / Casos */}</h2>
             <p className="text-lg max-w-2xl mx-auto text-slate-600">
@@ -44,7 +44,7 @@ export default function Home() {
 
         <Brands />
 
-        <section id="contact" className="border-t border-black/10 px-6 py-16 text-center overflow-x-hidden">
+        <section id="contact" className="border-t border-black/10 px-6 py-16 text-center overflow-x-hidden scroll-mt-12">
           <h2 className="text-3xl font-bold mb-6">Contacto</h2>
           <p className="text-lg max-w-2xl mx-auto text-slate-600 mb-8">
             Contanos qué querés construir. Te respondemos con estimación y próximos pasos.

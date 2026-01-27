@@ -90,6 +90,13 @@ export default function ServiceFlowPage() {
     { id: "payment", label: "Pago" },
   ];
 
+  // Default: si llegamos al paso de pago, asumir transferencia seleccionada
+  useEffect(() => {
+    if (currentStep === steps.length - 1 && !formData.paymentMethod) {
+      setFormData((prev) => ({ ...prev, paymentMethod: "transfer" }));
+    }
+  }, [currentStep, steps.length, formData.paymentMethod]);
+
   const getStepStatus = (index: number): "completed" | "active" | "inactive" => {
     if (index < currentStep) return "completed";
     if (index === currentStep) return "active";
@@ -792,16 +799,53 @@ export default function ServiceFlowPage() {
 
         {currentStep === steps.length - 1 ? (
           <button
-            onClick={() => {
+            onClick={async () => {
               if (!canProceed()) {
                 return;
               }
               
               if (formData.paymentMethod === "mercado-pago") {
-                // Redirigir a Mercado Pago (aquí iría la URL real de checkout)
-                alert("Serás redirigido a Mercado Pago para completar el pago.");
-                // window.location.href = "URL_DE_MERCADO_PAGO";
-                handleClose();
+                try {
+                  const res = await fetch("/api/mercadopago/subscription", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      serviceType,
+                      customerEmail: formData.customerEmail,
+                      customerName: formData.customerName,
+                      customerPhone: formData.customerPhone,
+                    }),
+                  });
+
+                  const raw = await res.text();
+                  let data: any = {};
+                  try {
+                    data = raw ? JSON.parse(raw) : {};
+                  } catch {
+                    data = { raw };
+                  }
+
+                  if (!res.ok) {
+                    console.error("Mercado Pago error:", { status: res.status, data });
+                    alert(
+                      (typeof data?.error === "string" && data.error) ||
+                        "No pudimos iniciar Mercado Pago. Probá de nuevo en unos minutos.",
+                    );
+                    return;
+                  }
+
+                  const redirectUrl: string | undefined = data.init_point || data.sandbox_init_point;
+                  if (!redirectUrl) {
+                    console.error("Mercado Pago response missing init_point:", { status: res.status, data });
+                    alert("No pudimos iniciar Mercado Pago. Falta el enlace de pago.");
+                    return;
+                  }
+
+                  window.location.href = redirectUrl;
+                } catch (err) {
+                  console.error(err);
+                  alert("Error de red al iniciar Mercado Pago. Revisá tu conexión e intentá de nuevo.");
+                }
               } else {
                 // Transferencia bancaria - mostrar confirmación
                 alert("¡Gracias por tu compra! Hemos recibido tu solicitud. Te contactaremos pronto para confirmar la transferencia y activar tu servicio.");
