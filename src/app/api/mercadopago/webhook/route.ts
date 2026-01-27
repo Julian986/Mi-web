@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { addMpWebhookEvent } from "@/app/lib/mpWebhookStore";
 
 export const runtime = "nodejs";
 
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
     const query = Object.fromEntries(url.searchParams.entries());
 
     // Validar firma (si hay secret configurado)
+    let signatureVerified = false;
     if (webhookSecret) {
       const xSignature = req.headers.get("x-signature");
       const xRequestId = req.headers.get("x-request-id");
@@ -86,6 +88,8 @@ export async function POST(req: NextRequest) {
         });
         return NextResponse.json({ received: false }, { status: 401 });
       }
+
+      signatureVerified = true;
     }
 
     const rawBody = await req.text();
@@ -97,6 +101,20 @@ export async function POST(req: NextRequest) {
     }
 
     console.log("[mercadopago:webhook] received", { query, body });
+
+    // Guardar evento para panel admin
+    addMpWebhookEvent({
+      receivedAt: new Date().toISOString(),
+      path: url.pathname,
+      query,
+      headers: {
+        "x-signature": req.headers.get("x-signature") ?? "",
+        "x-request-id": req.headers.get("x-request-id") ?? "",
+        "user-agent": req.headers.get("user-agent") ?? "",
+      },
+      body,
+      signatureVerified,
+    });
 
     // Si tenemos token, consultamos el preapproval para saber estado real
     const id = extractId(query, body as any);
