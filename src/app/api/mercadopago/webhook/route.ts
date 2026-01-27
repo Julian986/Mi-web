@@ -1,6 +1,41 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
+
+function parseXSignature(xSignature: string | null): { ts?: string; v1?: string } {
+  if (!xSignature) return {};
+  const parts = xSignature.split(",").map((p) => p.trim());
+  const out: { ts?: string; v1?: string } = {};
+  for (const part of parts) {
+    const [k, v] = part.split("=", 2).map((s) => s?.trim());
+    if (!k || !v) continue;
+    if (k === "ts") out.ts = v;
+    if (k === "v1") out.v1 = v;
+  }
+  return out;
+}
+
+function buildManifest(params: { dataId?: string; requestId?: string; ts?: string }) {
+  // Docs MP: `id:[data.id_url];request-id:[x-request-id_header];ts:[ts_header];`
+  // Si falta algún valor, debe eliminarse del template.
+  let manifest = "";
+  if (params.dataId) manifest += `id:${params.dataId};`;
+  if (params.requestId) manifest += `request-id:${params.requestId};`;
+  if (params.ts) manifest += `ts:${params.ts};`;
+  return manifest;
+}
+
+function safeEqualHex(a: string, b: string) {
+  try {
+    const ab = Buffer.from(a, "hex");
+    const bb = Buffer.from(b, "hex");
+    if (ab.length !== bb.length) return false;
+    return crypto.timingSafeEqual(ab, bb);
+  } catch {
+    return false;
+  }
+}
 
 function extractId(query: Record<string, string>, body: any): string | undefined {
   // MP puede enviar:
@@ -26,8 +61,32 @@ export async function POST(req: NextRequest) {
   // y/o body. En este esqueleto lo registramos para validar que llegue.
   try {
     const token = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+    const webhookSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
     const url = new URL(req.url);
     const query = Object.fromEntries(url.searchParams.entries());
+
+    // Validar firma (si hay secret configurado)
+    if (webhookSecret) {
+      const xSignature = req.headers.get("x-signature");
+      const xRequestId = req.headers.get("x-request-id");
+      const { ts, v1 } = parseXSignature(xSignature);
+
+      // data.id_url viene por query param "data.id" (puede ser alfanum y debe ir en lower)
+      const dataIdUrl = (url.searchParams.get("data.id") || url.searchParams.get("id") || undefined)?.toLowerCase();
+      const manifest = buildManifest({ dataId: dataIdUrl, requestId: xRequestId || undefined, ts });
+      const expected = crypto.createHmac("sha256", webhookSecret).update(manifest).digest("hex");
+
+      if (!v1 || !manifest || !safeEqualHex(expected, v1)) {
+        console.log("[mercadopago:webhook] invalid signature", {
+          hasSecret: true,
+          hasXSignature: !!xSignature,
+          hasXRequestId: !!xRequestId,
+          dataIdUrl,
+          manifest,
+        });
+        return NextResponse.json({ received: false }, { status: 401 });
+      }
+    }
 
     const rawBody = await req.text();
     let body: unknown = rawBody;
