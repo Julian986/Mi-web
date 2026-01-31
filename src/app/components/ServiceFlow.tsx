@@ -22,8 +22,8 @@ type StepData = {
 
 const serviceNames = {
   web: "Sitio Web",
-  ecommerce: "E-commerce",
-  custom: "Software a Medida",
+  ecommerce: "Tienda Online",
+  custom: "Aplicación a medida",
 };
 
 export default function ServiceFlow({ serviceType, onClose }: ServiceFlowProps) {

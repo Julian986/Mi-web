@@ -381,7 +381,7 @@ export default function ProjectsShowcase() {
                         }}
                       />
                       <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                        {dev.type === "web" ? "Sitio Web" : dev.type === "ecommerce" ? "E-commerce" : "App"}
+                        {dev.type === "web" ? "Sitio Web" : dev.type === "ecommerce" ? "Tienda Online" : "App"}
                       </span>
                     </div>
 

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { addMpWebhookEvent } from "@/app/lib/mpWebhookStore";
 import { insertMpWebhookEvent } from "@/app/lib/mpWebhookMongo";
+import {
+  findSubscriptionByPreapprovalId,
+  updateSubscriptionStatus,
+  saveSubscription,
+} from "@/app/lib/subscriptionsMongo";
 
 export const runtime = "nodejs";
 
@@ -145,8 +150,36 @@ export async function POST(req: NextRequest) {
     const status = (details as any)?.status as string | undefined;
     const externalReference = (details as any)?.external_reference as string | undefined;
     const upgradeFrom = parseUpgradeFrom(externalReference);
+    const payerEmail = (details as any)?.payer_email as string | undefined;
 
-    // Cuando la nueva suscripción queda autorizada, cancelamos la anterior (si aplica)
+    // Actualizar estado en nuestra DB
+    if (status === "authorized" && process.env.MONGODB_URI) {
+      try {
+        const existing = await findSubscriptionByPreapprovalId(id);
+        if (existing) {
+          await updateSubscriptionStatus(id, "authorized");
+        } else if (upgradeFrom) {
+          // Upgrade: crear nuevo doc y marcar el anterior como cancelado
+          const oldSub = await findSubscriptionByPreapprovalId(upgradeFrom);
+          if (oldSub) {
+            await saveSubscription({
+              tempId: `upgrade-${id}`,
+              preapprovalId: id,
+              email: oldSub.email,
+              name: oldSub.name,
+              phone: oldSub.phone,
+              plan: oldSub.plan,
+              status: "authorized",
+            });
+            await updateSubscriptionStatus(upgradeFrom, "cancelled");
+          }
+        }
+      } catch (e) {
+        console.error("[mercadopago:webhook] subscription update failed", e);
+      }
+    }
+
+    // Cuando la nueva suscripción queda autorizada, cancelamos la anterior en MP (si aplica)
     if (status === "authorized" && upgradeFrom && upgradeFrom !== id) {
       console.log("[mercadopago:webhook] upgrade authorized, cancelling previous", {
         newId: id,

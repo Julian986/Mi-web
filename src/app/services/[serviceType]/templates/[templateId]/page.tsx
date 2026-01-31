@@ -1,8 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getTemplateById, type ServiceType } from "@/app/lib/templatesCatalog";
 import ScrollToTopButton from "./ScrollToTopButton";
+import TemplateGalleryCarousel from "./TemplateGalleryCarousel";
 
 type PageProps = {
   params: Promise<{
@@ -60,7 +60,7 @@ export default async function TemplateDetailPage({ params }: PageProps) {
             </Link>
           </div>
           <p className="mt-2 text-slate-600">
-            Vista previa del diseño (placeholder). Luego vas a reemplazar imágenes/IDs finales.
+            Así se vería tu sitio con este diseño. Después lo personalizamos con tus fotos y textos. El plan incluye cambios ilimitados.
           </p>
           <div className="mt-4 flex justify-center sm:hidden">
             <Link
@@ -72,28 +72,11 @@ export default async function TemplateDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-1 gap-6">
-          {template.gallery.slice(0, 5).map((src, idx) => (
-            <div key={`${template.id}-${idx}`} className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="relative aspect-[16/10] bg-slate-50">
-                <Image
-                  src={src}
-                  alt={`${template.title} - vista ${idx + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 960px"
-                  priority={idx === 0}
-                />
-              </div>
-              <div className="flex items-center justify-between px-4 py-3">
-                <p className="text-sm font-medium text-slate-900">Pantalla {idx + 1}</p>
-                <p className="text-xs text-slate-500">
-                  {idx === 0 ? "Home" : idx === 1 ? "Servicios" : idx === 2 ? "Detalle" : idx === 3 ? "Precios" : "Contacto"}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <TemplateGalleryCarousel
+          templateId={template.id}
+          title={template.title}
+          gallery={template.gallery}
+        />
       </div>
       <ScrollToTopButton />
     </div>

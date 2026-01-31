@@ -1,4 +1,6 @@
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { saveSubscription } from "@/app/lib/subscriptionsMongo";
 
 export const runtime = "nodejs";
 
@@ -15,6 +17,10 @@ const PRICE_BY_SERVICE: Record<Exclude<SubscriptionBody["serviceType"], undefine
   ecommerce: { ars: 35000, usd: 29 },
   custom: { ars: 0, usd: 0 },
 };
+
+function generateTempId() {
+  return crypto.randomBytes(8).toString("hex");
+}
 
 function getOrigin(req: NextRequest) {
   return new URL(req.url).origin;
@@ -55,7 +61,7 @@ export async function POST(req: NextRequest) {
 
     if (serviceType === "custom") {
       return NextResponse.json(
-        { error: "Software a medida es 'Consultar' y no tiene suscripción automática por ahora." },
+        { error: "Aplicación a medida es 'Consultar' y no tiene suscripción automática por ahora." },
         { status: 400 },
       );
     }
@@ -81,11 +87,12 @@ export async function POST(req: NextRequest) {
     const price = PRICE_BY_SERVICE[serviceType];
     const notificationUrl = `${baseUrl}/api/mercadopago/webhook`;
 
-    // Mercado Pago - Preapproval (pago recurrente)
-    // Nota: esto es un esqueleto funcional. En producción, conviene:
-    // - guardar `external_reference`/`id` en DB
-    // - validar webhooks
-    // - configurar back_url real y pantallas de éxito/error
+    const tempId = upgradeFromPreapprovalId ? undefined : generateTempId();
+    const externalRef = upgradeFromPreapprovalId
+      ? `glomun-upgrade-${serviceType}-${Date.now()}|from:${upgradeFromPreapprovalId}`
+      : `glomun-${tempId}`;
+    const backUrl = `${baseUrl}/api/account/return${tempId ? `?ref=${tempId}` : ""}`;
+
     const payload = {
       reason: `Suscripción mensual - ${serviceType.toUpperCase()} - Glomun`,
       payer_email: payerEmail,
@@ -95,10 +102,8 @@ export async function POST(req: NextRequest) {
         transaction_amount: price.ars,
         currency_id: "ARS",
       },
-      back_url: `${baseUrl}/services/${serviceType}?mp=return`,
-      external_reference: upgradeFromPreapprovalId
-        ? `glomun-upgrade-${serviceType}-${Date.now()}|from:${upgradeFromPreapprovalId}`
-        : `glomun-${serviceType}-${Date.now()}`,
+      back_url: backUrl || `${baseUrl}/account`,
+      external_reference: externalRef,
       notification_url: notificationUrl,
       status: "pending",
     };
@@ -121,7 +126,6 @@ export async function POST(req: NextRequest) {
     }
 
     if (!mpRes.ok) {
-      // Log útil para Vercel logs
       console.log("[mercadopago:preapproval] error", {
         status: mpRes.status,
         payload,
@@ -133,14 +137,31 @@ export async function POST(req: NextRequest) {
           mp_status: mpRes.status,
           details: mpData,
         },
-        // Devolvemos el mismo status de MP para debug (p.ej. 400)
         { status: mpRes.status },
       );
     }
 
-    // MP suele devolver init_point y sandbox_init_point
+    const mpId = (mpData as any)?.id as string | undefined;
+
+    // Guardar en DB para suscripciones nuevas (no upgrade)
+    if (tempId && mpId && process.env.MONGODB_URI) {
+      try {
+        await saveSubscription({
+          tempId,
+          preapprovalId: mpId,
+          email: payerEmail,
+          name: body.customerName?.trim(),
+          phone: body.customerPhone?.trim(),
+          plan: serviceType as "web" | "ecommerce",
+          status: "pending",
+        });
+      } catch (e) {
+        console.error("[mercadopago:subscription] mongo save failed", e);
+      }
+    }
+
     return NextResponse.json({
-      id: (mpData as any)?.id,
+      id: mpId,
       init_point: (mpData as any)?.init_point,
       sandbox_init_point: (mpData as any)?.sandbox_init_point,
     });

@@ -180,9 +180,11 @@ function generateMonthlyData(projectId: string): VisitorsData[] {
 
 type VisitorsChartProps = {
   projectId: string;
+  /** Oculta números y muestra "..." cuando true (ej. suscripción inactiva) */
+  hideValues?: boolean;
 };
 
-export default function VisitorsChart({ projectId }: VisitorsChartProps) {
+export default function VisitorsChart({ projectId, hideValues = false }: VisitorsChartProps) {
   const [period, setPeriod] = useState<Period>("day");
 
   const data = useMemo(() => {
@@ -204,16 +206,17 @@ export default function VisitorsChart({ projectId }: VisitorsChartProps) {
   const maxVisitors = Math.max(...data.map((d) => d.visitors));
   const minVisitors = Math.min(...data.map((d) => d.visitors));
 
-  // Formatear número con separador de miles
+  // Formatear número con separador de miles (o "..." si hideValues)
   const formatNumber = (num: number) => {
+    if (hideValues) return "...";
     return num.toLocaleString("es-AR");
   };
 
   // Labels dinámicos según el período
   const periodLabels = {
-    day: { title: "Visitantes (últimos 30 días)", subtitle: "Tendencia de visitas diarias", total: "Total (30 días)", avg: "Promedio diario" },
-    week: { title: "Visitantes (últimas 12 semanas)", subtitle: "Tendencia de visitas semanales", total: "Total (12 semanas)", avg: "Promedio semanal" },
-    month: { title: "Visitantes (últimos 12 meses)", subtitle: "Tendencia de visitas mensuales", total: "Total (12 meses)", avg: "Promedio mensual" },
+    day: { periodInfo: "Últimos 30 días", subtitle: "Tendencia de visitas diarias", total: "Total (30 días)", avg: "Promedio diario" },
+    week: { periodInfo: "Últimas 12 semanas", subtitle: "Tendencia de visitas semanales", total: "Total (12 semanas)", avg: "Promedio semanal" },
+    month: { periodInfo: "Últimos 12 meses", subtitle: "Tendencia de visitas mensuales", total: "Total (12 meses)", avg: "Promedio mensual" },
   };
 
   const labels = periodLabels[period];
@@ -244,7 +247,10 @@ export default function VisitorsChart({ projectId }: VisitorsChartProps) {
       <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 shadow-sm">
         <div className="mb-4">
           <div className="flex items-center justify-between gap-4 mb-2">
-            <h3 className="text-lg font-semibold text-slate-900">{labels.title}</h3>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Visitantes</h3>
+              <p className="text-sm font-normal text-slate-500">{labels.periodInfo}</p>
+            </div>
             <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
               <button
                 onClick={() => setPeriod("day")}
@@ -299,6 +305,7 @@ export default function VisitorsChart({ projectId }: VisitorsChartProps) {
               tickLine={false}
               axisLine={false}
               tickFormatter={(value) => {
+                if (hideValues) return "...";
                 if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
                 if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
                 return value.toString();
@@ -313,8 +320,7 @@ export default function VisitorsChart({ projectId }: VisitorsChartProps) {
               }}
               labelStyle={{ color: "#1e293b", fontWeight: 600, marginBottom: "4px" }}
               formatter={(value: number | undefined) => {
-                if (value === undefined) return ["0", "Visitantes"];
-                return [formatNumber(value), "Visitantes"];
+                return [formatNumber(value ?? 0), "Visitantes"];
               }}
             />
             <Line

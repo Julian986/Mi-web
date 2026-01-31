@@ -4,15 +4,20 @@ Permormance de la app
 Objetivo: Salir al mercado.
 Temitas a trabajar antes de salir:
 
-- Revisar diseño de la card de servicios✅
-- Corregir imagen de 'amo mi casa'✅
-- Agregar alguna seccion mas a la pagina, marcas✅
-- Corregir el Foco de 'volver a proyectos'✅
-- Pagina de Desarrollo Detail (agregar info como lcp, origen de visitantes, etc)✅
-- Flujo de compra de servicio (diseño, pago, etc, especificar que los desarrollos tienen diseño mobile)
-- Hacer carrousel
-- Revisar el codigo/quitarlo
-- Menu mobile
+
+- Revisar el texto de Servicios✅
+- Revisar el texto de marcas
+- Revisar el paso 3 (Revisa tu pedido) del flujo de compra 
+- Identificamos cada cuenta con el nombre o email o teléfono
+- Como hacemos real las estadísticas para que se actualicen cada dia
+- Construir las paginas de soporte y dominio
+- Como se que se cancela la anterior suscripcion
+- Poner en preguntas frecuentes que es cuenta premiun, ssl, etc
+- Pagina de Mi Cuenta
+- Revisar numeros de visitantes en los desarrollos
+- Origen de visitantes?
+- Menu mobile✅
+
 - Idiomas
 - Color claro/oscuro
 - Revision final
@@ -22,6 +27,17 @@ Con eso ya salir al mercado luego seguimos mejorando Glomun.
 
 
 
+
+
+
+- Revisar diseño de la card de servicios✅
+- Corregir imagen de 'amo mi casa'✅
+- Agregar alguna seccion mas a la pagina, marcas✅
+- Corregir el Foco de 'volver a proyectos'✅
+- Pagina de Desarrollo Detail (agregar info como lcp, origen de visitantes, etc)✅
+- Flujo de compra de servicio (diseño, pago, etc, especificar que los desarrollos tienen diseño mobile)✅
+- Hacer carrousel✅
+- Revisar el codigo/quitarlo✅
 
 
 

@@ -2,15 +2,19 @@
 
 import React from "react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Facebook, Instagram, Twitter, Github, Youtube } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+  const base = isHome ? "" : "/";
 
   const footerLinks = {
     servicios: [
       { label: "Desarrollo Web", href: "#services" },
-      { label: "E-commerce", href: "#services" },
+      { label: "Tienda Online", href: "#services" },
       { label: "Aplicaciones", href: "#services" },
       { label: "Consultoría", href: "#services" },
     ],
@@ -47,7 +51,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-8">
           {/* Logo */}
           <div className="md:col-span-1">
-            <a href="#top" className="flex items-center gap-2 mb-4">
+            <a href={`${base}#top`} className="flex items-center gap-2 mb-4">
               <div className="relative h-8 w-8 flex items-center justify-center">
                 <Image
                   src="https://res.cloudinary.com/dzoupwn0e/image/upload/v1768140895/gotita_loca_iskndh.webp"
@@ -70,7 +74,7 @@ export default function Footer() {
                 {footerLinks.servicios.map((link) => (
                   <li key={link.label}>
                     <a
-                      href={link.href}
+                      href={link.href.length > 1 ? `${base}${link.href}` : link.href}
                       className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
                     >
                       {link.label}
@@ -87,7 +91,7 @@ export default function Footer() {
                 {footerLinks.soporte.map((link) => (
                   <li key={link.label}>
                     <a
-                      href={link.href}
+                      href={link.href.length > 1 ? `${base}${link.href}` : link.href}
                       className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
                     >
                       {link.label}
@@ -104,7 +108,7 @@ export default function Footer() {
                 {footerLinks.empresa.map((link) => (
                   <li key={link.label}>
                     <a
-                      href={link.href}
+                      href={link.href.length > 1 ? `${base}${link.href}` : link.href}
                       className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
                     >
                       {link.label}
@@ -121,7 +125,7 @@ export default function Footer() {
                 {footerLinks.legal.map((link) => (
                   <li key={link.label}>
                     <a
-                      href={link.href}
+                      href={link.href.length > 1 ? `${base}${link.href}` : link.href}
                       className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
                     >
                       {link.label}

@@ -23,8 +23,8 @@ type StepData = {
 
 const serviceNames = {
   web: "Sitio Web",
-  ecommerce: "E-commerce",
-  custom: "Software a Medida",
+  ecommerce: "Tienda Online",
+  custom: "Aplicación a medida",
 };
 
 export default function ServiceFlowPage() {
@@ -193,7 +193,7 @@ export default function ServiceFlowPage() {
             Elige el diseño para tu {serviceNames[serviceType]}
           </h3>
           <p className="text-slate-600">
-            Elegí un diseño desde el catálogo. Al abrir uno vas a ver 3–5 pantallas.
+            Todos los diseños incluyen versión para computadora y celular.
           </p>
         </div>
 

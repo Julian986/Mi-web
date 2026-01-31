@@ -14,7 +14,7 @@ type PageProps = {
 
 const typeLabels = {
   web: "Sitio Web",
-  ecommerce: "E-commerce",
+  ecommerce: "Tienda Online",
   app: "Aplicación",
 };
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Check } from "lucide-react";
+import { Check, ShieldCheck, User } from "lucide-react";
 
 type Service = {
   id: "web" | "ecommerce" | "custom";
@@ -27,32 +27,52 @@ export default function ServicesShowcase() {
           "Diseño que guía al cliente a contactarte",
           "SEO técnico y performance reales",
           "Medición y mejoras iterativas",
+          "Dominio incluido",
+          "Hosting incluido",
+          "Certificado SSL",
+          "Cuenta premium",
+          "Versión para computadora y celular",
+          "Soporte 24/7",
+          "Cambios ilimitados",
         ],
         ctaLabel: "Quiero una web",
         featured: false,
       },
       {
         id: "ecommerce",
-        name: "E‑commerce",
+        name: "Tienda Online",
         description: "Vendé más con un checkout sin fricción",
         features: [
           "Checkout optimizado para convertir",
           "Pagos e integraciones listos",
           "Panel de pedidos, stock y envíos",
+          "Dominio incluido",
+          "Hosting incluido",
+          "Certificado SSL",
+          "Cuenta premium",
+          "Versión para computadora y celular",
+          "Soporte 24/7",
+          "Cambios ilimitados",
         ],
         ctaLabel: "Quiero una tienda",
         featured: true,
       },
       {
         id: "custom",
-        name: "Software a medida",
+        name: "Aplicación a medida",
         description: "Automatizá procesos y ganá control operativo",
         features: [
           "Dashboards y permisos por rol",
           "Integraciones con tus sistemas",
           "Workflows que ahorran horas cada semana",
+          "Hosting incluido",
+          "Certificado SSL",
+          "Cuenta premium",
+          "Versión para computadora y celular",
+          "Soporte 24/7",
+          "Cambios ilimitados",
         ],
-        ctaLabel: "Quiero software a medida",
+        ctaLabel: "Quiero una aplicación a medida",
         featured: false,
       },
     ],
@@ -124,13 +144,31 @@ export default function ServicesShowcase() {
             >
               {service.features.map((feature) => (
                 <li key={feature} className="flex gap-x-3">
-                  <Check
-                    aria-hidden="true"
-                    className={classNames(
-                      service.featured ? "text-indigo-400" : "text-indigo-400",
-                      "h-5 w-5 flex-none"
-                    )}
-                  />
+                  {feature === "Certificado SSL" ? (
+                    <ShieldCheck
+                      aria-hidden="true"
+                      className={classNames(
+                        service.featured ? "text-indigo-400" : "text-indigo-400",
+                        "h-5 w-5 flex-none"
+                      )}
+                    />
+                  ) : feature === "Cuenta premium" ? (
+                    <User
+                      aria-hidden="true"
+                      className={classNames(
+                        service.featured ? "text-indigo-400" : "text-indigo-400",
+                        "h-5 w-5 flex-none"
+                      )}
+                    />
+                  ) : (
+                    <Check
+                      aria-hidden="true"
+                      className={classNames(
+                        service.featured ? "text-indigo-400" : "text-indigo-400",
+                        "h-5 w-5 flex-none"
+                      )}
+                    />
+                  )}
                   {feature}
                 </li>
               ))}

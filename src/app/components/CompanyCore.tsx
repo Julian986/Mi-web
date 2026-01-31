@@ -64,7 +64,7 @@ export default function CompanyCore() {
       },
       {
         id: "ecommerce",
-        title: "E‑commerce & pagos",
+        title: "Tienda Online y pagos",
         tag: "Plataforma",
         description: "Checkout, catálogo, inventario, integraciones y analítica orientada a conversión.",
         x: 780,
