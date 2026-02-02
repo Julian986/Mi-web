@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { getTemplateById, type ServiceType } from "@/app/lib/templatesCatalog";
 import ScrollToTopButton from "./ScrollToTopButton";
 import TemplateGalleryCarousel from "./TemplateGalleryCarousel";
+import DesignDetailHeader from "./DesignDetailHeader";
 
 type PageProps = {
   params: Promise<{
@@ -36,18 +36,9 @@ export default async function TemplateDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        {/* Botón de volver arriba a la izquierda */}
-        <div className="mb-6">
-          <Link
-            href={`/services/${serviceType}`}
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Volver
-          </Link>
-        </div>
+      <DesignDetailHeader serviceType={serviceType} />
 
+      <div className="mx-auto max-w-5xl px-6 pt-20 sm:pt-24 pb-10">
         <div>
           <p className="text-sm font-medium text-slate-500">Catálogo · {serviceType}</p>
           <div className="mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

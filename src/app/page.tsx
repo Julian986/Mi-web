@@ -6,6 +6,8 @@ import { SidebarProvider } from "./components/sidebar/SidebarProvider";
 import FAQ from "./components/FAQ";
 import Brands from "./components/Brands";
 import Footer from "./components/Footer";
+import BackToTopButton from "./components/BackToTopButton";
+import ScrollToHashOnLoad from "./components/ScrollToHashOnLoad";
 
 // Lazy load de componentes pesados para mejorar First Contentful Paint
 const ServicesDashboards = dynamic(() => import("./components/ServicesDashboards"), {
@@ -19,20 +21,21 @@ const ProjectsShowcase = dynamic(() => import("./components/ProjectsShowcase"), 
 export default function Home() {
   return (
     <SidebarProvider>
+      <ScrollToHashOnLoad />
       <div className="min-h-screen overflow-x-hidden text-slate-900">
         <Header />
         {/* <DrawerSidebar /> */}
         <Hero />
 
-        <section id="services" className="overflow-x-hidden scroll-mt-12">
+        <section id="services" className="overflow-x-hidden scroll-mt-2">
           <ServicesDashboards />
         </section>
 
         <section id="work" className="border-t border-black/10 py-16 text-center overflow-x-hidden scroll-mt-12">
-          <div className="mx-auto max-w-7xl px-6 mb-10">
+          <div className="mx-auto max-w-7xl px-6 mb-0">
             <h2 className="text-3xl font-bold mb-4">Desarrollos {/* / Casos */}</h2>
             <p className="text-lg max-w-2xl mx-auto text-slate-600">
-              Proyectos reales en producción: webs, tiendas online y aplicaciones que construimos para nuestros clientes.
+            Reales, en producción y generando resultados hoy
             </p>
           </div>
 
@@ -78,6 +81,10 @@ export default function Home() {
             </a>
           </div>
         </section>
+
+        <div className="flex justify-end px-6 py-4">
+          <BackToTopButton />
+        </div>
 
         <Footer />
       </div>

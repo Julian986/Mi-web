@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Globe } from "lucide-react";
+import { ExternalLink, Globe } from "lucide-react";
 import { getDevelopmentById } from "@/app/lib/developmentsCatalog";
 import VisitorsChart from "@/app/components/VisitorsChart";
 import PerformanceMetrics from "@/app/components/PerformanceMetrics";
-import BackButton from "./BackButton";
+import ProjectDetailHeader from "./ProjectDetailHeader";
 
 type PageProps = {
   params: Promise<{
@@ -49,12 +49,9 @@ export default async function ProjectDetailPage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="mx-auto max-w-7xl px-6 py-8 sm:py-12">
-        {/* Header con botón volver */}
-        <div className="mb-6 sm:mb-8">
-          <BackButton />
-        </div>
+      <ProjectDetailHeader />
 
+      <div className="mx-auto max-w-7xl px-6 pt-20 sm:pt-24 pb-8 sm:pb-12">
         {/* Contenido principal */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Imagen - Izquierda en desktop, arriba en mobile */}

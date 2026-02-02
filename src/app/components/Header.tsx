@@ -137,6 +137,27 @@ export default function Header() {
                   />
                 </a>
                 <a
+                  href={`${base}#faq`}
+                  className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
+                    isHome && activeSection === "#faq"
+                      ? ""
+                      : "hover:text-slate-700"
+                  }`}
+                >
+                  Preguntas frecuentes
+                  <span
+                    className={`absolute left-1/2 -translate-x-1/2 h-0.5 w-4/5 transition-all duration-200 z-10 ${
+                      isHome && activeSection === "#faq"
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100"
+                    }`}
+                    style={{
+                      bottom: "-12px",
+                      backgroundColor: isHome && activeSection === "#faq" ? "#3b59a3" : "#9ca3af",
+                    }}
+                  />
+                </a>
+                <a
                   href={`${base}#contact`}
                   className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                     isHome && activeSection === "#contact"
@@ -271,6 +292,13 @@ export default function Header() {
                   className="block rounded-xl px-4 py-3 text-base font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
                 >
                   Desarrollos
+                </a>
+                <a
+                  href={`${base}#faq`}
+                  onClick={() => setIsMenuOpen(false)}
+                  className="block rounded-xl px-4 py-3 text-base font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
+                >
+                  Preguntas frecuentes
                 </a>
                 <a
                   href={`${base}#contact`}

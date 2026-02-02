@@ -52,7 +52,7 @@ export default function FAQ() {
   };
 
   return (
-    <section id="faq" className="border-t border-black/10 py-16 overflow-x-hidden bg-white">
+    <section id="faq" className="border-t border-black/10 py-16 overflow-x-hidden bg-white scroll-mt-12">
       <div className="mx-auto max-w-4xl px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold mb-4 text-slate-900">Preguntas Frecuentes</h2>

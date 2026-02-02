@@ -17,8 +17,6 @@ type StepperProps = {
 };
 
 export default function Stepper({ steps, activeColor = "#000000" }: StepperProps) {
-  const arrowSize = 20; // Tamaño de la flecha más alargada
-
   // Colores según el estado - paleta blanco/negro/gris
   const getStepStyles = (step: Step) => {
     if (step.status === "completed") {
@@ -109,121 +107,21 @@ export default function Stepper({ steps, activeColor = "#000000" }: StepperProps
         </div>
       </div>
 
-      {/* Versión Desktop - Con flechas */}
+      {/* Versión Desktop - Sin flechas entre pasos */}
       <div className="hidden md:block bg-slate-100 rounded-lg p-2 sm:p-3">
-        <div className="relative flex items-center gap-0 border-t border-b border-slate-300 rounded-lg" style={{ height: "56px" }}>
+        <div className="flex items-center gap-2">
           {steps.map((step, index) => {
-            const isLast = index === steps.length - 1;
-            const isFirst = index === 0;
             const styles = getStepStyles(step);
-            const prevStep = index > 0 ? steps[index - 1] : null;
-            const prevStepCompleted = prevStep?.status === "completed";
-            const nextStep = !isLast ? steps[index + 1] : null;
-            const nextStepCompleted = nextStep?.status === "completed";
-            
-            // El color de la flecha izquierda debe coincidir con el color del step actual
-            // Solo si el step anterior está completado, aplicamos el overlay con el color del step actual
-            const arrowLeftBg = !isFirst && prevStepCompleted ? styles.bg : null;
-            // Borde del pico de la flecha: gris claro por defecto, pero más visible (blanco o gris más claro) cuando ambos steps son negros
-            const arrowBorderColor = step.status === "completed" && nextStepCompleted ? "#ffffff" : "#cbd5e1";
-
-            // Clip-path para crear la forma de flecha perfectamente encastrada
-            // Si el step anterior está completado, extendemos el clip-path para cubrir el área triangular izquierda
-            const getClipPath = () => {
-              if (isFirst && !isLast) {
-                // Primer paso: redondeado izquierda, flecha derecha alargada
-                return `polygon(0 0, calc(100% - ${arrowSize}px) 0, 100% 50%, calc(100% - ${arrowSize}px) 100%, 0 100%)`;
-              } else if (!isFirst && !isLast) {
-                // Pasos intermedios: si el anterior está completado, extendemos para cubrir el área triangular
-                if (prevStepCompleted) {
-                  return `polygon(0 0, calc(100% - ${arrowSize}px) 0, 100% 50%, calc(100% - ${arrowSize}px) 100%, 0 100%)`;
-                } else {
-                  return `polygon(${arrowSize}px 0, calc(100% - ${arrowSize}px) 0, 100% 50%, calc(100% - ${arrowSize}px) 100%, ${arrowSize}px 100%)`;
-                }
-              } else if (!isFirst && isLast) {
-                // Último paso: si el anterior está completado, extendemos para cubrir el área triangular
-                if (prevStepCompleted) {
-                  return `polygon(0 0, 100% 0, 100% 100%, 0 100%)`;
-                } else {
-                  return `polygon(${arrowSize}px 0, 100% 0, 100% 100%, ${arrowSize}px 100%)`;
-                }
-              } else {
-                // Solo un paso: completamente redondeado
-                return "polygon(0 0, 100% 0, 100% 100%, 0 100%)";
-              }
-            };
-
-            const clipPathValue = getClipPath();
 
             return (
-              <div
-                key={step.id}
-                className="relative flex items-center flex-1"
-                style={{
-                  marginLeft: !isFirst && !prevStepCompleted ? `-${arrowSize}px` : (!isFirst ? `-${arrowSize}px` : "0"),
-                  zIndex: steps.length - index,
-                  height: "56px",
-                }}
-              >
-                {/* Contenedor con clip-path, borde y fondo */}
+              <React.Fragment key={step.id}>
                 <div
-                  className="absolute inset-0"
+                  className="flex-1 flex items-center rounded-lg border px-4"
                   style={{
-                    border: `1px solid ${styles.border}`,
+                    borderColor: styles.border,
                     backgroundColor: styles.bg,
-                    clipPath: clipPathValue,
-                    WebkitClipPath: clipPathValue,
-                  }}
-                />
-                
-                
-                {/* Borde del pico de la flecha izquierda en gris claro */}
-                {!isFirst && (
-                  <div
-                    className="absolute"
-                    style={{
-                      left: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: `${arrowSize}px`,
-                      borderLeft: `1px solid ${arrowBorderColor}`,
-                      clipPath: `polygon(100% 0, 0 50%, 100% 100%)`,
-                      WebkitClipPath: `polygon(100% 0, 0 50%, 100% 100%)`,
-                      zIndex: 3,
-                      pointerEvents: "none",
-                    }}
-                  />
-                )}
-                
-                {/* Borde del pico de la flecha derecha - más visible cuando ambos steps son negros */}
-                {!isLast && (
-                  <div
-                    className="absolute"
-                    style={{
-                      right: 0,
-                      top: 0,
-                      bottom: 0,
-                      width: `${arrowSize}px`,
-                      borderRight: step.status === "completed" && nextStepCompleted 
-                        ? `2px solid ${arrowBorderColor}` 
-                        : `1px solid ${arrowBorderColor}`,
-                      clipPath: `polygon(0 0, 100% 50%, 0 100%)`,
-                      WebkitClipPath: `polygon(0 0, 100% 50%, 0 100%)`,
-                      zIndex: 3,
-                      pointerEvents: "none",
-                    }}
-                  />
-                )}
-                
-                {/* Contenedor interno con contenido */}
-                <div
-                  className="relative w-full h-full flex items-center z-10"
-                  style={{
                     height: "56px",
-                    paddingLeft: isFirst ? "16px" : (prevStepCompleted ? `${arrowSize + 16}px` : `${arrowSize + 12}px`),
-                    paddingRight: isLast ? "16px" : `${arrowSize + 12}px`,
-                    clipPath: clipPathValue,
-                    WebkitClipPath: clipPathValue,
+                    minHeight: "56px",
                   }}
                 >
                   <div className="flex items-center gap-3">
@@ -265,7 +163,7 @@ export default function Stepper({ steps, activeColor = "#000000" }: StepperProps
                     </span>
                   </div>
                 </div>
-              </div>
+              </React.Fragment>
             );
           })}
         </div>

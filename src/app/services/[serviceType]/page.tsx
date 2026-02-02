@@ -4,9 +4,9 @@ import Image from "next/image";
 import React, { useMemo, useState, useEffect } from "react";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ArrowLeft, PenTool, AlertTriangle, Upload, CheckCircle2 } from "lucide-react";
+import { X, ArrowLeft, PenTool, AlertTriangle } from "lucide-react";
 import Stepper from "@/app/components/Stepper";
-import { getTemplatesForServiceType, type ServiceType } from "@/app/lib/templatesCatalog";
+import { getTemplatesForServiceType, getTemplateById, type ServiceType } from "@/app/lib/templatesCatalog";
 
 type StepData = {
   design?: string; // ahora representa el templateId elegido
@@ -14,11 +14,10 @@ type StepData = {
   features?: string[];
   customization?: string;
   budget?: string;
-  paymentMethod?: "transfer" | "mercado-pago";
+  paymentMethod?: "mercado-pago";
   customerName?: string;
   customerEmail?: string;
   customerPhone?: string;
-  receiptFile?: File | null;
 };
 
 const serviceNames = {
@@ -90,10 +89,10 @@ export default function ServiceFlowPage() {
     { id: "payment", label: "Pago" },
   ];
 
-  // Default: si llegamos al paso de pago, asumir transferencia seleccionada
+  // Default: si llegamos al paso de pago, Mercado Pago suscripción
   useEffect(() => {
     if (currentStep === steps.length - 1 && !formData.paymentMethod) {
-      setFormData((prev) => ({ ...prev, paymentMethod: "transfer" }));
+      setFormData((prev) => ({ ...prev, paymentMethod: "mercado-pago" }));
     }
   }, [currentStep, steps.length, formData.paymentMethod]);
 
@@ -390,8 +389,10 @@ export default function ServiceFlowPage() {
               {serviceType === "custom" ? (
                 <p className="text-slate-900 mt-1 whitespace-pre-wrap">{formData.design}</p>
               ) : (
-                <p className="text-slate-900 capitalize">
-                  {formData.design === "personalizado" ? "Personalizado" : formData.design}
+                <p className="text-slate-900">
+                  {formData.design === "personalizado"
+                    ? "Personalizado"
+                    : getTemplateById(serviceType, formData.design)?.title ?? formData.design}
                 </p>
               )}
             </div>
@@ -410,13 +411,9 @@ export default function ServiceFlowPage() {
             </span>
             <p className="text-slate-900">
               {serviceType === "web" ? (
-                <>
-                  <span className="font-semibold">$25.000 ARS</span> / $21 USD mensuales
-                </>
+                <span className="font-semibold">$10 ARS</span>
               ) : serviceType === "ecommerce" ? (
-                <>
-                  <span className="font-semibold">$35.000 ARS</span> / $29 USD mensuales
-                </>
+                <span className="font-semibold">$35.000 ARS</span>
               ) : (
                 "Consultar"
               )}
@@ -429,14 +426,7 @@ export default function ServiceFlowPage() {
 
   // Step 4: Payment
   const renderPaymentStep = () => {
-    // Calcular precios
-    const basePriceARS = serviceType === "web" ? 25000 : serviceType === "ecommerce" ? 35000 : 0;
-    const basePriceUSD = serviceType === "web" ? 21 : serviceType === "ecommerce" ? 29 : 0;
-    const commissionRate = 0.03; // 3% de comisión
-    const priceWithCommissionARS = Math.round(basePriceARS * (1 + commissionRate));
-    const priceWithCommissionUSD = Math.round(basePriceUSD * (1 + commissionRate));
-
-    const selectedPaymentMethod = formData.paymentMethod || "transfer";
+    const priceARS = serviceType === "web" ? 25000 : serviceType === "ecommerce" ? 35000 : 0;
 
     return (
       <div className="space-y-4 sm:space-y-6">
@@ -445,7 +435,7 @@ export default function ServiceFlowPage() {
             Completa tu compra
           </h3>
           <p className="text-slate-600">
-            Ingresa tus datos de contacto y selecciona el método de pago
+            Ingresa tus datos de contacto para suscribirte con Mercado Pago
           </p>
         </div>
 
@@ -491,168 +481,17 @@ export default function ServiceFlowPage() {
             />
           </div>
 
-          {/* Método de pago */}
+          {/* Información Mercado Pago suscripción */}
           <div className="pt-4 border-t border-slate-200">
-            <h4 className="font-semibold text-slate-900 mb-3">
-              Método de pago <span className="text-red-500">*</span>
-            </h4>
-            <div className="space-y-2 sm:space-y-3">
-              {/* Transferencia bancaria - Destacada */}
-              <label
-                className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedPaymentMethod === "transfer"
-                    ? "border-[#84b9ed] bg-[#84b9ed]/5 ring-2 ring-[#84b9ed]/20"
-                    : "border-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="transfer"
-                  checked={selectedPaymentMethod === "transfer"}
-                  onChange={(e) => handleInputChange("paymentMethod", e.target.value)}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-900">Transferencia bancaria</span>
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
-                      Recomendado
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Sin comisiones adicionales. Precio final: ${basePriceARS.toLocaleString("es-AR")} ARS
-                  </p>
-                </div>
-              </label>
-
-              {/* Mercado Pago */}
-              <label
-                className={`flex items-start gap-3 p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedPaymentMethod === "mercado-pago"
-                    ? "border-[#84b9ed] bg-[#84b9ed]/5 ring-2 ring-[#84b9ed]/20"
-                    : "border-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  value="mercado-pago"
-                  checked={selectedPaymentMethod === "mercado-pago"}
-                  onChange={(e) => handleInputChange("paymentMethod", e.target.value)}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-slate-900">Mercado Pago</span>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Incluye 3% de comisión. Precio final: ${priceWithCommissionARS.toLocaleString("es-AR")} ARS
-                  </p>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          {/* Datos bancarios - Solo si elige transferencia */}
-          {selectedPaymentMethod === "transfer" && (
-            <div className="pt-4 border-t border-slate-200 space-y-4">
-              <div>
-                <h4 className="font-semibold text-slate-900 mb-3">Datos para la transferencia</h4>
-                <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 uppercase">Alias</label>
-                    <div className="mt-1 flex items-center gap-2">
-                      <code className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm text-slate-900">
-                        GLOMUN.WEB
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText("GLOMUN.WEB");
-                        }}
-                        className="px-3 py-2 text-xs font-medium text-[#84b9ed] hover:bg-[#84b9ed]/10 rounded-lg transition-colors"
-                      >
-                        Copiar
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 uppercase">CBU</label>
-                    <div className="mt-1 flex items-center gap-2">
-                      <code className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm text-slate-900">
-                        0000000000000000000000
-                      </code>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText("0000000000000000000000");
-                        }}
-                        className="px-3 py-2 text-xs font-medium text-[#84b9ed] hover:bg-[#84b9ed]/10 rounded-lg transition-colors"
-                      >
-                        Copiar
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-500 uppercase">Banco</label>
-                    <p className="mt-1 text-sm text-slate-900">Banco de ejemplo</p>
-                  </div>
-                  <div className="pt-2 border-t border-slate-200">
-                    <p className="text-xs text-slate-600">
-                      Realizá la transferencia por el monto exacto de{" "}
-                      <span className="font-semibold">${basePriceARS.toLocaleString("es-AR")} ARS</span> y luego subí el comprobante.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Campo para subir comprobante */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Comprobante de transferencia <span className="text-slate-500">(opcional)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="file"
-                    accept="image/*,.pdf"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0] || null;
-                      handleInputChange("receiptFile", file);
-                    }}
-                    className="hidden"
-                    id="receipt-upload"
-                  />
-                  <label
-                    htmlFor="receipt-upload"
-                    className="flex items-center gap-3 p-4 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:border-[#84b9ed] hover:bg-[#84b9ed]/5 transition-colors"
-                  >
-                    <Upload className="w-5 h-5 text-slate-400" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-slate-700">
-                        {formData.receiptFile ? formData.receiptFile.name : "Subir comprobante"}
-                      </p>
-                      <p className="text-xs text-slate-500">JPG, PNG o PDF (máx. 5MB)</p>
-                    </div>
-                    {formData.receiptFile && (
-                      <CheckCircle2 className="w-5 h-5 text-green-500" />
-                    )}
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Información de Mercado Pago - Solo si elige Mercado Pago */}
-          {selectedPaymentMethod === "mercado-pago" && (
-            <div className="pt-4 border-t border-slate-200">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm text-amber-800">
-                  <span className="font-semibold">Importante:</span> Al elegir Mercado Pago, serás redirigido a su plataforma segura para completar el pago. El precio incluye una comisión del 3% por el procesamiento.
+            <div className="flex items-start gap-3 p-4 border border-slate-200 rounded-lg bg-slate-50">
+              <div className="flex-1">
+                <p className="font-medium text-slate-900">Mercado Pago - Suscripción mensual</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  Precio final: ${priceARS.toLocaleString("es-AR")} ARS. Serás redirigido a Mercado Pago para completar el pago de forma segura.
                 </p>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
@@ -804,7 +643,7 @@ export default function ServiceFlowPage() {
                 return;
               }
               
-              if (formData.paymentMethod === "mercado-pago") {
+              if (formData.paymentMethod === "mercado-pago" || !formData.paymentMethod) {
                 try {
                   const res = await fetch("/api/mercadopago/subscription", {
                     method: "POST",
@@ -846,10 +685,6 @@ export default function ServiceFlowPage() {
                   console.error(err);
                   alert("Error de red al iniciar Mercado Pago. Revisá tu conexión e intentá de nuevo.");
                 }
-              } else {
-                // Transferencia bancaria - mostrar confirmación
-                alert("¡Gracias por tu compra! Hemos recibido tu solicitud. Te contactaremos pronto para confirmar la transferencia y activar tu servicio.");
-                handleClose();
               }
             }}
             disabled={!canProceed()}

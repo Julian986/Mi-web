@@ -193,9 +193,9 @@ export default function Brands() {
     <section id="brands" className="border-t border-black/10 py-16 overflow-x-hidden bg-white">
       <div className="mx-auto max-w-7xl px-6">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-slate-900">Marcas</h2>
+          <h2 className="text-3xl font-bold mb-4 text-slate-900">Infraestructura</h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Empresas y organizaciones que confían en nosotros
+          Tecnología profesional, segura y escalable
           </p>
         </div>
 

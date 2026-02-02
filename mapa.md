@@ -6,7 +6,12 @@ Temitas a trabajar antes de salir:
 
 
 - Revisar el texto de Servicios✅
-- Revisar el texto de marcas
+- Revisar el texto de desarrollos✅
+- Revisar el texto de marcas✅
+- Foco del menu a  Servicios✅
+- Ponerle un cursor pointer a la flecha para subir✅
+- Poener flecha para subir en 'Mi Cuenta'✅
+- Agregar preguntas frecuentes al menu✅
 - Revisar el paso 3 (Revisa tu pedido) del flujo de compra 
 - Identificamos cada cuenta con el nombre o email o teléfono
 - Como hacemos real las estadísticas para que se actualicen cada dia
@@ -14,8 +19,15 @@ Temitas a trabajar antes de salir:
 - Como se que se cancela la anterior suscripcion
 - Poner en preguntas frecuentes que es cuenta premiun, ssl, etc
 - Pagina de Mi Cuenta
+- Boton de cancelar suscripcion
+- Boton flecha para ir hacia arriba en Desarrollo Detail✅
+- Testimonios de los desarrollos (Imágenes de las personas)
+- Enlaces del footer
 - Revisar numeros de visitantes en los desarrollos
 - Origen de visitantes?
+- Responsive design (en todas las pantallas)
+- Revisar los desarrollos (cada desarrollo)
+- Hacer numeros de la empresa en /admin92
 - Menu mobile✅
 
 - Idiomas

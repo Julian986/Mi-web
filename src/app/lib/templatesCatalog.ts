@@ -37,7 +37,7 @@ export const TEMPLATE_CATALOG: Record<ServiceType, TemplateCatalogItem[]> = {
     "Bold Agency",
     "Corporate Pro",
     "Portfolio Light",
-    "Restaurant Warm",
+    "Capital Prime",
     "Real Estate",
     "Medical Care",
     "Creative Dark",
@@ -110,13 +110,13 @@ export const TEMPLATE_CATALOG: Record<ServiceType, TemplateCatalogItem[]> = {
     return {
       ...t,
       tags: [],
-      thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929273/home_6_lx5ykv.webp",
+      thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1770038121/home_6_lx5ykv_1_bqwxmk.webp",
       gallery: [
-        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929273/home_6_lx5ykv.webp",
-        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929272/aboutus_3_ijmzzr.webp",
-        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929272/trabajos_dczzn1.webp",
-        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929275/servicios_icvmdz.webp",
-        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1768929274/testimonios_y9hmcf.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1770038121/home_6_lx5ykv_1_bqwxmk.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1770038132/aboutus_3_ijmzzr_1_isn4lx.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1770038131/trabajos_dczzn1_1_tsxv2v.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1770038131/servicios_icvmdz_1_zrmwat.webp",
+        "https://res.cloudinary.com/dzoupwn0e/image/upload/v1770038131/testimonios_y9hmcf_1_ncqzrs.webp",
       ],
     };
   }).map((t) => {
@@ -139,7 +139,7 @@ export const TEMPLATE_CATALOG: Record<ServiceType, TemplateCatalogItem[]> = {
     if (t.id !== "web-07") return t;
     return {
       ...t,
-      title: "Portafolio personal",
+      title: "Portafolio Personal",
       tags: [],
       thumb: "https://res.cloudinary.com/dzoupwn0e/image/upload/v1769010208/home_8_wjpryr.webp",
       gallery: [

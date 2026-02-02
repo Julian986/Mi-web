@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/app/components/Header";
 import VisitorsChart from "@/app/components/VisitorsChart";
+import PerformanceMetrics from "@/app/components/PerformanceMetrics";
 import { SidebarProvider } from "@/app/components/sidebar/SidebarProvider";
 import Link from "next/link";
 import { CreditCard, RefreshCw, Settings, ShieldCheck, X } from "lucide-react";
@@ -290,6 +291,14 @@ export default function AccountPage() {
               </div>
               <VisitorsChart projectId={`account-${plan}`} hideValues={!effectiveSubscription} />
             </section>
+            )}
+
+            {!loading && (
+              <PerformanceMetrics
+                projectId={`account-${plan}`}
+                hideValues={!effectiveSubscription}
+                compact
+              />
             )}
           </div>
 

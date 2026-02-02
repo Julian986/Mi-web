@@ -3,9 +3,13 @@
 import { useMemo, useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Gauge, Zap, Eye, Shield, Search, Timer, Layout, Activity, ChevronDown, ChevronUp } from "lucide-react";
+import BackToTopButton from "@/app/components/BackToTopButton";
 
 type PerformanceMetricsProps = {
   projectId: string;
+  hideValues?: boolean;
+  /** En Mi cuenta mostramos menos texto que en Desarrollo detail */
+  compact?: boolean;
 };
 
 type ScoreData = {
@@ -92,7 +96,7 @@ function getMetricStatusColor(status: "good" | "needs-improvement" | "poor"): st
   }
 }
 
-export default function PerformanceMetrics({ projectId }: PerformanceMetricsProps) {
+export default function PerformanceMetrics({ projectId, hideValues, compact }: PerformanceMetricsProps) {
   const data = useMemo(() => generatePerformanceData(projectId), [projectId]);
   const [showTechnicalMetrics, setShowTechnicalMetrics] = useState(false);
   const metricsRef = useRef<HTMLDivElement>(null);
@@ -119,19 +123,19 @@ export default function PerformanceMetrics({ projectId }: PerformanceMetricsProp
 
   const scores: ScoreData[] = [
     {
-      label: "Performance",
+      label: "Rendimiento",
       value: data.scores.performance,
       icon: <Zap className="w-6 h-6" />,
       ...getScoreColor(data.scores.performance),
     },
     {
-      label: "Accessibility",
+      label: "Accesibilidad",
       value: data.scores.accessibility,
       icon: <Eye className="w-6 h-6" />,
       ...getScoreColor(data.scores.accessibility),
     },
     {
-      label: "Best Practices",
+      label: "Buenas prácticas",
       value: data.scores.bestPractices,
       icon: <Shield className="w-6 h-6" />,
       ...getScoreColor(data.scores.bestPractices),
@@ -146,35 +150,35 @@ export default function PerformanceMetrics({ projectId }: PerformanceMetricsProp
 
   const metrics: MetricData[] = [
     {
-      label: "First Contentful Paint",
+      label: "Tiempo al primer contenido (FCP)",
       value: data.metrics.fcp.value,
       unit: data.metrics.fcp.unit,
       icon: <Timer className="w-5 h-5" />,
       status: data.metrics.fcp.status,
     },
     {
-      label: "Largest Contentful Paint",
+      label: "Tiempo de carga principal (LCP)",
       value: data.metrics.lcp.value,
       unit: data.metrics.lcp.unit,
       icon: <Layout className="w-5 h-5" />,
       status: data.metrics.lcp.status,
     },
     {
-      label: "Total Blocking Time",
+      label: "Tiempo de bloqueo (TBT)",
       value: data.metrics.tbt.value,
       unit: data.metrics.tbt.unit,
       icon: <Activity className="w-5 h-5" />,
       status: data.metrics.tbt.status,
     },
     {
-      label: "Cumulative Layout Shift",
+      label: "Estabilidad visual (CLS)",
       value: data.metrics.cls.value,
       unit: data.metrics.cls.unit,
       icon: <Gauge className="w-5 h-5" />,
       status: data.metrics.cls.status,
     },
     {
-      label: "Speed Index",
+      label: "Índice de velocidad (SI)",
       value: data.metrics.si.value,
       unit: data.metrics.si.unit,
       icon: <Zap className="w-5 h-5" />,
@@ -195,7 +199,7 @@ export default function PerformanceMetrics({ projectId }: PerformanceMetricsProp
       <div className="mb-6">
         <button
           onClick={() => setShowTechnicalMetrics(!showTechnicalMetrics)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-50 hover:bg-[#84b9ed]/10 border-2 border-[#84b9ed] text-slate-800 font-medium transition-colors cursor-pointer"
         >
           {showTechnicalMetrics ? (
             <>
@@ -240,14 +244,14 @@ export default function PerformanceMetrics({ projectId }: PerformanceMetricsProp
                   <div className="flex items-center justify-between mb-3">
                     <div className={`${score.color}`}>{score.icon}</div>
                     <span className={`text-3xl font-bold ${score.color}`}>
-                      {score.value}
+                      {hideValues ? "..." : score.value}
                     </span>
                   </div>
                   <h3 className="text-sm font-semibold text-slate-900">{score.label}</h3>
                   <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${score.value}%` }}
+                      animate={{ width: hideValues ? "0%" : `${score.value}%` }}
                       transition={{ duration: 0.5, delay: 0.2 + index * 0.05 }}
                       className={`h-2 rounded-full ${
                         score.value >= 90
@@ -271,10 +275,14 @@ export default function PerformanceMetrics({ projectId }: PerformanceMetricsProp
             >
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
                 <h3 className="text-xl font-bold text-slate-900 mb-4">Carga en milisegundos</h3>
-                <p className="text-slate-700 leading-relaxed mb-4">
-                  Este desarrollo carga en menos de 2 segundos, más rápido que el 90% de los sitios web. 
-                  Esto significa que tus visitantes no esperan y tienen una experiencia fluida desde el primer momento.
-                </p>
+                {!compact && (
+                  <p className="text-slate-700 leading-relaxed mb-4">
+                    {hideValues
+                      ? "Este desarrollo está optimizado para cargar rápido. ..."
+                      : "Este desarrollo carga en menos de 2 segundos, más rápido que el 90% de los sitios web. "}
+                    Esto significa que tus visitantes no esperan y tienen una experiencia fluida desde el primer momento.
+                  </p>
+                )}
                 <div className="flex items-center gap-2 text-slate-600">
                   <Zap className="w-5 h-5 text-blue-600" />
                   <span className="text-sm font-medium">
@@ -282,39 +290,6 @@ export default function PerformanceMetrics({ projectId }: PerformanceMetricsProp
                   </span>
                 </div>
               </div>
-            </motion.div>
-
-            {/* Texto explicativo sobre React y Next.js */}
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.25 }}
-              className="mb-8"
-            >
-              <p className="text-lg md:text-xl font-medium text-slate-900 leading-relaxed">
-                Estas métricas se obtienen gracias a codificar con{" "}
-                <a
-                  href="https://react.dev"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-[#84b9ed] hover:text-[#6ba3d9] transition-colors"
-                >
-                  React
-                </a>{" "}
-                y{" "}
-                <a
-                  href="https://nextjs.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-[#84b9ed] hover:text-[#6ba3d9] transition-colors"
-                >
-                  Next.js
-                </a>
-                , programación de alto nivel.
-              </p>
-              <p className="mt-4 text-slate-600 leading-relaxed">
-                Cada proyecto está desarrollado con código personalizado y optimizado, no con plantillas genéricas. Esto garantiza máximo rendimiento y control total sobre cada funcionalidad.
-              </p>
             </motion.div>
 
             {/* Métricas técnicas */}
@@ -340,33 +315,101 @@ export default function PerformanceMetrics({ projectId }: PerformanceMetricsProp
                       </div>
                     </div>
                     <div className="flex items-baseline gap-1 mt-3">
-                      <span className={`text-2xl font-bold ${getMetricStatusColor(metric.status)}`}>
-                        {metric.value}
+                      <span className={`text-2xl font-bold ${hideValues ? "text-slate-600" : getMetricStatusColor(metric.status)}`}>
+                        {hideValues ? "..." : metric.value}
                       </span>
-                      {metric.unit && (
+                      {!hideValues && metric.unit && (
                         <span className="text-sm text-slate-500">{metric.unit}</span>
                       )}
                     </div>
                     <div className="mt-2 flex items-center gap-2">
-                      <span
-                        className={`text-xs font-medium px-2 py-0.5 rounded ${
-                          metric.status === "good"
-                            ? "bg-green-100 text-green-700"
+                      {!hideValues && (
+                        <span
+                          className={`text-xs font-medium px-2 py-0.5 rounded ${
+                            metric.status === "good"
+                              ? "bg-green-100 text-green-700"
+                              : metric.status === "needs-improvement"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {metric.status === "good"
+                            ? "Bueno"
                             : metric.status === "needs-improvement"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {metric.status === "good"
-                          ? "Bueno"
-                          : metric.status === "needs-improvement"
-                          ? "Mejorable"
-                          : "Pobre"}
-                      </span>
+                            ? "Mejorable"
+                            : "Pobre"}
+                        </span>
+                      )}
                     </div>
                   </motion.div>
                 ))}
               </div>
+            </motion.div>
+
+            {/* Texto explicativo sobre React y Next.js */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.35 }}
+              className="mt-8 pt-8 border-t border-slate-200"
+            >
+              <p className="text-lg md:text-xl font-medium text-slate-900 leading-relaxed">
+                {compact ? (
+                  <>
+                    Codificado con{" "}
+                    <a
+                      href="https://react.dev"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[#84b9ed] hover:text-[#6ba3d9] transition-colors"
+                    >
+                      React
+                    </a>{" "}
+                    y{" "}
+                    <a
+                      href="https://nextjs.org"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[#84b9ed] hover:text-[#6ba3d9] transition-colors"
+                    >
+                      Next.js
+                    </a>
+                    , programación de alto nivel.
+                  </>
+                ) : (
+                  <>
+                    Estas métricas se obtienen gracias a codificar con{" "}
+                    <a
+                      href="https://react.dev"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[#84b9ed] hover:text-[#6ba3d9] transition-colors"
+                    >
+                      React
+                    </a>{" "}
+                    y{" "}
+                    <a
+                      href="https://nextjs.org"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-[#84b9ed] hover:text-[#6ba3d9] transition-colors"
+                    >
+                      Next.js
+                    </a>
+                    , programación de alto nivel.
+                  </>
+                )}
+              </p>
+              {!compact && (
+                <p className="mt-4 text-slate-600 leading-relaxed">
+                  Cada proyecto está desarrollado con código personalizado y optimizado, no con plantillas genéricas. Esto garantiza máximo rendimiento y control total sobre cada funcionalidad.
+                </p>
+              )}
+              {compact && (
+                <div className="flex justify-end mt-6">
+                  <BackToTopButton />
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}

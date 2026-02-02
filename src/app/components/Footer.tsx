@@ -3,7 +3,6 @@
 import React from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Facebook, Instagram, Twitter, Github, Youtube } from "lucide-react";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -35,14 +34,6 @@ export default function Footer() {
       { label: "Licencia", href: "#" },
     ],
   };
-
-  const socialLinks = [
-    { icon: Facebook, href: "#", label: "Facebook" },
-    { icon: Instagram, href: "#", label: "Instagram" },
-    { icon: Twitter, href: "#", label: "Twitter" },
-    { icon: Github, href: "#", label: "GitHub" },
-    { icon: Youtube, href: "#", label: "YouTube" },
-  ];
 
   return (
     <footer className="bg-white border-t border-black/10">
@@ -140,29 +131,11 @@ export default function Footer() {
         {/* Separator Line */}
         <div className="border-t border-black/10 my-8"></div>
 
-        {/* Bottom Section: Copyright + Social Icons */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Copyright */}
+        {/* Bottom Section: Copyright */}
+        <div className="flex items-center justify-center md:justify-start">
           <p className="text-sm text-slate-600">
             © {currentYear} Glomun, Inc. Todos los derechos reservados.
           </p>
-
-          {/* Social Icons */}
-          <div className="flex items-center gap-4">
-            {socialLinks.map((social) => {
-              const Icon = social.icon;
-              return (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  aria-label={social.label}
-                  className="text-slate-600 hover:text-slate-900 transition-colors"
-                >
-                  <Icon className="h-5 w-5" />
-                </a>
-              );
-            })}
-          </div>
         </div>
       </div>
     </footer>
