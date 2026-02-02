@@ -426,7 +426,7 @@ export default function ServiceFlowPage() {
 
   // Step 4: Payment
   const renderPaymentStep = () => {
-    const priceARS = serviceType === "web" ? 25000 : serviceType === "ecommerce" ? 35000 : 0;
+    const priceARS = serviceType === "web" ? 10 : serviceType === "ecommerce" ? 35000 : 0; // TODO: volver a 25000 después de prueba
 
     return (
       <div className="space-y-4 sm:space-y-6">

@@ -19,7 +19,7 @@ function getBaseUrl(req: NextRequest) {
 }
 
 const PRICE_BY_SERVICE: Record<"web" | "ecommerce", { ars: number; usd: number }> = {
-  web: { ars: 25000, usd: 21 },
+  web: { ars: 10, usd: 21 }, // TODO: volver a 25000 después de prueba
   ecommerce: { ars: 35000, usd: 29 },
 };
 

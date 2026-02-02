@@ -51,7 +51,7 @@ export default function AccountPage() {
     localStorage.removeItem(DEV_SUBSCRIPTION_KEY);
   };
   const prices = useMemo(() => {
-    const baseARS = plan === "web" ? 25000 : 35000;
+    const baseARS = plan === "web" ? 10 : 35000; // TODO: volver a 25000 después de prueba
     const baseUSD = plan === "web" ? 21 : 29;
     return { baseARS, baseUSD };
   }, [plan]);

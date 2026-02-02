@@ -13,7 +13,7 @@ type SubscriptionBody = {
 };
 
 const PRICE_BY_SERVICE: Record<Exclude<SubscriptionBody["serviceType"], undefined>, { ars: number; usd: number }> = {
-  web: { ars: 25000, usd: 21 },
+  web: { ars: 10, usd: 21 }, // TODO: volver a 25000 después de prueba
   ecommerce: { ars: 35000, usd: 29 },
   custom: { ars: 0, usd: 0 },
 };
