@@ -411,7 +411,7 @@ export default function ServiceFlowPage() {
             </span>
             <p className="text-slate-900">
               {serviceType === "web" ? (
-                <span className="font-semibold">$10 ARS</span>
+                <span className="font-semibold">$20 ARS</span>
               ) : serviceType === "ecommerce" ? (
                 <span className="font-semibold">$35.000 ARS</span>
               ) : (
@@ -426,7 +426,7 @@ export default function ServiceFlowPage() {
 
   // Step 4: Payment
   const renderPaymentStep = () => {
-    const priceARS = serviceType === "web" ? 10 : serviceType === "ecommerce" ? 35000 : 0; // TODO: volver a 25000 después de prueba
+    const priceARS = serviceType === "web" ? 20 : serviceType === "ecommerce" ? 35000 : 0; // TODO: volver a 25000 después de prueba
 
     return (
       <div className="space-y-4 sm:space-y-6">
