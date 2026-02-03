@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { addMpWebhookEvent } from "@/app/lib/mpWebhookStore";
+import { addMpWebhookEvent, type MpWebhookEvent } from "@/app/lib/mpWebhookStore";
 import { insertMpWebhookEvent } from "@/app/lib/mpWebhookMongo";
 import {
   findSubscriptionByPreapprovalId,
   updateSubscriptionStatus,
   saveSubscription,
 } from "@/app/lib/subscriptionsMongo";
+import { createMagicLinkToken } from "@/app/lib/magicLinkTokens";
+import { sendPaymentConfirmedEmail } from "@/app/lib/sendEmail";
 
 export const runtime = "nodejs";
 
@@ -108,8 +110,47 @@ export async function POST(req: NextRequest) {
 
     console.log("[mercadopago:webhook] received", { query, body });
 
-    // Guardar evento para panel admin
-    const evt = {
+    const id = extractId(query, body as any);
+    const bodyType = (body as any)?.type || (query as any)?.type || "";
+
+    // Enriquecer con detalles de MP para mostrar monto en el admin
+    let summary: MpWebhookEvent["summary"];
+    let details: Record<string, unknown> = {};
+
+    if (token && id) {
+      const isPayment = bodyType === "payment" || bodyType === "subscription_authorized_payment";
+      const urlFetch = isPayment
+        ? `https://api.mercadopago.com/v1/payments/${encodeURIComponent(id)}`
+        : `https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`;
+
+      const detailsRes = await fetch(urlFetch, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      details = (await detailsRes.json().catch(() => ({}))) as Record<string, unknown>;
+
+      if (detailsRes.ok && details) {
+        if (isPayment) {
+          const amount = (details as any)?.transaction_amount ?? (details as any)?.transaction_details?.total_paid_amount;
+          summary = {
+            amount: typeof amount === "number" ? amount : undefined,
+            currency: (details as any)?.currency_id,
+            payerEmail: (details as any)?.payer?.email,
+            status: (details as any)?.status,
+          };
+        } else {
+          const recurring = (details as any)?.auto_recurring;
+          summary = {
+            amount: recurring?.transaction_amount,
+            currency: (details as any)?.currency_id || recurring?.currency_id,
+            payerEmail: (details as any)?.payer_email,
+            status: (details as any)?.status,
+          };
+        }
+      }
+    }
+
+    const evt: MpWebhookEvent = {
       receivedAt: new Date().toISOString(),
       path: url.pathname,
       query,
@@ -120,44 +161,35 @@ export async function POST(req: NextRequest) {
       },
       body,
       signatureVerified,
+      ...(summary && { summary }),
     };
     addMpWebhookEvent(evt);
     if (process.env.MONGODB_URI) {
-      // Persistir en MongoDB para que el panel funcione en Vercel (multi-instancia)
       insertMpWebhookEvent(evt).catch((e) => console.error("[mercadopago:webhook] mongo insert failed", e));
     }
 
-    // Si tenemos token, consultamos el preapproval para saber estado real
-    const id = extractId(query, body as any);
     if (!token || !id) {
       return NextResponse.json({ received: true });
     }
 
-    const detailsRes = await fetch(`https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    const details = await detailsRes.json().catch(() => ({}));
-    if (!detailsRes.ok) {
-      console.log("[mercadopago:webhook] preapproval fetch failed", {
-        status: detailsRes.status,
-        details,
-      });
-      return NextResponse.json({ received: true });
-    }
-
+    const isPayment = bodyType === "payment" || bodyType === "subscription_authorized_payment";
     const status = (details as any)?.status as string | undefined;
     const externalReference = (details as any)?.external_reference as string | undefined;
     const upgradeFrom = parseUpgradeFrom(externalReference);
-    const payerEmail = (details as any)?.payer_email as string | undefined;
 
-    // Actualizar estado en nuestra DB
-    if (status === "authorized" && process.env.MONGODB_URI) {
+    // Actualizar estado en nuestra DB (solo para preapproval, no para payment)
+    if (!isPayment && status === "authorized" && process.env.MONGODB_URI) {
       try {
         const existing = await findSubscriptionByPreapprovalId(id);
         if (existing) {
           await updateSubscriptionStatus(id, "authorized");
+          // Enviar magic link al usuario (cuenta se registra al confirmar pago)
+          try {
+            const token = await createMagicLinkToken(existing.email);
+            await sendPaymentConfirmedEmail(existing.email, token);
+          } catch (emailErr) {
+            console.error("[mercadopago:webhook] send confirmation email failed", emailErr);
+          }
         } else if (upgradeFrom) {
           // Upgrade: crear nuevo doc y marcar el anterior como cancelado
           const oldSub = await findSubscriptionByPreapprovalId(upgradeFrom);
@@ -172,6 +204,12 @@ export async function POST(req: NextRequest) {
               status: "authorized",
             });
             await updateSubscriptionStatus(upgradeFrom, "cancelled");
+            try {
+              const token = await createMagicLinkToken(oldSub.email);
+              await sendPaymentConfirmedEmail(oldSub.email, token);
+            } catch (emailErr) {
+              console.error("[mercadopago:webhook] send confirmation email failed", emailErr);
+            }
           }
         }
       } catch (e) {
@@ -180,7 +218,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Cuando la nueva suscripción queda autorizada, cancelamos la anterior en MP (si aplica)
-    if (status === "authorized" && upgradeFrom && upgradeFrom !== id) {
+    if (!isPayment && status === "authorized" && upgradeFrom && upgradeFrom !== id) {
       console.log("[mercadopago:webhook] upgrade authorized, cancelling previous", {
         newId: id,
         upgradeFrom,

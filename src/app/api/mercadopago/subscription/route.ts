@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
         await saveSubscription({
           tempId,
           preapprovalId: mpId,
-          email: payerEmail,
+          email: payerEmail.trim().toLowerCase(),
           name: body.customerName?.trim(),
           phone: body.customerPhone?.trim(),
           plan: serviceType as "web" | "ecommerce",

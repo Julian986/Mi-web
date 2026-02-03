@@ -27,6 +27,7 @@ type MpWebhookEvent = {
   headers: Record<string, string>;
   body: unknown;
   signatureVerified: boolean;
+  summary?: { amount?: number; currency?: string; payerEmail?: string; status?: string };
 };
 
 type AccountingType = "ingreso" | "gasto" | "inversion";
@@ -58,6 +59,7 @@ export default function Admin92Page() {
 
   // Webhooks state
   const [events, setEvents] = useState<MpWebhookEvent[]>([]);
+  const [webhookTypeFilter, setWebhookTypeFilter] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [source, setSource] = useState<"mongo" | "memory" | "unknown">("unknown");
@@ -296,12 +298,22 @@ export default function Admin92Page() {
 
         {activeTab === "webhooks" && (
           <>
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div>
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
                 <p className="text-sm text-slate-600">
                   Eventos de Mercado Pago. Fuente:{" "}
                   <span className="font-semibold text-slate-900">{source}</span>
                 </p>
+                <select
+                  value={webhookTypeFilter}
+                  onChange={(e) => setWebhookTypeFilter(e.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                >
+                  <option value="">Todos los tipos</option>
+                  <option value="payment">Solo pagos (payment)</option>
+                  <option value="subscription_preapproval">Solo preapproval</option>
+                  <option value="subscription_authorized_payment">Solo pago autorizado suscripción</option>
+                </select>
               </div>
               <button
                 type="button"
@@ -329,8 +341,18 @@ export default function Admin92Page() {
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-700">
                   No hay eventos aún. Probá el simulador o realizá una suscripción real.
                 </div>
-              ) : (
-                events.map((evt, idx) => (
+              ) : (() => {
+                const filtered = events.filter((evt) => {
+                  if (!webhookTypeFilter) return true;
+                  const t = (evt.body as any)?.type || (evt.body as any)?.topic || evt.query?.type || "";
+                  return t === webhookTypeFilter;
+                });
+                return filtered.length === 0 ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-700">
+                    No hay eventos con el filtro seleccionado. Probá otro tipo o "Todos los tipos".
+                  </div>
+                ) : (
+                filtered.map((evt, idx) => (
                   <details
                     key={`${evt.receivedAt}-${idx}`}
                     className="group rounded-2xl border border-slate-200 bg-white p-4"
@@ -350,15 +372,26 @@ export default function Admin92Page() {
                               {evt.signatureVerified ? "verificada" : "no verificada"}
                             </span>
                             {" • "}
-                            data.id:{" "}
-                            <span className="font-mono">
-                              {evt.query["data.id"] || evt.query["id"] || "—"}
-                            </span>
-                            {" • "}
                             type:{" "}
                             <span className="font-mono">
                               {(evt.body as any)?.type || (evt.body as any)?.topic || "—"}
                             </span>
+                            {evt.summary?.amount != null && (
+                              <>
+                                {" • "}
+                                <span className="font-semibold text-slate-900">
+                                  ${evt.summary.amount.toLocaleString("es-AR")} {evt.summary.currency || "ARS"}
+                                </span>
+                              </>
+                            )}
+                            {evt.summary?.payerEmail && (
+                              <>
+                                {" • "}
+                                <span className="text-slate-500 truncate max-w-[120px] inline-block align-bottom" title={evt.summary.payerEmail}>
+                                  {evt.summary.payerEmail}
+                                </span>
+                              </>
+                            )}
                           </p>
                         </div>
                         <span className="text-xs text-slate-500 group-open:hidden">Ver</span>
@@ -367,6 +400,28 @@ export default function Admin92Page() {
                     </summary>
 
                     <div className="mt-4 grid grid-cols-1 gap-3">
+                      {evt.summary && (evt.summary.amount != null || evt.summary.payerEmail || evt.summary.status) && (
+                        <div className="rounded-xl border border-[#84b9ed]/30 bg-[#84b9ed]/5 p-3">
+                          <p className="text-xs font-semibold text-slate-700 mb-2">Resumen</p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                            {evt.summary.amount != null && (
+                              <span>
+                                <strong>Monto:</strong> ${evt.summary.amount.toLocaleString("es-AR")} {evt.summary.currency || "ARS"}
+                              </span>
+                            )}
+                            {evt.summary.payerEmail && (
+                              <span>
+                                <strong>Email:</strong> {evt.summary.payerEmail}
+                              </span>
+                            )}
+                            {evt.summary.status && (
+                              <span>
+                                <strong>Estado:</strong> {evt.summary.status}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                         <p className="text-xs font-semibold text-slate-700 mb-2">Query</p>
                         <pre className="text-xs overflow-auto text-slate-800">
@@ -388,7 +443,8 @@ export default function Admin92Page() {
                     </div>
                   </details>
                 ))
-              )}
+                );
+              })()}
             </div>
           </>
         )}

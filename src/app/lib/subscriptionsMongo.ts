@@ -83,3 +83,18 @@ export async function findSubscriptionByPreapprovalId(
   return doc;
 }
 
+export async function findAuthorizedSubscriptionByEmail(
+  email: string
+): Promise<SubscriptionDoc | null> {
+  const client = await getMongoClient();
+  const db = client.db(getDbName());
+  const col = db.collection<SubscriptionDoc>(COLLECTION);
+  const normalized = email.trim().toLowerCase();
+  const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const doc = await col.findOne(
+    { status: "authorized", email: { $regex: new RegExp(`^${escaped}$`, "i") } },
+    { sort: { createdAt: -1 } }
+  );
+  return doc;
+}
+

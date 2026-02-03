@@ -17,22 +17,20 @@ export async function GET(req: NextRequest) {
 
   let cookieValue: string | null = null;
 
-  if (preapprovalId) {
-    // MP puede enviar preapproval_id al volver (p.ej. tras upgrade)
-    if (process.env.MONGODB_URI) {
-      try {
-        const sub = await findSubscriptionByPreapprovalId(preapprovalId);
-        if (sub && sub.status !== "cancelled") {
-          cookieValue = preapprovalId;
-        }
-      } catch {
-        // ignorar
+  // Solo dar acceso cuando el pago está autorizado (confirmado por MP)
+  if (preapprovalId && process.env.MONGODB_URI) {
+    try {
+      const sub = await findSubscriptionByPreapprovalId(preapprovalId);
+      if (sub && sub.status === "authorized") {
+        cookieValue = preapprovalId;
       }
+    } catch {
+      // ignorar
     }
   } else if (ref && process.env.MONGODB_URI) {
     try {
       const sub = await findSubscriptionByTempId(ref);
-      if (sub) {
+      if (sub && sub.status === "authorized") {
         cookieValue = sub.preapprovalId;
       }
     } catch (e) {
@@ -40,7 +38,8 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const res = NextResponse.redirect(`${baseUrl}/account`);
+  const pending = !cookieValue && (ref || preapprovalId);
+  const res = NextResponse.redirect(`${baseUrl}/account${pending ? "?pending=1" : ""}`);
   if (cookieValue) {
     res.cookies.set(COOKIE_NAME, cookieValue, {
       httpOnly: true,

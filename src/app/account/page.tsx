@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Header from "@/app/components/Header";
 import VisitorsChart from "@/app/components/VisitorsChart";
 import PerformanceMetrics from "@/app/components/PerformanceMetrics";
 import { SidebarProvider } from "@/app/components/sidebar/SidebarProvider";
 import Link from "next/link";
-import { CreditCard, RefreshCw, Settings, ShieldCheck, X } from "lucide-react";
+import { CreditCard, LogOut, RefreshCw, Settings, ShieldCheck, X } from "lucide-react";
 
 type PlanType = "web" | "ecommerce";
 
@@ -26,6 +27,13 @@ export default function AccountPage() {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [devPreviewActive, setDevPreviewActive] = useState<boolean | null>(null);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const pending = searchParams.get("pending") === "1";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -69,6 +77,60 @@ export default function AccountPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError("");
+    setLoginSuccess(false);
+    if (!loginEmail.trim()) return;
+    setLoginLoading(true);
+    try {
+      const res = await fetch("/api/account/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: loginEmail.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginError(data.error || "Error al enviar el enlace.");
+        return;
+      }
+      setLoginSuccess(true);
+    } catch {
+      setLoginError("Error de red. Intentá de nuevo.");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/account/logout", { method: "POST", credentials: "include" });
+      setSubscription(null);
+      window.location.href = "/account";
+    } catch {
+      window.location.href = "/account";
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!window.confirm("¿Cancelar tu suscripción? Dejarás de ser cobrado mensualmente y perderás acceso a las estadísticas y métricas.")) return;
+    setCancelLoading(true);
+    try {
+      const res = await fetch("/api/account/subscription/cancel", { method: "POST", credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "No pudimos cancelar. Intentá de nuevo.");
+        return;
+      }
+      setSubscription(null);
+      window.location.href = "/account";
+    } catch {
+      alert("Error de red. Intentá de nuevo.");
+    } finally {
+      setCancelLoading(false);
+    }
+  };
 
   const handleUpgrade = async () => {
     setUpgradeLoading(true);
@@ -133,13 +195,26 @@ export default function AccountPage() {
             <div className="mb-8">
               <div className="flex items-center justify-between gap-4">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Mi cuenta</h1>
-                <Link
-                  href="/account/settings"
-                  className="flex shrink-0 items-center justify-center rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                  aria-label="Configuración"
-                >
-                  <Settings className="h-6 w-6" />
-                </Link>
+                <div className="flex items-center gap-1">
+                  {effectiveSubscription && (
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                      title="Cerrar sesión"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Cerrar sesión
+                    </button>
+                  )}
+                  <Link
+                    href="/account/settings"
+                    className="flex shrink-0 items-center justify-center rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                    aria-label="Configuración"
+                  >
+                    <Settings className="h-6 w-6" />
+                  </Link>
+                </div>
               </div>
               <p className="mt-1 text-sm text-slate-600">
                 Tu panel, tu plan y tus estadísticas en un solo lugar
@@ -150,6 +225,54 @@ export default function AccountPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <section className="lg:col-span-2 h-64 bg-slate-50 rounded-2xl animate-pulse" />
                 <aside className="h-64 bg-slate-50 rounded-2xl animate-pulse" />
+              </div>
+            ) : !effectiveSubscription ? (
+              <div className="max-w-md">
+                {pending ? (
+                  <div className="rounded-2xl border border-slate-200 bg-amber-50/50 p-6">
+                    <h2 className="text-lg font-semibold text-slate-900">Confirmando tu pago</h2>
+                    <p className="mt-2 text-slate-600">
+                      Estamos procesando tu pago. Te enviamos un email con un enlace para acceder a tu cuenta. Revisá tu bandeja de entrada (y spam).
+                    </p>
+                    <p className="mt-4 text-sm text-slate-500">
+                      Si no lo recibiste, ingresá tu email acá abajo y te enviaremos otro enlace.
+                    </p>
+                  </div>
+                ) : null}
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-lg font-semibold text-slate-900">Ingresar a Mi cuenta</h2>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Ingresá el email de tu suscripción y te enviaremos un enlace para acceder.
+                  </p>
+                  <form onSubmit={handleLogin} className="mt-4 space-y-3">
+                    <input
+                      type="email"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="tu@email.com"
+                      className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                      required
+                    />
+                    {loginError && <p className="text-sm text-red-600">{loginError}</p>}
+                    {loginSuccess && (
+                      <p className="text-sm text-green-600">
+                        ¡Listo! Revisá tu email (y carpeta de spam).
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={loginLoading}
+                      className="w-full rounded-lg bg-[#84b9ed] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6ba3d9] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {loginLoading ? "Enviando..." : "Enviar enlace"}
+                    </button>
+                  </form>
+                  <p className="mt-4 text-center">
+                    <Link href="/#services" className="text-sm font-medium text-[#84b9ed] hover:text-[#6ba3d9]">
+                      ¿No tenés suscripción? Ver planes
+                    </Link>
+                  </p>
+                </div>
               </div>
             ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -205,16 +328,27 @@ export default function AccountPage() {
                   <ShieldCheck className="w-4 h-4 text-slate-500" />
                   Pagos procesados por Mercado Pago.
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {effectiveSubscription && (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
-                    onClick={() => alert("Próximamente: historial de pagos.")}
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    Historial
-                  </button>
+                    <>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+                        onClick={() => alert("Próximamente: historial de pagos.")}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Historial
+                      </button>
+                      <button
+                        type="button"
+                        disabled={cancelLoading || (devPreviewActive === true && !subscription)}
+                        onClick={handleCancelSubscription}
+                        className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                        title={devPreviewActive === true && !subscription ? "Modo preview: usar datos reales para probar" : "Dejarás de ser cobrado mensualmente"}
+                      >
+                        {cancelLoading ? "Cancelando..." : "Cancelar suscripción"}
+                      </button>
+                    </>
                   )}
                   {effectiveSubscription ? (
                     <button

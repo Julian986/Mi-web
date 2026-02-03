@@ -439,6 +439,13 @@ export default function ServiceFlowPage() {
           </p>
         </div>
 
+        {/* Qué pasa después */}
+        <div className="rounded-lg border border-slate-200 bg-slate-50/80 p-4">
+          <p className="text-sm text-slate-700">
+            <span className="font-medium text-slate-900">Después de suscribirte:</span> Te contactaremos en las próximas horas para coordinar el desarrollo. Trabajamos juntos paso a paso y tu sitio estará listo en aproximadamente 2 semanas.
+          </p>
+        </div>
+
         {/* Datos de contacto */}
         <div className="space-y-3 sm:space-y-4">
           <div>
@@ -469,7 +476,7 @@ export default function ServiceFlowPage() {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Teléfono <span className="text-red-500">*</span>
+              Celular <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"

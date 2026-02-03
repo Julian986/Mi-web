@@ -5,6 +5,13 @@ export type MpWebhookEvent = {
   headers: Record<string, string>;
   body: unknown;
   signatureVerified: boolean;
+  /** Datos enriquecidos desde la API de MP (monto, email, etc.) */
+  summary?: {
+    amount?: number;
+    currency?: string;
+    payerEmail?: string;
+    status?: string;
+  };
 };
 
 type Store = {
