@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowLeft, PenTool, AlertTriangle } from "lucide-react";
 import Stepper from "@/app/components/Stepper";
 import { getTemplatesForServiceType, getTemplateById, type ServiceType } from "@/app/lib/templatesCatalog";
+import { paymentFieldsSchema, type PaymentFields } from "@/lib/schemas";
 
 type StepData = {
   design?: string; // ahora representa el templateId elegido
@@ -35,6 +36,7 @@ export default function ServiceFlowPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<StepData>({});
   const [showAlert, setShowAlert] = useState(false);
+  const [paymentErrors, setPaymentErrors] = useState<Partial<Record<keyof PaymentFields, string>>>({});
 
   const templates = useMemo(() => getTemplatesForServiceType(serviceType), [serviceType]);
 
@@ -148,6 +150,25 @@ export default function ServiceFlowPage() {
 
   const handleInputChange = (field: keyof StepData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (currentStep === 3 && (field === "customerName" || field === "customerEmail" || field === "customerPhone")) {
+      setPaymentErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validatePaymentFields = (): PaymentFields | null => {
+    const result = paymentFieldsSchema.safeParse({
+      customerName: formData.customerName ?? "",
+      customerEmail: formData.customerEmail ?? "",
+      customerPhone: formData.customerPhone ?? "",
+    });
+    if (result.success) return result.data;
+    const errors: Partial<Record<keyof PaymentFields, string>> = {};
+    for (const issue of result.error.issues) {
+      const path = issue.path[0] as keyof PaymentFields | undefined;
+      if (path && typeof path === "string" && !errors[path]) errors[path] = issue.message;
+    }
+    setPaymentErrors(errors);
+    return null;
   };
 
   // Step 1: Design Selection
@@ -456,10 +477,14 @@ export default function ServiceFlowPage() {
               type="text"
               value={formData.customerName || ""}
               onChange={(e) => handleInputChange("customerName", e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent ${
+                paymentErrors.customerName ? "border-red-500" : "border-slate-300"
+              }`}
               placeholder="Juan Pérez"
-              required
             />
+            {paymentErrors.customerName && (
+              <p className="mt-1 text-sm text-red-600">{paymentErrors.customerName}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -469,23 +494,34 @@ export default function ServiceFlowPage() {
               type="email"
               value={formData.customerEmail || ""}
               onChange={(e) => handleInputChange("customerEmail", e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent ${
+                paymentErrors.customerEmail ? "border-red-500" : "border-slate-300"
+              }`}
               placeholder="juan@ejemplo.com"
-              required
             />
+            {paymentErrors.customerEmail && (
+              <p className="mt-1 text-sm text-red-600">{paymentErrors.customerEmail}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Celular <span className="text-red-500">*</span>
+              Celular (WhatsApp) <span className="text-red-500">*</span>
             </label>
             <input
               type="tel"
               value={formData.customerPhone || ""}
               onChange={(e) => handleInputChange("customerPhone", e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent ${
+                paymentErrors.customerPhone ? "border-red-500" : "border-slate-300"
+              }`}
               placeholder="+54 9 11 1234-5678"
-              required
             />
+            {paymentErrors.customerPhone && (
+              <p className="mt-1 text-sm text-red-600">{paymentErrors.customerPhone}</p>
+            )}
+            <p className="mt-1 text-xs text-slate-500">
+              Usaremos este número para contactarte por WhatsApp. Ej: +54 9 11 1234-5678
+            </p>
           </div>
 
           {/* Información Mercado Pago suscripción */}
@@ -649,10 +685,9 @@ export default function ServiceFlowPage() {
         {currentStep === steps.length - 1 ? (
           <button
             onClick={async () => {
-              if (!canProceed()) {
-                return;
-              }
-              
+              const validated = validatePaymentFields();
+              if (!validated) return;
+
               if (formData.paymentMethod === "mercado-pago" || !formData.paymentMethod) {
                 try {
                   const res = await fetch("/api/mercadopago/subscription", {
@@ -660,9 +695,9 @@ export default function ServiceFlowPage() {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       serviceType,
-                      customerEmail: formData.customerEmail,
-                      customerName: formData.customerName,
-                      customerPhone: formData.customerPhone,
+                      customerEmail: validated.customerEmail,
+                      customerName: validated.customerName,
+                      customerPhone: validated.customerPhone,
                     }),
                   });
 

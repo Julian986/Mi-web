@@ -1,16 +1,9 @@
 import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { saveSubscription } from "@/app/lib/subscriptionsMongo";
+import { subscriptionBodySchema, type SubscriptionBody } from "@/lib/schemas";
 
 export const runtime = "nodejs";
-
-type SubscriptionBody = {
-  serviceType?: "web" | "ecommerce" | "custom";
-  customerEmail?: string;
-  customerName?: string;
-  customerPhone?: string;
-  upgradeFromPreapprovalId?: string;
-};
 
 const PRICE_BY_SERVICE: Record<Exclude<SubscriptionBody["serviceType"], undefined>, { ars: number; usd: number }> = {
   web: { ars: 20, usd: 21 }, // TODO: volver a 25000 después de prueba (MP no permite menos de $15)
@@ -50,24 +43,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = (await req.json()) as SubscriptionBody;
-    const serviceType = body.serviceType;
-    const payerEmail = body.customerEmail?.trim();
-    const upgradeFromPreapprovalId = body.upgradeFromPreapprovalId?.trim();
-
-    if (!serviceType || !["web", "ecommerce", "custom"].includes(serviceType)) {
-      return NextResponse.json({ error: "serviceType inválido." }, { status: 400 });
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Body JSON inválido." }, { status: 400 });
     }
+
+    const parsed = subscriptionBodySchema.safeParse(body);
+    if (!parsed.success) {
+      const firstError = parsed.error.issues[0];
+      const message = firstError?.message ?? "Datos inválidos.";
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    const { serviceType, customerEmail: payerEmail, customerName, customerPhone, upgradeFromPreapprovalId } = parsed.data;
 
     if (serviceType === "custom") {
       return NextResponse.json(
         { error: "Aplicación a medida es 'Consultar' y no tiene suscripción automática por ahora." },
         { status: 400 },
       );
-    }
-
-    if (!payerEmail) {
-      return NextResponse.json({ error: "Falta customerEmail." }, { status: 400 });
     }
 
     const origin = getOrigin(req);
@@ -149,9 +145,9 @@ export async function POST(req: NextRequest) {
         await saveSubscription({
           tempId,
           preapprovalId: mpId,
-          email: payerEmail.trim().toLowerCase(),
-          name: body.customerName?.trim(),
-          phone: body.customerPhone?.trim(),
+          email: payerEmail,
+          name: customerName,
+          phone: customerPhone,
           plan: serviceType as "web" | "ecommerce",
           status: "pending",
         });

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ArrowLeft } from "lucide-react";
 import Stepper from "./Stepper";
+import { paymentFieldsSchema } from "@/lib/schemas";
 
 type ServiceType = "web" | "ecommerce" | "custom";
 
@@ -18,7 +19,12 @@ type StepData = {
   features?: string[];
   customization?: string;
   budget?: string;
+  name?: string;
+  email?: string;
+  celular?: string;
 };
+
+type PaymentErrorKey = "name" | "email" | "celular";
 
 const serviceNames = {
   web: "Sitio Web",
@@ -29,6 +35,7 @@ const serviceNames = {
 export default function ServiceFlow({ serviceType, onClose }: ServiceFlowProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<StepData>({});
+  const [paymentErrors, setPaymentErrors] = useState<Partial<Record<PaymentErrorKey, string>>>({});
 
   const steps = [
     { id: "design", label: "Elige el diseño" },
@@ -63,6 +70,27 @@ export default function ServiceFlow({ serviceType, onClose }: ServiceFlowProps) 
 
   const handleInputChange = (field: keyof StepData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (currentStep === 3 && (field === "name" || field === "email" || field === "celular")) {
+      setPaymentErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validatePaymentFields = (): boolean => {
+    const result = paymentFieldsSchema.safeParse({
+      customerName: formData.name ?? "",
+      customerEmail: formData.email ?? "",
+      customerPhone: formData.celular ?? "",
+    });
+    if (result.success) return true;
+    const errors: Partial<Record<PaymentErrorKey, string>> = {};
+    const reverseMap: Record<string, PaymentErrorKey> = { customerName: "name", customerEmail: "email", customerPhone: "celular" };
+    result.error.issues.forEach((e) => {
+      const path = e.path[0] as string;
+      const key = reverseMap[path] as PaymentErrorKey | undefined;
+      if (key && !errors[key]) errors[key] = e.message;
+    });
+    setPaymentErrors(errors);
+    return false;
   };
 
   // Step 1: Design Selection
@@ -239,9 +267,16 @@ export default function ServiceFlow({ serviceType, onClose }: ServiceFlowProps) 
             </label>
             <input
               type="text"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent"
+              value={formData.name ?? ""}
+              onChange={(e) => handleInputChange("name", e.target.value)}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent ${
+                paymentErrors.name ? "border-red-500" : "border-slate-300"
+              }`}
               placeholder="Juan Pérez"
             />
+            {paymentErrors.name && (
+              <p className="mt-1 text-sm text-red-600">{paymentErrors.name}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -249,9 +284,16 @@ export default function ServiceFlow({ serviceType, onClose }: ServiceFlowProps) 
             </label>
             <input
               type="email"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent"
+              value={formData.email ?? ""}
+              onChange={(e) => handleInputChange("email", e.target.value)}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent ${
+                paymentErrors.email ? "border-red-500" : "border-slate-300"
+              }`}
               placeholder="juan@ejemplo.com"
             />
+            {paymentErrors.email && (
+              <p className="mt-1 text-sm text-red-600">{paymentErrors.email}</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -259,9 +301,16 @@ export default function ServiceFlow({ serviceType, onClose }: ServiceFlowProps) 
             </label>
             <input
               type="tel"
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent"
+              value={formData.celular ?? ""}
+              onChange={(e) => handleInputChange("celular", e.target.value)}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#6B5BCC] focus:border-transparent ${
+                paymentErrors.celular ? "border-red-500" : "border-slate-300"
+              }`}
               placeholder="+54 9 11 1234-5678"
             />
+            {paymentErrors.celular && (
+              <p className="mt-1 text-sm text-red-600">{paymentErrors.celular}</p>
+            )}
           </div>
 
           <div className="pt-4 border-t border-slate-200">
@@ -384,6 +433,7 @@ export default function ServiceFlow({ serviceType, onClose }: ServiceFlowProps) 
           {currentStep === steps.length - 1 ? (
             <button
               onClick={() => {
+                if (!validatePaymentFields()) return;
                 // Aquí iría la lógica de pago
                 alert("¡Gracias por tu compra! Te contactaremos pronto.");
                 onClose();
