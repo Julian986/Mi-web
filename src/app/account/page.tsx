@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "@/app/components/Header";
 import VisitorsChart from "@/app/components/VisitorsChart";
@@ -19,7 +19,7 @@ const planLabels: Record<PlanType, string> = {
 // Toggle dev: simular suscripción activa/inactiva para evaluar UI. Quitar en producción.
 const DEV_SUBSCRIPTION_KEY = "dev-subscription-preview";
 
-export default function AccountPage() {
+function AccountPageContent() {
   // Mock “sesión” / datos del cliente (por ahora)
   const [subscription, setSubscription] = useState<{ preapprovalId: string; email: string; plan: PlanType; status: string } | null>(null);
   // Flujo “Actualizar mensualidad”
@@ -552,3 +552,14 @@ export default function AccountPage() {
   );
 }
 
+export default function AccountPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-slate-500">Cargando...</p>
+      </div>
+    }>
+      <AccountPageContent />
+    </Suspense>
+  );
+}
