@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Check } from "lucide-react";
 
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -19,6 +19,22 @@ function formatMonthLabel(ym: string): string {
   const [y, m] = ym.split("-");
   return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
 }
+
+/** Formatea YYYY-MM-DD como fecha local (evita bug de timezone) */
+function formatLocalDate(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("es-AR");
+}
+
+/** Obtiene YYYY-MM para filtros (usa componentes locales si es YYYY-MM-DD) */
+function getMonthKeySafe(dateStr: string | Date): string {
+  if (typeof dateStr === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return dateStr.slice(0, 7);
+  }
+  return getMonthKey(dateStr);
+}
+
+const SERVICIO_OPTIONS = ["", "App", "Tienda", "Web", "Mantenimiento", "Otro"] as const;
 
 type MpWebhookEvent = {
   receivedAt: string;
@@ -40,6 +56,18 @@ type AccountingRecord = {
   category?: string;
   date: string;
   createdAt: string;
+};
+
+/** Cuota del Cuaderno de cobros */
+type Cobro = {
+  id: string;
+  clientName: string;
+  amount: number;
+  dueDate: string; // YYYY-MM-DD
+  paid: boolean;
+  paidAt?: string;
+  servicio?: string;
+  notes?: string;
 };
 
 const typeLabels: Record<AccountingType, string> = {
@@ -79,6 +107,33 @@ export default function Admin92Page() {
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AccountingRecord | null>(null);
   const [filterMonth, setFilterMonth] = useState<string>(""); // "" = Todos, "YYYY-MM" = mes específico
+
+  // Cuaderno de cobros
+  const [cobros, setCobros] = useState<Cobro[]>([]);
+  const [cobroLoading, setCobroLoading] = useState(false);
+  const [cobroError, setCobroError] = useState("");
+  const [cobroSubmitting, setCobroSubmitting] = useState(false);
+  const [cobroFormMode, setCobroFormMode] = useState<"single" | "recurrent">("single");
+  const [cobroClient, setCobroClient] = useState("");
+  const [cobroAmount, setCobroAmount] = useState("");
+  const [cobroServicio, setCobroServicio] = useState("");
+  const [cobroDueDate, setCobroDueDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
+  const [cobroDayOfMonth, setCobroDayOfMonth] = useState("1");
+  const [cobroFromMonth, setCobroFromMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [cobroMonthsToGenerate, setCobroMonthsToGenerate] = useState("12");
+  const [editingCobro, setEditingCobro] = useState<Cobro | null>(null);
+  const [editCobroAmount, setEditCobroAmount] = useState("");
+  const [editCobroServicio, setEditCobroServicio] = useState("");
+  const [editCobroUpdateFuture, setEditCobroUpdateFuture] = useState(false);
+  const [cobroFilterClient, setCobroFilterClient] = useState("");
+  const [cobroFilterMonth, setCobroFilterMonth] = useState("");
+  const [cobroFilterPaid, setCobroFilterPaid] = useState<"" | "paid" | "pending">("");
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -123,6 +178,25 @@ export default function Admin92Page() {
     }
   };
 
+  const fetchCobros = async () => {
+    setCobroLoading(true);
+    setCobroError("");
+    try {
+      const res = await fetch("/api/admin/cobros", { method: "GET" });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudieron cargar los cobros.");
+        return;
+      }
+      const list = Array.isArray(data?.cobros) ? data.cobros : [];
+      setCobros(list.map((c: Cobro & { _id?: string }) => ({ ...c, id: c.id || c._id || "" })));
+    } catch (e: any) {
+      setCobroError(e?.message || "Error de red.");
+    } finally {
+      setCobroLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -130,6 +204,7 @@ export default function Admin92Page() {
   useEffect(() => {
     if (activeTab === "contabilidad") {
       fetchRecords();
+      fetchCobros();
     }
   }, [activeTab]);
 
@@ -250,6 +325,218 @@ export default function Admin92Page() {
     }
     return ["", ...options];
   }, []);
+
+  // Meses para formulario de cuotas recurrentes (desde hace 12 meses hasta +24)
+  const cobroMonthOptions = useMemo(() => {
+    const now = new Date();
+    const options: string[] = [];
+    for (let i = -12; i <= 24; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+      options.push(getMonthKey(d));
+    }
+    return options;
+  }, []);
+
+  const cobroClients = useMemo(() => {
+    const names = new Set(cobros.map((c) => c.clientName));
+    return Array.from(names).sort();
+  }, [cobros]);
+
+  const filteredCobros = useMemo(() => {
+    let list = [...cobros];
+    if (cobroFilterClient) {
+      list = list.filter((c) => c.clientName === cobroFilterClient);
+    }
+    if (cobroFilterMonth) {
+      list = list.filter((c) => getMonthKeySafe(c.dueDate) === cobroFilterMonth);
+    }
+    if (cobroFilterPaid === "paid") list = list.filter((c) => c.paid);
+    if (cobroFilterPaid === "pending") list = list.filter((c) => !c.paid);
+    return list.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+  }, [cobros, cobroFilterClient, cobroFilterMonth, cobroFilterPaid]);
+
+  const handleAddSingleCobro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(cobroAmount);
+    if (!cobroClient.trim() || isNaN(amount) || amount <= 0) return;
+    setCobroSubmitting(true);
+    setCobroError("");
+    try {
+      const res = await fetch("/api/admin/cobros", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: cobroClient.trim(),
+          amount,
+          dueDate: cobroDueDate,
+          servicio: cobroServicio || undefined,
+          paid: false,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo guardar.");
+        return;
+      }
+      const d = new Date();
+      setCobroClient("");
+      setCobroAmount("");
+      setCobroServicio("");
+      setCobroDueDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+      fetchCobros();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al guardar.");
+    } finally {
+      setCobroSubmitting(false);
+    }
+  };
+
+  const handleAddRecurrentCobros = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(cobroAmount);
+    const day = Math.min(31, Math.max(1, parseInt(cobroDayOfMonth, 10) || 1));
+    const months = Math.min(60, Math.max(1, parseInt(cobroMonthsToGenerate, 10) || 12));
+    if (!cobroClient.trim() || isNaN(amount) || amount <= 0) return;
+    const [y, m] = cobroFromMonth.split("-").map(Number);
+    const toInsert: { clientName: string; amount: number; dueDate: string; servicio?: string }[] = [];
+    for (let i = 0; i < months; i++) {
+      const d = new Date(y, m - 1 + i, Math.min(day, new Date(y, m + i, 0).getDate()));
+      const dueDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const exists = cobros.some((c) => c.clientName === cobroClient.trim() && c.dueDate === dueDate);
+      if (!exists) {
+        toInsert.push({ clientName: cobroClient.trim(), amount, dueDate, servicio: cobroServicio || undefined });
+      }
+    }
+    if (toInsert.length === 0) {
+      setCobroError("Todas las cuotas ya existen.");
+      return;
+    }
+    setCobroSubmitting(true);
+    setCobroError("");
+    try {
+      const res = await fetch("/api/admin/cobros", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cobros: toInsert }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudieron guardar las cuotas.");
+        return;
+      }
+      setCobroClient("");
+      setCobroAmount("");
+      setCobroServicio("");
+      setCobroDayOfMonth("1");
+      const now = new Date();
+      setCobroFromMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+      setCobroMonthsToGenerate("12");
+      fetchCobros();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al guardar.");
+    } finally {
+      setCobroSubmitting(false);
+    }
+  };
+
+  const handleTogglePaid = async (c: Cobro) => {
+    try {
+      const res = await fetch(`/api/admin/cobros/${c.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paid: !c.paid }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo actualizar.");
+        return;
+      }
+      fetchCobros();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al actualizar.");
+    }
+  };
+
+  const handleEditCobro = (c: Cobro) => {
+    setEditingCobro(c);
+    setEditCobroAmount(String(c.amount));
+    setEditCobroServicio(c.servicio || "");
+    setEditCobroUpdateFuture(false);
+  };
+
+  const handleCancelEditCobro = () => {
+    setEditingCobro(null);
+    setEditCobroAmount("");
+    setEditCobroServicio("");
+    setEditCobroUpdateFuture(false);
+  };
+
+  const handleSaveEditCobro = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCobro) return;
+    const newAmount = parseFloat(editCobroAmount);
+    if (isNaN(newAmount) || newAmount <= 0) return;
+    setCobroSubmitting(true);
+    setCobroError("");
+    try {
+      const res = await fetch(`/api/admin/cobros/${editingCobro.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: newAmount,
+          servicio: editCobroServicio || undefined,
+          updateFuture: editCobroUpdateFuture,
+          clientName: editCobroUpdateFuture ? editingCobro.clientName : undefined,
+          dueDate: editCobroUpdateFuture ? editingCobro.dueDate : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo actualizar.");
+        return;
+      }
+      setEditingCobro(null);
+      setEditCobroAmount("");
+      setEditCobroServicio("");
+      setEditCobroUpdateFuture(false);
+      fetchCobros();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al actualizar.");
+    } finally {
+      setCobroSubmitting(false);
+    }
+  };
+
+  const handleDeleteCobro = async (c: Cobro) => {
+    if (!window.confirm(`¿Eliminar cuota de ${c.clientName} - ${formatLocalDate(c.dueDate)} - $${c.amount.toLocaleString("es-AR")}?`)) return;
+    try {
+      const res = await fetch(`/api/admin/cobros/${c.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo eliminar.");
+        return;
+      }
+      fetchCobros();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al eliminar.");
+    }
+  };
+
+  const handleDeleteAllCobrosOfClient = async (clientName: string) => {
+    if (!window.confirm(`¿Eliminar todas las cuotas de ${clientName}?`)) return;
+    try {
+      const res = await fetch(`/api/admin/cobros?client=${encodeURIComponent(clientName)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudieron eliminar.");
+        return;
+      }
+      setCobroFilterClient("");
+      fetchCobros();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al eliminar.");
+    }
+  };
 
   const totalIngresos = filteredRecords
     .filter((r) => r.type === "ingreso")
@@ -672,6 +959,376 @@ export default function Admin92Page() {
                   </table>
                 </div>
               )}
+            </div>
+
+            {/* Cuaderno de cobros */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-slate-900">Cuaderno de cobros</h2>
+                <button
+                  type="button"
+                  onClick={fetchCobros}
+                  disabled={cobroLoading}
+                  className="text-sm font-medium text-[#84b9ed] hover:text-[#6ba3d9] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {cobroLoading ? "Cargando..." : "Actualizar"}
+                </button>
+              </div>
+              {cobroError && (
+                <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800 text-sm">
+                  {cobroError}
+                </div>
+              )}
+
+              {/* Tabs: Cuota única / Cuotas recurrentes */}
+              <div className="flex rounded-lg border border-slate-200 p-1 mb-4 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setCobroFormMode("single")}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                    cobroFormMode === "single" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  Cuota única
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCobroFormMode("recurrent")}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                    cobroFormMode === "recurrent" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  Cuotas recurrentes
+                </button>
+              </div>
+
+              {cobroFormMode === "single" ? (
+                <form onSubmit={handleAddSingleCobro} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
+                    <input
+                      type="text"
+                      value={cobroClient}
+                      onChange={(e) => setCobroClient(e.target.value)}
+                      placeholder="Nombre del cliente"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Servicio</label>
+                    <select
+                      value={cobroServicio}
+                      onChange={(e) => setCobroServicio(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                    >
+                      {SERVICIO_OPTIONS.map((opt) => (
+                        <option key={opt || "vacio"} value={opt}>{opt || "—"}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Monto (ARS)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={cobroAmount}
+                      onChange={(e) => setCobroAmount(e.target.value)}
+                      placeholder="20000"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Fecha de cobro</label>
+                    <input
+                      type="date"
+                      value={cobroDueDate}
+                      onChange={(e) => setCobroDueDate(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      disabled={cobroSubmitting}
+                      className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+                        cobroSubmitting ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9]"
+                      }`}
+                    >
+                      {cobroSubmitting ? "Guardando..." : "Agregar"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handleAddRecurrentCobros} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
+                    <input
+                      type="text"
+                      value={cobroClient}
+                      onChange={(e) => setCobroClient(e.target.value)}
+                      placeholder="Nombre del cliente"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Servicio</label>
+                    <select
+                      value={cobroServicio}
+                      onChange={(e) => setCobroServicio(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                    >
+                      {SERVICIO_OPTIONS.map((opt) => (
+                        <option key={opt || "vacio"} value={opt}>{opt || "—"}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Monto (ARS)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={cobroAmount}
+                      onChange={(e) => setCobroAmount(e.target.value)}
+                      placeholder="20000"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Día del mes</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="31"
+                      value={cobroDayOfMonth}
+                      onChange={(e) => setCobroDayOfMonth(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Desde mes</label>
+                    <select
+                      value={cobroFromMonth}
+                      onChange={(e) => setCobroFromMonth(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                    >
+                      {cobroMonthOptions.map((ym) => (
+                        <option key={ym} value={ym}>
+                          {formatMonthLabel(ym)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Cant. meses</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={cobroMonthsToGenerate}
+                      onChange={(e) => setCobroMonthsToGenerate(e.target.value)}
+                      placeholder="12"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <button
+                      type="submit"
+                      disabled={cobroSubmitting}
+                      className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+                        cobroSubmitting ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9]"
+                      }`}
+                    >
+                      {cobroSubmitting ? "Guardando..." : "Generar cuotas"}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Modal/panel de edición */}
+              {editingCobro && (
+                <div className="mb-6 rounded-xl border border-[#84b9ed]/40 bg-[#84b9ed]/5 p-4">
+                  <p className="text-sm font-semibold text-slate-800 mb-3">
+                    Editar cuota: {editingCobro.clientName} - {formatLocalDate(editingCobro.dueDate)}
+                  </p>
+                  <form onSubmit={handleSaveEditCobro} className="flex flex-wrap items-end gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Monto (ARS)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        value={editCobroAmount}
+                        onChange={(e) => setEditCobroAmount(e.target.value)}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent w-32"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Servicio</label>
+                      <select
+                        value={editCobroServicio}
+                        onChange={(e) => setEditCobroServicio(e.target.value)}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                      >
+                        {SERVICIO_OPTIONS.map((opt) => (
+                          <option key={opt || "vacio"} value={opt}>{opt || "—"}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editCobroUpdateFuture}
+                        onChange={(e) => setEditCobroUpdateFuture(e.target.checked)}
+                        className="rounded border-slate-300 text-[#84b9ed] focus:ring-[#84b9ed]"
+                      />
+                      <span className="text-sm text-slate-700">Actualizar cuotas futuras pendientes de este cliente</span>
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={cobroSubmitting}
+                        className={`rounded-lg px-4 py-2 text-sm font-semibold cursor-pointer ${
+                          cobroSubmitting ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9]"
+                        }`}
+                      >
+                        {cobroSubmitting ? "Guardando..." : "Guardar"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEditCobro}
+                        className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 cursor-pointer"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Filtros */}
+              <div className="flex flex-wrap items-center gap-3 mb-4">
+                <label className="text-sm font-medium text-slate-700">Filtros:</label>
+                <select
+                  value={cobroFilterClient}
+                  onChange={(e) => setCobroFilterClient(e.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[140px] cursor-pointer"
+                >
+                  <option value="">Todos los clientes</option>
+                  {cobroClients.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={cobroFilterMonth}
+                  onChange={(e) => setCobroFilterMonth(e.target.value)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[140px] cursor-pointer"
+                >
+                  <option value="">Todos los meses</option>
+                  {cobroMonthOptions.map((ym) => (
+                    <option key={ym} value={ym}>
+                      {formatMonthLabel(ym)}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={cobroFilterPaid}
+                  onChange={(e) => setCobroFilterPaid(e.target.value as "" | "paid" | "pending")}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[120px] cursor-pointer"
+                >
+                  <option value="">Todos</option>
+                  <option value="paid">Pagados</option>
+                  <option value="pending">Pendientes</option>
+                </select>
+                {cobroFilterClient && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAllCobrosOfClient(cobroFilterClient)}
+                    className="text-sm font-medium text-red-600 hover:text-red-700 cursor-pointer"
+                  >
+                    Eliminar todas las cuotas de {cobroFilterClient}
+                  </button>
+                )}
+              </div>
+
+              {/* Tabla de cuotas */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 px-2 font-semibold text-slate-700">Cliente</th>
+                      <th className="text-left py-3 px-2 font-semibold text-slate-700">Servicio</th>
+                      <th className="text-left py-3 px-2 font-semibold text-slate-700">Fecha</th>
+                      <th className="text-right py-3 px-2 font-semibold text-slate-700">Monto</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700">Pagado</th>
+                      <th className="text-right py-3 px-2 font-semibold text-slate-700">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cobroLoading && cobros.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                          Cargando...
+                        </td>
+                      </tr>
+                    ) : filteredCobros.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                          No hay cuotas. Agregá una cuota única o generá cuotas recurrentes.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCobros.map((c) => (
+                        <tr key={c.id} className={`border-b border-slate-100 hover:bg-slate-50/50 ${c.paid ? "bg-green-50/30" : ""}`}>
+                          <td className="py-3 px-2 font-medium text-slate-900">{c.clientName}</td>
+                          <td className="py-3 px-2 text-slate-600">{c.servicio || "—"}</td>
+                          <td className="py-3 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
+                          <td className="py-3 px-2 text-right font-medium text-slate-900">{formatCurrency(c.amount)}</td>
+                          <td className="py-3 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePaid(c)}
+                              title={c.paid ? "Marcar como pendiente" : "Marcar como pagado"}
+                              className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 transition-colors cursor-pointer ${
+                                c.paid
+                                  ? "border-green-500 bg-green-100 text-green-700 hover:bg-green-200"
+                                  : "border-slate-300 bg-white text-slate-400 hover:border-slate-400 hover:bg-slate-50"
+                              }`}
+                            >
+                              {c.paid ? <Check className="w-4 h-4" /> : null}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleEditCobro(c)}
+                                title="Editar"
+                                aria-label="Editar"
+                                className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#84b9ed] transition-colors cursor-pointer"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteCobro(c)}
+                                title="Eliminar"
+                                aria-label="Eliminar"
+                                className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
