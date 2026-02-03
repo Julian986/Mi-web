@@ -1,6 +1,11 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+/** Lazy init: Resend falla en build si la API key no está (ej. Vercel) */
+function getResend(): Resend | null {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || key.trim() === "") return null;
+  return new Resend(key);
+}
 
 function getBaseUrl(): string {
   const fromEnv =
@@ -14,7 +19,8 @@ function getBaseUrl(): string {
 }
 
 export async function sendMagicLinkEmail(email: string, token: string): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY) {
+  const resend = getResend();
+  if (!resend) {
     console.warn("[sendEmail] RESEND_API_KEY no configurado, no se envía email");
     return false;
   }
@@ -44,7 +50,8 @@ export async function sendMagicLinkEmail(email: string, token: string): Promise<
 }
 
 export async function sendPaymentConfirmedEmail(email: string, token: string): Promise<boolean> {
-  if (!process.env.RESEND_API_KEY) {
+  const resend = getResend();
+  if (!resend) {
     console.warn("[sendEmail] RESEND_API_KEY no configurado, no se envía email");
     return false;
   }

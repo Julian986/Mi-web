@@ -14,14 +14,18 @@ Temitas a trabajar antes de salir:
 - Agregar preguntas frecuentes al menu✅
 - Revisar el paso 3 (Revisa tu pedido) del flujo de compra✅ 
 - Identificamos cada cuenta con el nombre o email o teléfono
+- Comprobar que funcione el magin link iniciar sesion
 - Poner mensaje de podes cancelar cuando quieras en la pantalla de Pago?
 - Verificar los campos de email, numero en Pago
 - Como hacemos real las estadísticas para que se actualicen cada dia
 - Construir las paginas de soporte y dominio
 - Como se que se cancela la anterior suscripcion
 - Poner en preguntas frecuentes que es cuenta premiun, ssl, etc
+- Que el active(subrayado) del menu se actualice al ir cambiando el foco en la pantalla 
 - Pagina de Mi Cuenta
 - Boton de cancelar suscripcion
+- Boton de cerrar sesion
+- Boton de iniciar sesion
 - Boton flecha para ir hacia arriba en Desarrollo Detail✅
 - Testimonios de los desarrollos (Imágenes de las personas)
 - Enlaces del footer

@@ -496,6 +496,9 @@ export default function ServiceFlowPage() {
                 <p className="text-sm text-slate-600 mt-1">
                   Precio final: ${priceARS.toLocaleString("es-AR")} ARS. Serás redirigido a Mercado Pago para completar el pago de forma segura.
                 </p>
+                <p className="text-sm text-slate-600 mt-1">
+                  Podés cancelar cuando quieras.
+                </p>
               </div>
             </div>
           </div>

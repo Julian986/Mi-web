@@ -7,7 +7,7 @@ import VisitorsChart from "@/app/components/VisitorsChart";
 import PerformanceMetrics from "@/app/components/PerformanceMetrics";
 import { SidebarProvider } from "@/app/components/sidebar/SidebarProvider";
 import Link from "next/link";
-import { CreditCard, LogOut, RefreshCw, Settings, ShieldCheck, X } from "lucide-react";
+import { CreditCard, RefreshCw, Settings, ShieldCheck, X } from "lucide-react";
 
 type PlanType = "web" | "ecommerce";
 
@@ -27,10 +27,7 @@ export default function AccountPage() {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [devPreviewActive, setDevPreviewActive] = useState<boolean | null>(null);
   const [showSubscribeModal, setShowSubscribeModal] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [loginError, setLoginError] = useState("");
-  const [loginSuccess, setLoginSuccess] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const searchParams = useSearchParams();
   const pending = searchParams.get("pending") === "1";
@@ -78,43 +75,12 @@ export default function AccountPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError("");
-    setLoginSuccess(false);
-    if (!loginEmail.trim()) return;
-    setLoginLoading(true);
-    try {
-      const res = await fetch("/api/account/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: loginEmail.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setLoginError(data.error || "Error al enviar el enlace.");
-        return;
-      }
-      setLoginSuccess(true);
-    } catch {
-      setLoginError("Error de red. Intentá de nuevo.");
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/account/logout", { method: "POST", credentials: "include" });
-      setSubscription(null);
-      window.location.href = "/account";
-    } catch {
-      window.location.href = "/account";
-    }
-  };
+  const canCancelSubscription = !(devPreviewActive === true && !subscription);
 
   const handleCancelSubscription = async () => {
-    if (!window.confirm("¿Cancelar tu suscripción? Dejarás de ser cobrado mensualmente y perderás acceso a las estadísticas y métricas.")) return;
+    if (!canCancelSubscription) {
+      return;
+    }
     setCancelLoading(true);
     try {
       const res = await fetch("/api/account/subscription/cancel", { method: "POST", credentials: "include" });
@@ -196,17 +162,6 @@ export default function AccountPage() {
               <div className="flex items-center justify-between gap-4">
                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Mi cuenta</h1>
                 <div className="flex items-center gap-1">
-                  {effectiveSubscription && (
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                      title="Cerrar sesión"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Cerrar sesión
-                    </button>
-                  )}
                   <Link
                     href="/account/settings"
                     className="flex shrink-0 items-center justify-center rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
@@ -227,52 +182,101 @@ export default function AccountPage() {
                 <aside className="h-64 bg-slate-50 rounded-2xl animate-pulse" />
               </div>
             ) : !effectiveSubscription ? (
-              <div className="max-w-md">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {pending ? (
-                  <div className="rounded-2xl border border-slate-200 bg-amber-50/50 p-6">
-                    <h2 className="text-lg font-semibold text-slate-900">Confirmando tu pago</h2>
-                    <p className="mt-2 text-slate-600">
-                      Estamos procesando tu pago. Te enviamos un email con un enlace para acceder a tu cuenta. Revisá tu bandeja de entrada (y spam).
-                    </p>
-                    <p className="mt-4 text-sm text-slate-500">
-                      Si no lo recibiste, ingresá tu email acá abajo y te enviaremos otro enlace.
+                  <div className="lg:col-span-3 rounded-2xl border border-slate-200 bg-amber-50/50 p-4">
+                    <p className="text-sm text-slate-700">
+                      <strong>Confirmando tu pago.</strong> Te enviamos un email con un enlace para acceder. Revisá tu bandeja (y spam). Si no lo recibiste,{" "}
+                      <Link href="/account/ingresar" className="font-medium text-[#84b9ed] hover:text-[#6ba3d9]">
+                        ingresá acá
+                      </Link>
+                      .
                     </p>
                   </div>
                 ) : null}
-                <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-semibold text-slate-900">Ingresar a Mi cuenta</h2>
-                  <p className="mt-1 text-sm text-slate-600">
-                    Ingresá el email de tu suscripción y te enviaremos un enlace para acceder.
-                  </p>
-                  <form onSubmit={handleLogin} className="mt-4 space-y-3">
-                    <input
-                      type="email"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="tu@email.com"
-                      className="w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                      required
-                    />
-                    {loginError && <p className="text-sm text-red-600">{loginError}</p>}
-                    {loginSuccess && (
-                      <p className="text-sm text-green-600">
-                        ¡Listo! Revisá tu email (y carpeta de spam).
-                      </p>
-                    )}
+                {/* Tu suscripción (inactiva) */}
+                <section className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="p-5 sm:p-6 border-b border-slate-200">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h2 className="text-lg font-semibold text-slate-900">Tu suscripción</h2>
+                        <p className="text-sm text-slate-600">Estado, plan y próximos cobros</p>
+                      </div>
+                      <span className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+                        Inactiva
+                      </span>
+                    </div>
+                  </div>
+                  <div className="p-5 sm:p-6 space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-xs text-slate-500 mb-1">Plan</p>
+                        <p className="text-base font-semibold text-slate-900">—</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-xs text-slate-500 mb-1">Mensualidad actual</p>
+                        <p className="text-base font-semibold text-slate-900">—</p>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <p className="text-xs text-slate-500 mb-1">Próximo cobro</p>
+                        <p className="text-base font-semibold text-slate-900">—</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center gap-2 text-sm text-slate-700">
+                        <ShieldCheck className="w-4 h-4 text-slate-500" />
+                        Pagos procesados por Mercado Pago.
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          href="/account/ingresar"
+                          className="inline-flex items-center gap-2 rounded-lg bg-[#84b9ed] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6ba3d9] transition-colors"
+                        >
+                          Ingresar
+                        </Link>
+                        <Link
+                          href="/#services"
+                          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
+                        >
+                          Ver planes y suscribirse
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                {/* Atajos */}
+                <aside className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="p-5 sm:p-6 border-b border-slate-200">
+                    <h2 className="text-lg font-semibold text-slate-900">Accesos rápidos</h2>
+                    <p className="text-sm text-slate-600">Acciones frecuentes del cliente</p>
+                  </div>
+                  <div className="p-5 sm:p-6 space-y-3">
                     <button
-                      type="submit"
-                      disabled={loginLoading}
-                      className="w-full rounded-lg bg-[#84b9ed] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#6ba3d9] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                      type="button"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => setShowSubscribeModal(true)}
                     >
-                      {loginLoading ? "Enviando..." : "Enviar enlace"}
+                      <p className="text-sm font-semibold text-slate-900">Soporte 24/7</p>
+                      <p className="text-xs text-slate-500">Abrí un ticket o escribinos por WhatsApp</p>
                     </button>
-                  </form>
-                  <p className="mt-4 text-center">
-                    <Link href="/#services" className="text-sm font-medium text-[#84b9ed] hover:text-[#6ba3d9]">
-                      ¿No tenés suscripción? Ver planes
-                    </Link>
-                  </p>
-                </div>
+                    <button
+                      type="button"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => setShowSubscribeModal(true)}
+                    >
+                      <p className="text-sm font-semibold text-slate-900">Dominio</p>
+                      <p className="text-xs text-slate-500">Gestioná tu dominio y DNS</p>
+                    </button>
+                    <button
+                      type="button"
+                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => setShowSubscribeModal(true)}
+                    >
+                      <p className="text-sm font-semibold text-slate-900">Solicitar cambios</p>
+                      <p className="text-xs text-slate-500">Pedinos modificaciones en tu sitio o tienda</p>
+                    </button>
+                  </div>
+                </aside>
               </div>
             ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -328,12 +332,12 @@ export default function AccountPage() {
                   <ShieldCheck className="w-4 h-4 text-slate-500" />
                   Pagos procesados por Mercado Pago.
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                   {effectiveSubscription && (
                     <>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer whitespace-nowrap"
                         onClick={() => alert("Próximamente: historial de pagos.")}
                       >
                         <CreditCard className="w-4 h-4" />
@@ -341,10 +345,10 @@ export default function AccountPage() {
                       </button>
                       <button
                         type="button"
-                        disabled={cancelLoading || (devPreviewActive === true && !subscription)}
-                        onClick={handleCancelSubscription}
-                        className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-                        title={devPreviewActive === true && !subscription ? "Modo preview: usar datos reales para probar" : "Dejarás de ser cobrado mensualmente"}
+                        disabled={cancelLoading}
+                        onClick={() => setShowCancelModal(true)}
+                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
+                        title={canCancelSubscription ? "Perdés acceso a métricas y soporte" : "Modo preview: usar datos reales para probar"}
                       >
                         {cancelLoading ? "Cancelando..." : "Cancelar suscripción"}
                       </button>
@@ -355,7 +359,7 @@ export default function AccountPage() {
                       type="button"
                       disabled={upgradeLoading || (devPreviewActive === true && !subscription)}
                       title={devPreviewActive === true && !subscription ? "Modo preview: usar datos reales para probar" : undefined}
-                      className="inline-flex items-center gap-2 rounded-lg bg-[#84b9ed] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6ba3d9] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="inline-flex items-center gap-2 rounded-lg bg-[#84b9ed] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6ba3d9] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
                       onClick={handleUpgrade}
                     >
                       <RefreshCw className={`w-4 h-4 ${upgradeLoading ? "animate-spin" : ""}`} />
@@ -364,7 +368,7 @@ export default function AccountPage() {
                   ) : (
                     <Link
                       href="/#services"
-                      className="inline-flex items-center gap-2 rounded-lg bg-[#84b9ed] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6ba3d9] transition-colors"
+                      className="inline-flex items-center gap-2 rounded-lg bg-[#84b9ed] px-4 py-2 text-sm font-semibold text-white hover:bg-[#6ba3d9] transition-colors whitespace-nowrap"
                     >
                       Ver planes y suscribirse
                     </Link>
@@ -482,6 +486,63 @@ export default function AccountPage() {
                       Ver planes y suscribirse
                     </Link>
                   </div>
+                </div>
+              </div>
+            )}
+            {showCancelModal && (
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cancel-modal-title"
+              >
+                <div
+                  className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+                  onClick={() => setShowCancelModal(false)}
+                  aria-hidden
+                />
+                <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                  <button
+                    type="button"
+                    onClick={() => setShowCancelModal(false)}
+                    className="absolute right-4 top-4 rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+                    aria-label="Cerrar"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                  <div className="pr-10">
+                    <h2 id="cancel-modal-title" className="text-xl font-bold text-slate-900">
+                      ¿Cancelar suscripción?
+                    </h2>
+                    <p className="mt-3 text-slate-600">
+                      Dejarás de ser cobrado mensualmente y perderás acceso a las estadísticas y métricas.
+                    </p>
+                  </div>
+                  <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setShowCancelModal(false)}
+                      className="rounded-lg bg-[#84b9ed] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#6ba3d9]"
+                    >
+                      Volver
+                    </button>
+                    <button
+                      type="button"
+                      disabled={cancelLoading || !canCancelSubscription}
+                      onClick={() => {
+                        setShowCancelModal(false);
+                        handleCancelSubscription();
+                      }}
+                      className="inline-flex justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {cancelLoading ? "Cancelando..." : "Cancelar suscripción"}
+                    </button>
+                  </div>
+                  {!canCancelSubscription && (
+                    <p className="mt-3 text-xs text-slate-500">
+                      Modo preview: usá “Usar datos reales” para probar la cancelación.
+                    </p>
+                  )}
                 </div>
               </div>
             )}

@@ -36,13 +36,15 @@ function getMonthKeySafe(dateStr: string | Date): string {
 
 const SERVICIO_OPTIONS = ["", "App", "Tienda", "Web", "Mantenimiento", "Otro"] as const;
 
-type MpWebhookEvent = {
+type WebhookEvent = {
   receivedAt: string;
   path: string;
-  query: Record<string, string>;
-  headers: Record<string, string>;
-  body: unknown;
-  signatureVerified: boolean;
+  provider: "mp" | "resend";
+  type?: string;
+  query?: Record<string, string>;
+  headers?: Record<string, string>;
+  body?: unknown;
+  signatureVerified?: boolean;
   summary?: { amount?: number; currency?: string; payerEmail?: string; status?: string };
 };
 
@@ -86,7 +88,8 @@ export default function Admin92Page() {
   const [activeTab, setActiveTab] = useState<"webhooks" | "contabilidad">("webhooks");
 
   // Webhooks state
-  const [events, setEvents] = useState<MpWebhookEvent[]>([]);
+  const [events, setEvents] = useState<WebhookEvent[]>([]);
+  const [webhookProviderFilter, setWebhookProviderFilter] = useState<"all" | "mp" | "resend">("all");
   const [webhookTypeFilter, setWebhookTypeFilter] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -139,7 +142,9 @@ export default function Admin92Page() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/admin/webhooks", { method: "GET" });
+      const params = new URLSearchParams();
+      if (webhookProviderFilter !== "all") params.set("provider", webhookProviderFilter);
+      const res = await fetch(`/api/admin/webhooks?${params.toString()}`, { method: "GET" });
       const raw = await res.text();
       let data: any = {};
       try {
@@ -198,15 +203,15 @@ export default function Admin92Page() {
   };
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  useEffect(() => {
     if (activeTab === "contabilidad") {
       fetchRecords();
       fetchCobros();
     }
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab === "webhooks") fetchEvents();
+  }, [activeTab, webhookProviderFilter]);
 
   const handleSubmitRecord = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -586,20 +591,42 @@ export default function Admin92Page() {
         {activeTab === "webhooks" && (
           <>
             <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <p className="text-sm text-slate-600">
-                  Eventos de Mercado Pago. Fuente:{" "}
-                  <span className="font-semibold text-slate-900">{source}</span>
+                  Fuente: <span className="font-semibold text-slate-900">{source}</span>
                 </p>
+                <select
+                  value={webhookProviderFilter}
+                  onChange={(e) => setWebhookProviderFilter(e.target.value as "all" | "mp" | "resend")}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                >
+                  <option value="all">Todos (MP + Resend)</option>
+                  <option value="mp">Mercado Pago</option>
+                  <option value="resend">Resend</option>
+                </select>
                 <select
                   value={webhookTypeFilter}
                   onChange={(e) => setWebhookTypeFilter(e.target.value)}
                   className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
                 >
                   <option value="">Todos los tipos</option>
-                  <option value="payment">Solo pagos (payment)</option>
-                  <option value="subscription_preapproval">Solo preapproval</option>
-                  <option value="subscription_authorized_payment">Solo pago autorizado suscripción</option>
+                  {webhookProviderFilter !== "resend" && (
+                    <>
+                      <option value="payment">MP: pagos (payment)</option>
+                      <option value="subscription_preapproval">MP: preapproval</option>
+                      <option value="subscription_authorized_payment">MP: pago autorizado</option>
+                    </>
+                  )}
+                  {webhookProviderFilter !== "mp" && (
+                    <>
+                      <option value="email.sent">Resend: email.sent</option>
+                      <option value="email.delivered">Resend: email.delivered</option>
+                      <option value="email.failed">Resend: email.failed</option>
+                      <option value="email.bounced">Resend: email.bounced</option>
+                      <option value="email.opened">Resend: email.opened</option>
+                      <option value="email.clicked">Resend: email.clicked</option>
+                    </>
+                  )}
                 </select>
               </div>
               <button
@@ -626,12 +653,16 @@ export default function Admin92Page() {
             <div className="space-y-3">
               {events.length === 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-700">
-                  No hay eventos aún. Probá el simulador o realizá una suscripción real.
+                  {webhookProviderFilter === "resend"
+                    ? "No hay eventos de Resend. Configurá el webhook en resend.com → Webhooks."
+                    : webhookProviderFilter === "mp"
+                      ? "No hay eventos de Mercado Pago. Probá el simulador o realizá una suscripción real."
+                      : "No hay eventos aún."}
                 </div>
               ) : (() => {
                 const filtered = events.filter((evt) => {
                   if (!webhookTypeFilter) return true;
-                  const t = (evt.body as any)?.type || (evt.body as any)?.topic || evt.query?.type || "";
+                  const t = evt.type ?? (evt.body as any)?.type ?? (evt.body as any)?.topic ?? evt.query?.type ?? "";
                   return t === webhookTypeFilter;
                 });
                 return filtered.length === 0 ? (
@@ -641,29 +672,34 @@ export default function Admin92Page() {
                 ) : (
                 filtered.map((evt, idx) => (
                   <details
-                    key={`${evt.receivedAt}-${idx}`}
+                    key={`${evt.provider}-${evt.receivedAt}-${idx}`}
                     className="group rounded-2xl border border-slate-200 bg-white p-4"
                   >
                     <summary className="cursor-pointer list-none">
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-sm font-semibold text-slate-900 truncate">
+                            <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-medium mr-2 ${evt.provider === "mp" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-800"}`}>
+                              {evt.provider === "mp" ? "MP" : "Resend"}
+                            </span>
                             {evt.path}{" "}
                             <span className="text-slate-500 font-normal">
                               • {new Date(evt.receivedAt).toLocaleString("es-AR")}
                             </span>
                           </p>
                           <p className="text-xs text-slate-600 truncate">
-                            Firma:{" "}
-                            <span className={evt.signatureVerified ? "text-green-600" : "text-amber-700"}>
-                              {evt.signatureVerified ? "verificada" : "no verificada"}
-                            </span>
-                            {" • "}
+                            {evt.provider === "mp" && (
+                              <>
+                                Firma:{" "}
+                                <span className={evt.signatureVerified ? "text-green-600" : "text-amber-700"}>
+                                  {evt.signatureVerified ? "verificada" : "no verificada"}
+                                </span>
+                                {" • "}
+                              </>
+                            )}
                             type:{" "}
-                            <span className="font-mono">
-                              {(evt.body as any)?.type || (evt.body as any)?.topic || "—"}
-                            </span>
-                            {evt.summary?.amount != null && (
+                            <span className="font-mono">{evt.type ?? (evt.body as any)?.type ?? (evt.body as any)?.topic ?? "—"}</span>
+                            {evt.provider === "mp" && evt.summary?.amount != null && (
                               <>
                                 {" • "}
                                 <span className="font-semibold text-slate-900">
@@ -671,12 +707,25 @@ export default function Admin92Page() {
                                 </span>
                               </>
                             )}
-                            {evt.summary?.payerEmail && (
+                            {evt.provider === "mp" && evt.summary?.payerEmail && (
                               <>
                                 {" • "}
                                 <span className="text-slate-500 truncate max-w-[120px] inline-block align-bottom" title={evt.summary.payerEmail}>
                                   {evt.summary.payerEmail}
                                 </span>
+                              </>
+                            )}
+                            {evt.provider === "resend" && (evt.body as any)?.data && (
+                              <>
+                                {" • "}
+                                <span className="text-slate-500 truncate" title={(evt.body as any).data.to?.join?.(", ") ?? (evt.body as any).data.to}>
+                                  to: {(Array.isArray((evt.body as any).data.to) ? (evt.body as any).data.to[0] : (evt.body as any).data.to) ?? "—"}
+                                </span>
+                                {(evt.body as any).data.subject && (
+                                  <span className="text-slate-500 truncate max-w-[150px] inline-block align-bottom" title={(evt.body as any).data.subject}>
+                                    {" • "}{(evt.body as any).data.subject}
+                                  </span>
+                                )}
                               </>
                             )}
                           </p>
@@ -687,9 +736,9 @@ export default function Admin92Page() {
                     </summary>
 
                     <div className="mt-4 grid grid-cols-1 gap-3">
-                      {evt.summary && (evt.summary.amount != null || evt.summary.payerEmail || evt.summary.status) && (
+                      {evt.provider === "mp" && evt.summary && (evt.summary.amount != null || evt.summary.payerEmail || evt.summary.status) && (
                         <div className="rounded-xl border border-[#84b9ed]/30 bg-[#84b9ed]/5 p-3">
-                          <p className="text-xs font-semibold text-slate-700 mb-2">Resumen</p>
+                          <p className="text-xs font-semibold text-slate-700 mb-2">Resumen (MP)</p>
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
                             {evt.summary.amount != null && (
                               <span>
@@ -709,10 +758,26 @@ export default function Admin92Page() {
                           </div>
                         </div>
                       )}
+                      {evt.provider === "resend" && (evt.body as any)?.data && (
+                        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3">
+                          <p className="text-xs font-semibold text-slate-700 mb-2">Resumen (Resend)</p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                            {(evt.body as any).data.from && (
+                              <span><strong>From:</strong> {(evt.body as any).data.from}</span>
+                            )}
+                            {(evt.body as any).data.to && (
+                              <span><strong>To:</strong> {Array.isArray((evt.body as any).data.to) ? (evt.body as any).data.to.join(", ") : (evt.body as any).data.to}</span>
+                            )}
+                            {(evt.body as any).data.subject && (
+                              <span><strong>Subject:</strong> {(evt.body as any).data.subject}</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                         <p className="text-xs font-semibold text-slate-700 mb-2">Query</p>
                         <pre className="text-xs overflow-auto text-slate-800">
-                          {JSON.stringify(evt.query, null, 2)}
+                          {JSON.stringify(evt.query ?? {}, null, 2)}
                         </pre>
                       </div>
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
