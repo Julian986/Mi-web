@@ -21,7 +21,7 @@ const DEV_SUBSCRIPTION_KEY = "dev-subscription-preview";
 
 function AccountPageContent() {
   // Mock “sesión” / datos del cliente (por ahora)
-  const [subscription, setSubscription] = useState<{ preapprovalId: string; email: string; plan: PlanType; status: string } | null>(null);
+  const [subscription, setSubscription] = useState<{ preapprovalId: string; email: string; plan: PlanType; status: string; createdAt?: string | null } | null>(null);
   // Flujo “Actualizar mensualidad”
   const [loading, setLoading] = useState(true);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
@@ -62,10 +62,12 @@ function AccountPageContent() {
   }, [plan]);
 
   const nextPaymentDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 20);
+    const createdAt = subscription?.createdAt;
+    if (!createdAt) return null;
+    const d = new Date(createdAt);
+    d.setMonth(d.getMonth() + 1);
     return d.toLocaleDateString("es-AR", { day: "2-digit", month: "short", year: "numeric" });
-  }, []);
+  }, [subscription?.createdAt]);
 
   useEffect(() => {
     fetch("/api/account/subscription", { credentials: "include" })
@@ -322,7 +324,7 @@ function AccountPageContent() {
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <p className="text-xs text-slate-500 mb-1">Próximo cobro</p>
                   <p className="text-base font-semibold text-slate-900">
-                    {effectiveSubscription ? nextPaymentDate : "..."}
+                    {effectiveSubscription ? (nextPaymentDate ?? "...") : "..."}
                   </p>
                 </div>
               </div>

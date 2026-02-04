@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
         phone: sub.phone,
         plan: sub.plan,
         status: sub.status,
+        createdAt: sub.createdAt ? sub.createdAt.toISOString() : null,
       },
     });
   } catch (e) {
