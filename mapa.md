@@ -17,8 +17,9 @@ Temitas a trabajar antes de salir:
 - Poner mensaje de podes cancelar cuando quieras en la pantalla de Pago?✅
 - Comprobar que funcione el magin link iniciar sesion
 - Analizar el flujo de apis al hacer una suscripcion
-- Verificar los campos de email, numero en Pago
-- Como hacemos real las estadísticas para que se actualicen cada dia
+- Verificar los campos de email, numero en Pago✅
+- Enviar un post (email(jona) con magic link )
+- Como hacemos real las estadísticas para que se actualicen cada dia - poner base 3 por dia
 - Construir las paginas de soporte y dominio
 - Como se que se cancela la anterior suscripcion
 - Poner en preguntas frecuentes que es cuenta premiun, ssl, etc
@@ -58,11 +59,20 @@ Con eso ya salir al mercado luego seguimos mejorando Glomun.
 - Hacer carrousel✅
 - Revisar el codigo/quitarlo✅
 
+Datos de Mi Cuenta
+- Plan - viene de mongoDB
+- Mensualidad - hardcodeada en el frontend segun el plan web
+- Proximo cobro - hardcodeado
 
 
 
-
-
+Fecha exacta de Proximo cobro desde Mercado Pago
+La API de MP devuelve next_payment_date en el preapproval. Si querés la fecha exacta, podés:
+Consultar el preapproval en MP: GET /preapproval/{id}
+Usar el campo next_payment_date de la respuesta
+Exponerlo en tu API de suscripción y mostrarlo en el frontend
+Eso implicaría una llamada extra a MP cuando el usuario entra a “Mi cuenta”, pero daría la fecha real que usa Mercado Pago.
+Resumen: Con frequency: 1 y frequency_type: "months", MP cobra cada mes desde la autorización. Usar createdAt + 1 mes es una buena aproximación; para la fecha exacta, conviene usar next_payment_date de la API de MP.
 
 
 

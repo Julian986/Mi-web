@@ -1,7 +1,7 @@
 "use client";
 
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 type VisitorsData = {
   date: string;
@@ -182,12 +182,17 @@ type VisitorsChartProps = {
   projectId: string;
   /** Oculta números y muestra "..." cuando true (ej. suscripción inactiva) */
   hideValues?: boolean;
+  /** Si true, intenta obtener datos reales de GA4 vía /api/account/analytics (requiere sesión) */
+  fetchFromApi?: boolean;
 };
 
-export default function VisitorsChart({ projectId, hideValues = false }: VisitorsChartProps) {
+export default function VisitorsChart({ projectId, hideValues = false, fetchFromApi = false }: VisitorsChartProps) {
   const [period, setPeriod] = useState<Period>("day");
+  const [apiData, setApiData] = useState<VisitorsData[] | null>(null);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [dataSource, setDataSource] = useState<"ga4" | "mock">("mock");
 
-  const data = useMemo(() => {
+  const mockData = useMemo(() => {
     switch (period) {
       case "day":
         return generateDailyData(projectId);
@@ -199,6 +204,33 @@ export default function VisitorsChart({ projectId, hideValues = false }: Visitor
         return generateDailyData(projectId);
     }
   }, [projectId, period]);
+
+  useEffect(() => {
+    if (!fetchFromApi) {
+      setApiData(null);
+      setDataSource("mock");
+      return;
+    }
+    setApiLoading(true);
+    fetch(`/api/account/analytics?period=${period}`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.source === "ga4" && Array.isArray(res.data) && res.data.length > 0) {
+          setApiData(res.data);
+          setDataSource("ga4");
+        } else {
+          setApiData(null);
+          setDataSource("mock");
+        }
+      })
+      .catch(() => {
+        setApiData(null);
+        setDataSource("mock");
+      })
+      .finally(() => setApiLoading(false));
+  }, [fetchFromApi, period]);
+
+  const data = apiData ?? mockData;
   
   // Calcular estadísticas
   const totalVisitors = data.reduce((sum, d) => sum + d.visitors, 0);
@@ -286,6 +318,12 @@ export default function VisitorsChart({ projectId, hideValues = false }: Visitor
           </div>
           <p className="text-sm text-slate-500">{labels.subtitle}</p>
         </div>
+        <div className="relative">
+          {apiLoading && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 rounded-lg">
+              <p className="text-sm text-slate-500">Cargando datos...</p>
+            </div>
+          )}
         <ResponsiveContainer width="100%" height={300}>
           <LineChart
             data={data}
@@ -333,6 +371,10 @@ export default function VisitorsChart({ projectId, hideValues = false }: Visitor
             />
           </LineChart>
         </ResponsiveContainer>
+        </div>
+        {dataSource === "ga4" && (
+          <p className="mt-2 text-xs text-slate-500">Datos de Google Analytics</p>
+        )}
       </div>
     </div>
   );

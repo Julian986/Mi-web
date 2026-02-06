@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Trash2, Check } from "lucide-react";
+import { Pencil, Trash2, Check, BarChart3, Calendar } from "lucide-react";
+import { getRemindersToday, getStatsToday } from "@/app/lib/cobrosWorkflow";
 
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -84,8 +85,18 @@ const typeColors: Record<AccountingType, string> = {
   inversion: "bg-blue-100 text-blue-800",
 };
 
+type SubscriptionAdmin = {
+  preapprovalId: string;
+  email: string;
+  name?: string;
+  plan: string;
+  status: string;
+  createdAt?: string;
+  ga4PropertyId: string | null;
+};
+
 export default function Admin92Page() {
-  const [activeTab, setActiveTab] = useState<"webhooks" | "contabilidad">("webhooks");
+  const [activeTab, setActiveTab] = useState<"webhooks" | "contabilidad" | "suscripciones">("webhooks");
 
   // Webhooks state
   const [events, setEvents] = useState<WebhookEvent[]>([]);
@@ -116,7 +127,7 @@ export default function Admin92Page() {
   const [cobroLoading, setCobroLoading] = useState(false);
   const [cobroError, setCobroError] = useState("");
   const [cobroSubmitting, setCobroSubmitting] = useState(false);
-  const [cobroFormMode, setCobroFormMode] = useState<"single" | "recurrent">("single");
+  const [cobroFormMode, setCobroFormMode] = useState<"single" | "recurrent" | "actions">("single");
   const [cobroClient, setCobroClient] = useState("");
   const [cobroAmount, setCobroAmount] = useState("");
   const [cobroServicio, setCobroServicio] = useState("");
@@ -137,6 +148,55 @@ export default function Admin92Page() {
   const [cobroFilterClient, setCobroFilterClient] = useState("");
   const [cobroFilterMonth, setCobroFilterMonth] = useState("");
   const [cobroFilterPaid, setCobroFilterPaid] = useState<"" | "paid" | "pending">("");
+
+  // Suscripciones (GA4 Property ID)
+  const [subscriptions, setSubscriptions] = useState<SubscriptionAdmin[]>([]);
+  const [subLoading, setSubLoading] = useState(false);
+  const [subError, setSubError] = useState("");
+  const [editingSub, setEditingSub] = useState<SubscriptionAdmin | null>(null);
+  const [editGa4PropertyId, setEditGa4PropertyId] = useState("");
+  const [subSaving, setSubSaving] = useState(false);
+
+  const fetchSubscriptions = async () => {
+    setSubLoading(true);
+    setSubError("");
+    try {
+      const res = await fetch("/api/admin/subscriptions", { method: "GET" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al cargar");
+      setSubscriptions(data.subscriptions ?? []);
+    } catch (e: any) {
+      setSubError(e?.message || "Error al cargar suscripciones");
+    } finally {
+      setSubLoading(false);
+    }
+  };
+
+  const handleSaveGa4PropertyId = async () => {
+    if (!editingSub) return;
+    setSubSaving(true);
+    try {
+      const res = await fetch(`/api/admin/subscriptions/${encodeURIComponent(editingSub.preapprovalId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ga4PropertyId: editGa4PropertyId.trim() || null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al guardar");
+      setSubscriptions((prev) =>
+        prev.map((s) =>
+          s.preapprovalId === editingSub.preapprovalId
+            ? { ...s, ga4PropertyId: editGa4PropertyId.trim() || null }
+            : s
+        )
+      );
+      setEditingSub(null);
+    } catch (e: any) {
+      setSubError(e?.message || "Error al guardar");
+    } finally {
+      setSubSaving(false);
+    }
+  };
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -211,6 +271,7 @@ export default function Admin92Page() {
 
   useEffect(() => {
     if (activeTab === "webhooks") fetchEvents();
+    if (activeTab === "suscripciones") fetchSubscriptions();
   }, [activeTab, webhookProviderFilter]);
 
   const handleSubmitRecord = async (e: React.FormEvent) => {
@@ -359,6 +420,15 @@ export default function Admin92Page() {
     if (cobroFilterPaid === "pending") list = list.filter((c) => !c.paid);
     return list.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   }, [cobros, cobroFilterClient, cobroFilterMonth, cobroFilterPaid]);
+
+  const remindersToday = useMemo(
+    () => getRemindersToday(cobros),
+    [cobros]
+  );
+  const statsToday = useMemo(
+    () => getStatsToday(cobros),
+    [cobros]
+  );
 
   const handleAddSingleCobro = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -584,6 +654,18 @@ export default function Admin92Page() {
               }`}
             >
               Contabilidad
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("suscripciones")}
+              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "suscripciones"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100"
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              Suscripciones
             </button>
           </div>
         </div>
@@ -1045,12 +1127,17 @@ export default function Admin92Page() {
                 </div>
               )}
 
-              {/* Tabs: Cuota única / Cuotas recurrentes */}
-              <div className="flex rounded-lg border border-slate-200 p-1 mb-4 w-fit">
+              {/* Reglas del flujo */}
+              <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-2.5 text-sm text-slate-600">
+                <span className="font-medium text-slate-700">Reglas:</span> Día 0 = vence · +2/+3 = recordatorio · +5 = estadísticas (solo si pagado)
+              </div>
+
+              {/* Tabs: Cuota única / Cuotas recurrentes / Acciones de hoy */}
+              <div className="flex rounded-lg border border-slate-200 p-1 mb-4 w-fit flex-wrap gap-1">
                 <button
                   type="button"
                   onClick={() => setCobroFormMode("single")}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
                     cobroFormMode === "single" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
                   }`}
                 >
@@ -1065,9 +1152,70 @@ export default function Admin92Page() {
                 >
                   Cuotas recurrentes
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setCobroFormMode("actions")}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    cobroFormMode === "actions" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" />
+                  Acciones de hoy
+                  {(remindersToday.length + statsToday.length) > 0 && (
+                    <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-xs ${cobroFormMode === "actions" ? "bg-white/20" : "bg-amber-100 text-amber-800"}`}>
+                      {remindersToday.length + statsToday.length}
+                    </span>
+                  )}
+                </button>
               </div>
 
-              {cobroFormMode === "single" ? (
+              {cobroFormMode === "actions" ? (
+                /* Vista Acciones de hoy */
+                <div className="space-y-6 mb-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+                      <h3 className="text-sm font-semibold text-amber-900 mb-2">Recordatorio de pago (día +2 o +3)</h3>
+                      <p className="text-xs text-amber-800/80 mb-3">Enviar por WhatsApp a clientes con cuota pendiente</p>
+                      {remindersToday.length === 0 ? (
+                        <p className="text-sm text-amber-700/70">Nada para hoy</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {remindersToday.map((c) => (
+                            <li key={c.id} className="text-sm text-slate-800 flex flex-wrap gap-x-2 gap-y-0.5">
+                              <span className="font-medium">{c.clientName}</span>
+                              <span className="text-slate-600">·</span>
+                              <span>{c.servicio || "—"}</span>
+                              <span className="text-slate-600">·</span>
+                              <span>{formatLocalDate(c.dueDate)}</span>
+                              <span className="text-slate-600">·</span>
+                              <span className="font-medium">{formatCurrency(c.amount)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+                      <h3 className="text-sm font-semibold text-blue-900 mb-2">Estadísticas (día +5, pagados)</h3>
+                      <p className="text-xs text-blue-800/80 mb-3">Enviar imágenes por WhatsApp</p>
+                      {statsToday.length === 0 ? (
+                        <p className="text-sm text-blue-700/70">Nada para hoy</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {statsToday.map((c) => (
+                            <li key={c.id} className="text-sm text-slate-800 flex flex-wrap gap-x-2 gap-y-0.5">
+                              <span className="font-medium">{c.clientName}</span>
+                              <span className="text-slate-600">·</span>
+                              <span>{c.servicio || "—"}</span>
+                              <span className="text-slate-600">·</span>
+                              <span>{formatLocalDate(c.dueDate)}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : cobroFormMode === "single" ? (
                 <form onSubmit={handleAddSingleCobro} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
@@ -1211,8 +1359,8 @@ export default function Admin92Page() {
                 </form>
               )}
 
-              {/* Modal/panel de edición */}
-              {editingCobro && (
+              {/* Modal/panel de edición - solo en vista tabla */}
+              {cobroFormMode !== "actions" && editingCobro && (
                 <div className="mb-6 rounded-xl border border-[#84b9ed]/40 bg-[#84b9ed]/5 p-4">
                   <p className="text-sm font-semibold text-slate-800 mb-3">
                     Editar cuota: {editingCobro.clientName} - {formatLocalDate(editingCobro.dueDate)}
@@ -1272,7 +1420,8 @@ export default function Admin92Page() {
                 </div>
               )}
 
-              {/* Filtros */}
+              {/* Filtros - ocultos en Acciones de hoy */}
+              {cobroFormMode !== "actions" && (
               <div className="flex flex-wrap items-center gap-3 mb-4">
                 <label className="text-sm font-medium text-slate-700">Filtros:</label>
                 <select
@@ -1318,8 +1467,10 @@ export default function Admin92Page() {
                   </button>
                 )}
               </div>
+              )}
 
-              {/* Tabla de cuotas */}
+              {/* Tabla de cuotas - oculta en Acciones de hoy */}
+              {cobroFormMode !== "actions" && (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -1387,6 +1538,129 @@ export default function Admin92Page() {
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "suscripciones" && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <p className="text-sm text-slate-600">
+                Asigná el <strong>Property ID</strong> de GA4 a cada suscripción para que el cliente vea estadísticas reales en Mi cuenta.
+              </p>
+              <button
+                type="button"
+                onClick={fetchSubscriptions}
+                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                  subLoading ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9] cursor-pointer"
+                }`}
+                disabled={subLoading}
+              >
+                {subLoading ? "Cargando..." : "Actualizar"}
+              </button>
+            </div>
+
+            {subError && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
+                <p className="text-sm">{subError}</p>
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50">
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Email</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Plan</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">Estado</th>
+                      <th className="text-left py-3 px-4 font-semibold text-slate-700">GA4 Property ID</th>
+                      <th className="text-right py-3 px-4 font-semibold text-slate-700">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subLoading && subscriptions.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-slate-500">
+                          Cargando...
+                        </td>
+                      </tr>
+                    ) : subscriptions.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-slate-500">
+                          No hay suscripciones.
+                        </td>
+                      </tr>
+                    ) : (
+                      subscriptions.map((s) => (
+                        <tr key={s.preapprovalId} className="border-b border-slate-100 hover:bg-slate-50/50">
+                          <td className="py-3 px-4 font-medium text-slate-900">{s.email}</td>
+                          <td className="py-3 px-4 text-slate-600">{s.plan}</td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                s.status === "authorized"
+                                  ? "bg-green-100 text-green-800"
+                                  : s.status === "pending"
+                                    ? "bg-amber-100 text-amber-800"
+                                    : "bg-slate-100 text-slate-600"
+                              }`}
+                            >
+                              {s.status}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4">
+                            {editingSub?.preapprovalId === s.preapprovalId ? (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  value={editGa4PropertyId}
+                                  onChange={(e) => setEditGa4PropertyId(e.target.value)}
+                                  placeholder="Ej. 432109876"
+                                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm w-40 focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={handleSaveGa4PropertyId}
+                                  disabled={subSaving}
+                                  className="rounded-lg bg-[#84b9ed] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#6ba3d9] disabled:opacity-60 cursor-pointer"
+                                >
+                                  {subSaving ? "Guardando..." : "Guardar"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => { setEditingSub(null); setEditGa4PropertyId(""); }}
+                                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-slate-600 font-mono">{s.ga4PropertyId || "—"}</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {editingSub?.preapprovalId === s.preapprovalId ? null : (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingSub(s);
+                                  setEditGa4PropertyId(s.ga4PropertyId || "");
+                                }}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                              >
+                                <Pencil className="w-4 h-4" />
+                                {s.ga4PropertyId ? "Editar" : "Asignar"}
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))

@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
         plan: sub.plan,
         status: sub.status,
         createdAt: sub.createdAt ? sub.createdAt.toISOString() : null,
+        ga4PropertyId: sub.ga4PropertyId ?? null,
       },
     });
   } catch (e) {

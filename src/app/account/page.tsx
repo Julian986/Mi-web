@@ -429,7 +429,11 @@ function AccountPageContent() {
                   {effectiveSubscription ? "Datos de ejemplo (próximamente reales)" : "..."}
                 </p>
               </div>
-              <VisitorsChart projectId={`account-${plan}`} hideValues={!effectiveSubscription} />
+              <VisitorsChart
+                projectId={`account-${plan}`}
+                hideValues={!effectiveSubscription}
+                fetchFromApi={!!effectiveSubscription}
+              />
             </section>
             )}
 

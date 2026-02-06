@@ -24,6 +24,11 @@
 .DS_Store
 *.pem
 
+# GA4 / Google credentials (nunca subir a Git)
+*-analytics*.json
+ga4-*.json
+*-credentials.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -40,3 +45,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+#Archivos md
+GA4_SETUP.md
+mapa.md
+mapa.md
+*.md

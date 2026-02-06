@@ -10,6 +10,8 @@ export type SubscriptionDoc = {
   status: "pending" | "authorized" | "cancelled";
   createdAt: Date;
   updatedAt?: Date;
+  /** ID numérico de la propiedad GA4 del sitio del cliente (ej. "432109876"). Si no está, se muestran datos mock. */
+  ga4PropertyId?: string;
 };
 
 function getDbName() {
@@ -96,4 +98,30 @@ export async function findAuthorizedSubscriptionByEmail(
     { sort: { createdAt: -1 } }
   );
   return doc;
+}
+
+export async function listAllSubscriptions(): Promise<SubscriptionDoc[]> {
+  const client = await getMongoClient();
+  const db = client.db(getDbName());
+  const col = db.collection<SubscriptionDoc>(COLLECTION);
+  const docs = await col.find({}).sort({ createdAt: -1 }).toArray();
+  return docs;
+}
+
+export async function updateSubscriptionGa4PropertyId(
+  preapprovalId: string,
+  ga4PropertyId: string | null
+) {
+  const client = await getMongoClient();
+  const db = client.db(getDbName());
+  const col = db.collection<SubscriptionDoc>(COLLECTION);
+  const update: Partial<SubscriptionDoc> = { updatedAt: new Date() };
+  if (ga4PropertyId === null || ga4PropertyId.trim() === "") {
+    await col.updateOne({ preapprovalId }, { $unset: { ga4PropertyId: "" }, $set: update });
+  } else {
+    await col.updateOne(
+      { preapprovalId },
+      { $set: { ga4PropertyId: ga4PropertyId.trim(), ...update } }
+    );
+  }
 }
