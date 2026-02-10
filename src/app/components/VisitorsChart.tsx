@@ -230,11 +230,17 @@ export default function VisitorsChart({ projectId, hideValues = false, fetchFrom
       .finally(() => setApiLoading(false));
   }, [fetchFromApi, period]);
 
-  const data = apiData ?? mockData;
-  
+  const hasNoRealData = fetchFromApi && !apiLoading && dataSource === "mock";
+
+  const emptyData = useMemo(() => mockData.map((d) => ({ date: d.date, visitors: 0 })), [mockData]);
+
+  const data = hasNoRealData ? emptyData : (apiData ?? mockData);
+
   // Calcular estadísticas
   const totalVisitors = data.reduce((sum, d) => sum + d.visitors, 0);
-  const avgVisitors = Math.round(totalVisitors / data.length);
+  const avgRaw = data.length > 0 ? totalVisitors / data.length : 0;
+  // Para promedios chicos, mostrar 1 decimal para que no quede en "0"
+  const avgVisitors = avgRaw < 10 ? Math.round(avgRaw * 10) / 10 : Math.round(avgRaw);
   const maxVisitors = Math.max(...data.map((d) => d.visitors));
   const minVisitors = Math.min(...data.map((d) => d.visitors));
 
@@ -374,6 +380,13 @@ export default function VisitorsChart({ projectId, hideValues = false, fetchFrom
         </div>
         {dataSource === "ga4" && (
           <p className="mt-2 text-xs text-slate-500">Datos de Google Analytics</p>
+        )}
+        {hasNoRealData && (
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm text-slate-700">
+              Aún no hay datos. Cuando tu sitio esté en línea con el seguimiento de visitantes configurado, verás las estadísticas aquí.
+            </p>
+          </div>
         )}
       </div>
     </div>

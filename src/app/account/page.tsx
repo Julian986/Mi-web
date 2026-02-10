@@ -1,19 +1,29 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Header from "@/app/components/Header";
-import VisitorsChart from "@/app/components/VisitorsChart";
-import PerformanceMetrics from "@/app/components/PerformanceMetrics";
 import { SidebarProvider } from "@/app/components/sidebar/SidebarProvider";
 import Link from "next/link";
-import { CreditCard, RefreshCw, Settings, ShieldCheck, X } from "lucide-react";
+import { RefreshCw, Settings, ShieldCheck, X } from "lucide-react";
+
+// Lazy load de gráficos pesados (recharts, framer-motion) para mejorar LCP
+const VisitorsChart = dynamic(() => import("@/app/components/VisitorsChart"), {
+  ssr: false,
+  loading: () => <div className="h-64 animate-pulse bg-slate-50 rounded-2xl" />,
+});
+
+const PerformanceMetrics = dynamic(() => import("@/app/components/PerformanceMetrics"), {
+  ssr: false,
+  loading: () => <div className="h-48 animate-pulse bg-slate-50 rounded-2xl" />,
+});
 
 type PlanType = "web" | "ecommerce";
 
 const planLabels: Record<PlanType, string> = {
   web: "Sitio Web",
-  ecommerce: "Tienda Online",
+  ecommerce: "Tienda online",
 };
 
 // Toggle dev: simular suscripción activa/inactiva para evaluar UI. Quitar en producción.
@@ -21,7 +31,25 @@ const DEV_SUBSCRIPTION_KEY = "dev-subscription-preview";
 
 function AccountPageContent() {
   // Mock “sesión” / datos del cliente (por ahora)
-  const [subscription, setSubscription] = useState<{ preapprovalId: string; email: string; plan: PlanType; status: string; createdAt?: string | null } | null>(null);
+  const [subscription, setSubscription] = useState<{
+    preapprovalId: string;
+    email: string;
+    plan: PlanType;
+    status: string;
+    createdAt?: string | null;
+    performanceMetrics?: {
+      siteUrl?: string;
+      performance?: number;
+      accessibility?: number;
+      bestPractices?: number;
+      seo?: number;
+      fcp?: number;
+      lcp?: number;
+      tbt?: number;
+      cls?: number;
+      si?: number;
+    } | null;
+  } | null>(null);
   // Flujo “Actualizar mensualidad”
   const [loading, setLoading] = useState(true);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
@@ -32,12 +60,13 @@ function AccountPageContent() {
   const searchParams = useSearchParams();
   const pending = searchParams.get("pending") === "1";
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = localStorage.getItem(DEV_SUBSCRIPTION_KEY);
-    if (stored === "active") setDevPreviewActive(true);
-    else if (stored === "inactive") setDevPreviewActive(false);
-  }, []);
+  // Dev: restaurar estado activa/inactiva desde localStorage. Comentado para producción.
+  // useEffect(() => {
+  //   if (typeof window === "undefined") return;
+  //   const stored = localStorage.getItem(DEV_SUBSCRIPTION_KEY);
+  //   if (stored === "active") setDevPreviewActive(true);
+  //   else if (stored === "inactive") setDevPreviewActive(false);
+  // }, []);
 
   const effectiveSubscription = devPreviewActive !== null
     ? (devPreviewActive ? { preapprovalId: "dev", email: "", plan: "web" as PlanType, status: "authorized" } : null)
@@ -56,7 +85,7 @@ function AccountPageContent() {
     localStorage.removeItem(DEV_SUBSCRIPTION_KEY);
   };
   const prices = useMemo(() => {
-    const baseARS = plan === "web" ? 20 : 35000; // TODO: volver a 25000 después de prueba
+    const baseARS = plan === "web" ? 25000 : 35000;
     const baseUSD = plan === "web" ? 21 : 29;
     return { baseARS, baseUSD };
   }, [plan]);
@@ -128,8 +157,8 @@ function AccountPageContent() {
         <Header />
         <main>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
-            {/* Toggle dev: evaluar UI activa/inactiva. Quitar en producción. */}
-            <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
+            {/* Toggle dev: evaluar UI activa/inactiva. Comentado para producción; descomentar para probar. */}
+            {/* <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
               <span className="font-medium text-amber-800">Dev:</span>
               <button
                 type="button"
@@ -158,7 +187,7 @@ function AccountPageContent() {
                   Usar datos reales
                 </button>
               )}
-            </div>
+            </div> */}
 
             <div className="mb-8">
               <div className="flex items-center justify-between gap-4">
@@ -258,25 +287,25 @@ function AccountPageContent() {
                       className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
                       onClick={() => setShowSubscribeModal(true)}
                     >
-                      <p className="text-sm font-semibold text-slate-900">Soporte 24/7</p>
-                      <p className="text-xs text-slate-500">Abrí un ticket o escribinos por WhatsApp</p>
+                      <p className="text-sm font-semibold text-slate-900">Ver mi sitio</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Disponible con tu suscripción</p>
                     </button>
-                    <button
-                      type="button"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
-                      onClick={() => setShowSubscribeModal(true)}
+                    <Link
+                      href="/account/historial"
+                      className="flex flex-col w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
                     >
-                      <p className="text-sm font-semibold text-slate-900">Dominio</p>
-                      <p className="text-xs text-slate-500">Gestioná tu dominio y DNS</p>
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
-                      onClick={() => setShowSubscribeModal(true)}
+                      <p className="text-sm font-semibold text-slate-900">Historial</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Ver tus pagos y cuotas</p>
+                    </Link>
+                    <a
+                      href="https://wa.me/5492235983114?text=Hola%2C%20soy%20cliente%20de%20Glomun%20y%20tengo%20una%20consulta."
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
                     >
-                      <p className="text-sm font-semibold text-slate-900">Solicitar cambios</p>
-                      <p className="text-xs text-slate-500">Pedinos modificaciones en tu sitio o tienda</p>
-                    </button>
+                      <p className="text-sm font-semibold text-slate-900">Contactar por WhatsApp</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Soporte, solicitar cambios o cualquier consulta</p>
+                    </a>
                   </div>
                 </aside>
               </div>
@@ -339,14 +368,6 @@ function AccountPageContent() {
                     <>
                       <button
                         type="button"
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition-colors cursor-pointer whitespace-nowrap"
-                        onClick={() => alert("Próximamente: historial de pagos.")}
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        Historial
-                      </button>
-                      <button
-                        type="button"
                         disabled={cancelLoading}
                         onClick={() => setShowCancelModal(true)}
                         className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
@@ -388,30 +409,52 @@ function AccountPageContent() {
               <p className="text-sm text-slate-600">Acciones frecuentes del cliente</p>
             </div>
             <div className="p-5 sm:p-6 space-y-3">
-              <button
-                type="button"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
-                onClick={() => effectiveSubscription ? alert("Próximamente: soporte 24/7.") : setShowSubscribeModal(true)}
+              {(() => {
+                const siteUrl = subscription?.performanceMetrics?.siteUrl?.trim();
+                if (siteUrl) {
+                  const href = siteUrl.startsWith("http") ? siteUrl : `https://${siteUrl}`;
+                  return (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex flex-col w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      <p className="text-sm font-semibold text-slate-900">Ver mi sitio</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Abrir tu web en una nueva pestaña</p>
+                    </a>
+                  );
+                }
+                return (
+                  <a
+                    href="https://wa.me/5492235983114?text=Hola%2C%20necesito%20que%20configuren%20la%20URL%20de%20mi%20sitio%20en%20Mi%20cuenta."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    <p className="text-sm font-semibold text-slate-900">Ver mi sitio</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Contactanos para configurar la URL</p>
+                  </a>
+                );
+              })()}
+              {effectiveSubscription && (
+                <Link
+                  href="/account/historial"
+                  className="flex flex-col w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  <p className="text-sm font-semibold text-slate-900">Historial</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Ver tus pagos y cuotas</p>
+                </Link>
+              )}
+              <a
+                href="https://wa.me/5492235983114?text=Hola%2C%20soy%20cliente%20de%20Glomun%20y%20tengo%20una%20consulta."
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
               >
-                <p className="text-sm font-semibold text-slate-900">Soporte 24/7</p>
-                <p className="text-xs text-slate-500">Abrí un ticket o escribinos por WhatsApp</p>
-              </button>
-              <button
-                type="button"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
-                onClick={() => effectiveSubscription ? alert("Próximamente: administrar dominio.") : setShowSubscribeModal(true)}
-              >
-                <p className="text-sm font-semibold text-slate-900">Dominio</p>
-                <p className="text-xs text-slate-500">Gestioná tu dominio y DNS</p>
-              </button>
-              <button
-                type="button"
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 transition-colors cursor-pointer"
-                onClick={() => effectiveSubscription ? alert("Próximamente: solicitar cambios.") : setShowSubscribeModal(true)}
-              >
-                <p className="text-sm font-semibold text-slate-900">Solicitar cambios</p>
-                <p className="text-xs text-slate-500">Pedinos modificaciones en tu sitio o tienda</p>
-              </button>
+                <p className="text-sm font-semibold text-slate-900">Contactar por WhatsApp</p>
+                <p className="text-xs text-slate-500 mt-0.5">Soporte, solicitar cambios o cualquier consulta</p>
+              </a>
             </div>
           </aside>
             </div>
@@ -426,7 +469,7 @@ function AccountPageContent() {
                   : "Estadísticas de tu servicio"}
               </h2>
                 <p className="text-sm text-slate-600">
-                  {effectiveSubscription ? "Datos de ejemplo (próximamente reales)" : "..."}
+                  {effectiveSubscription ? "Visitantes y tendencias de tu sitio" : "..."}
                 </p>
               </div>
               <VisitorsChart
@@ -442,6 +485,7 @@ function AccountPageContent() {
                 projectId={`account-${plan}`}
                 hideValues={!effectiveSubscription}
                 compact
+                performanceMetrics={effectiveSubscription ? (subscription?.performanceMetrics ?? null) : undefined}
               />
             )}
           </div>

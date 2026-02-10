@@ -2,6 +2,7 @@ export type DevelopmentType = "web" | "ecommerce" | "app";
 
 export type Development = {
   id: string;
+  slug: string;
   title: string;
   domain: string;
   url: string;
@@ -20,6 +21,7 @@ export type Development = {
 export const DEVELOPMENTS: Development[] = [
   {
     id: "dev-1",
+    slug: "kinesiologia-y-salud",
     title: "Kinesiología y Salud",
     domain: "kinesiologiaysalud.com",
     url: "https://kinesiologiaysalud.com",
@@ -33,6 +35,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-2",
+    slug: "amo-mi-casa",
     title: "Amo mi casa",
     domain: "amomicasahome.com",
     url: "https://amomicasahome.com",
@@ -46,6 +49,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-3",
+    slug: "pedri",
     title: "Pedri",
     domain: "app.pedriapp.com",
     url: "https://app.pedriapp.com",
@@ -59,6 +63,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-4",
+    slug: "salud-dental",
     title: "Salud Dental",
     domain: "odontologiajgoroso.com",
     url: "https://odontologiajgoroso.com/",
@@ -72,6 +77,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-5",
+    slug: "natalia-domecq",
     title: "Lic. Natalia Domecq",
     domain: "psicodomecq.com",
     url: "https://psicodomecq.com",
@@ -85,6 +91,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-6",
+    slug: "nutricion-integral",
     title: "Nutrición Integral",
     domain: "mvnutricionconsciente.com",
     url: "https://mvnutricionconsciente.com",
@@ -98,6 +105,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-andrea-cohen",
+    slug: "andrea-cohen",
     title: "Lic. Andrea Cohen",
     domain: "andreacohennutricionista.com",
     url: "https://lic-andrea-cohen-nutricionista.vercel.app",
@@ -111,6 +119,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-7",
+    slug: "estudio-juridico",
     title: "Estudio Jurídico",
     domain: "ezequielabogado.com",
     url: "https://ezequiel-cortes-abogado.vercel.app/",
@@ -124,6 +133,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-tuturno",
+    slug: "tu-turno-barberia",
     title: "Tu Turno Barbería",
     domain: "tuturnobarberia.com",
     url: "https://tu-turno-jet.vercel.app",
@@ -137,6 +147,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-8",
+    slug: "pablo-perez",
     title: "Lic. Pablo Pérez",
     domain: "pabloperezkinesiologia.com",
     url: "https://lic-pablo-perez.vercel.app",
@@ -150,6 +161,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-peliculas",
+    slug: "tienda-peliculas",
     title: "Tienda de Películas",
     domain: "bibliotecapeliculas.com",
     url: "https://biblioteca-peliculas-ywrn.vercel.app/",
@@ -163,6 +175,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-13",
+    slug: "aaci",
     title: "AACI",
     domain: "aaci.com",
     url: "https://aaci.vercel.app/",
@@ -176,6 +189,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-9",
+    slug: "a-mar-salud",
     title: "A-Mar Salud",
     domain: "amarsalud.com",
     url: "https://a-mar-salud.vercel.app",
@@ -189,6 +203,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-10",
+    slug: "eukinesia",
     title: "Eukinesia",
     domain: "eukinesia.com",
     url: "https://eukinesiakinesiologia.vercel.app/",
@@ -202,6 +217,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-11",
+    slug: "crs-informatica",
     title: "CRS Informática",
     domain: "crsinformatica.com",
     url: "https://crsinformaticapc.vercel.app",
@@ -215,6 +231,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-12",
+    slug: "wanda-perrin",
     title: "Lic. Wanda Perrin",
     domain: "wandakinesiologia.com",
     url: "https://lic-wanda-perrin-kinesiologia.vercel.app/",
@@ -228,6 +245,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-internet-retro",
+    slug: "internet-retro",
     title: "Internet Retro",
     domain: "internet-retro.com",
     url: "https://internet-retro.vercel.app",
@@ -241,6 +259,7 @@ export const DEVELOPMENTS: Development[] = [
   },
   {
     id: "dev-14",
+    slug: "victoria-nazra",
     title: "Lic. Victoria Nazra",
     domain: "victorianazrapsicologa.com",
     url: "https://victoria-psicologa.vercel.app/",
@@ -256,6 +275,10 @@ export const DEVELOPMENTS: Development[] = [
 
 export function getDevelopmentById(id: string): Development | null {
   return DEVELOPMENTS.find((dev) => dev.id === id) ?? null;
+}
+
+export function getDevelopmentBySlug(slug: string): Development | null {
+  return DEVELOPMENTS.find((dev) => dev.slug === slug) ?? null;
 }
 
 export function getAllDevelopments(): Development[] {

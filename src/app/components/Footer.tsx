@@ -12,26 +12,20 @@ export default function Footer() {
 
   const footerLinks = {
     servicios: [
-      { label: "Desarrollo Web", href: "#services" },
-      { label: "Tienda Online", href: "#services" },
-      { label: "Aplicaciones", href: "#services" },
+      { label: "Sitio web", href: "#services" },
+      { label: "Tienda online", href: "#services" },
+      { label: "Aplicación a medida", href: "#services" },
       { label: "Consultoría", href: "#services" },
     ],
     soporte: [
       { label: "Contacto", href: "#contact" },
-      { label: "Documentación", href: "#" },
-      { label: "Guías", href: "#" },
-    ],
-    empresa: [
-      { label: "Sobre nosotros", href: "#" },
-      { label: "Blog", href: "#" },
-      { label: "Trabajos", href: "#" },
-      { label: "Prensa", href: "#" },
+      { label: "Preguntas frecuentes", href: "#faq" },
+      { label: "Desarrollos", href: "#work" },
     ],
     legal: [
-      { label: "Términos de servicio", href: "#" },
-      { label: "Política de privacidad", href: "#" },
-      { label: "Licencia", href: "#" },
+      { label: "Términos de servicio", href: "/legal#terminos" },
+      { label: "Política de privacidad", href: "/legal#privacidad" },
+      { label: "Licencia", href: "/legal#licencia" },
     ],
   };
 
@@ -57,7 +51,7 @@ export default function Footer() {
           </div>
 
           {/* Links Columns */}
-          <div className="md:col-span-4 grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="md:col-span-4 grid grid-cols-1 sm:grid-cols-3 gap-8">
             {/* Servicios */}
             <div>
               <h3 className="text-sm font-semibold text-slate-900 mb-4">Servicios</h3>
@@ -65,7 +59,7 @@ export default function Footer() {
                 {footerLinks.servicios.map((link) => (
                   <li key={link.label}>
                     <a
-                      href={link.href.length > 1 ? `${base}${link.href}` : link.href}
+                      href={link.href.startsWith("/") ? link.href : `${base}${link.href}`}
                       className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
                     >
                       {link.label}
@@ -82,24 +76,7 @@ export default function Footer() {
                 {footerLinks.soporte.map((link) => (
                   <li key={link.label}>
                     <a
-                      href={link.href.length > 1 ? `${base}${link.href}` : link.href}
-                      className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Empresa */}
-            <div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-4">Empresa</h3>
-              <ul className="space-y-3">
-                {footerLinks.empresa.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href.length > 1 ? `${base}${link.href}` : link.href}
+                      href={link.href.startsWith("/") ? link.href : `${base}${link.href}`}
                       className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
                     >
                       {link.label}
@@ -116,7 +93,7 @@ export default function Footer() {
                 {footerLinks.legal.map((link) => (
                   <li key={link.label}>
                     <a
-                      href={link.href.length > 1 ? `${base}${link.href}` : link.href}
+                      href={link.href.startsWith("/") ? link.href : `${base}${link.href}`}
                       className="text-sm text-slate-600 hover:text-slate-900 transition-colors"
                     >
                       {link.label}

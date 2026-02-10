@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Pencil, Trash2, Check, BarChart3, Calendar } from "lucide-react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy } from "lucide-react";
 import { getRemindersToday, getStatsToday } from "@/app/lib/cobrosWorkflow";
+import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS } from "@/app/lib/cobrosMensajes";
 
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -71,6 +74,7 @@ type Cobro = {
   paidAt?: string;
   servicio?: string;
   notes?: string;
+  estadisticasEnviadas?: boolean;
 };
 
 const typeLabels: Record<AccountingType, string> = {
@@ -95,7 +99,8 @@ type SubscriptionAdmin = {
   ga4PropertyId: string | null;
 };
 
-export default function Admin92Page() {
+function Admin92PageContent() {
+  const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"webhooks" | "contabilidad" | "suscripciones">("webhooks");
 
   // Webhooks state
@@ -148,6 +153,7 @@ export default function Admin92Page() {
   const [cobroFilterClient, setCobroFilterClient] = useState("");
   const [cobroFilterMonth, setCobroFilterMonth] = useState("");
   const [cobroFilterPaid, setCobroFilterPaid] = useState<"" | "paid" | "pending">("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Suscripciones (GA4 Property ID)
   const [subscriptions, setSubscriptions] = useState<SubscriptionAdmin[]>([]);
@@ -421,6 +427,12 @@ export default function Admin92Page() {
     return list.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
   }, [cobros, cobroFilterClient, cobroFilterMonth, cobroFilterPaid]);
 
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const remindersToday = useMemo(
     () => getRemindersToday(cobros),
     [cobros]
@@ -520,6 +532,24 @@ export default function Admin92Page() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ paid: !c.paid }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo actualizar.");
+        return;
+      }
+      fetchCobros();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al actualizar.");
+    }
+  };
+
+  const handleToggleEstadisticas = async (c: Cobro) => {
+    try {
+      const res = await fetch(`/api/admin/cobros/${c.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estadisticasEnviadas: !c.estadisticasEnviadas }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -667,6 +697,13 @@ export default function Admin92Page() {
               <BarChart3 className="w-4 h-4" />
               Suscripciones
             </button>
+            <Link
+              href="/admin92/proyectos"
+              className="rounded-md px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 text-slate-600 hover:bg-slate-100"
+            >
+              <FolderKanban className="w-4 h-4" />
+              Proyectos
+            </Link>
           </div>
         </div>
 
@@ -1179,24 +1216,52 @@ export default function Admin92Page() {
                       {remindersToday.length === 0 ? (
                         <p className="text-sm text-amber-700/70">Nada para hoy</p>
                       ) : (
-                        <ul className="space-y-2">
-                          {remindersToday.map((c) => (
-                            <li key={c.id} className="text-sm text-slate-800 flex flex-wrap gap-x-2 gap-y-0.5">
-                              <span className="font-medium">{c.clientName}</span>
-                              <span className="text-slate-600">·</span>
-                              <span>{c.servicio || "—"}</span>
-                              <span className="text-slate-600">·</span>
-                              <span>{formatLocalDate(c.dueDate)}</span>
-                              <span className="text-slate-600">·</span>
-                              <span className="font-medium">{formatCurrency(c.amount)}</span>
-                            </li>
-                          ))}
+                        <ul className="space-y-4">
+                          {remindersToday.map((c) => {
+                            const mensaje = formatRecordatorioMensaje(c.amount);
+                            return (
+                              <li key={c.id} className="text-sm">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <span className="font-medium text-slate-900">{c.clientName}</span>
+                                  <span className="text-slate-600">{c.servicio || "—"}</span>
+                                  <span className="text-slate-600">{formatLocalDate(c.dueDate)}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopy(mensaje, `recordatorio-${c.id}`)}
+                                    className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium bg-amber-200 text-amber-900 hover:bg-amber-300 cursor-pointer"
+                                  >
+                                    <Copy className="w-3 h-3" />
+                                    {copiedId === `recordatorio-${c.id}` ? "Copiado" : "Copiar"}
+                                  </button>
+                                </div>
+                                <pre className="whitespace-pre-wrap rounded-lg bg-white/60 p-3 text-slate-800 text-xs border border-amber-200/50">
+                                  {mensaje}
+                                </pre>
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
                     </div>
                     <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
                       <h3 className="text-sm font-semibold text-blue-900 mb-2">Estadísticas (día +5, pagados)</h3>
                       <p className="text-xs text-blue-800/80 mb-3">Enviar imágenes por WhatsApp</p>
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-xs font-medium text-blue-900">Mensaje guardado</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(MENSAJE_ESTADISTICAS, "estadisticas")}
+                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium bg-blue-200 text-blue-900 hover:bg-blue-300 cursor-pointer"
+                          >
+                            <Copy className="w-3 h-3" />
+                            {copiedId === "estadisticas" ? "Copiado" : "Copiar"}
+                          </button>
+                        </div>
+                        <pre className="whitespace-pre-wrap rounded-lg bg-white/60 p-3 text-slate-800 text-xs border border-blue-200/50">
+                          {MENSAJE_ESTADISTICAS}
+                        </pre>
+                      </div>
                       {statsToday.length === 0 ? (
                         <p className="text-sm text-blue-700/70">Nada para hoy</p>
                       ) : (
@@ -1480,19 +1545,20 @@ export default function Admin92Page() {
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Fecha</th>
                       <th className="text-right py-3 px-2 font-semibold text-slate-700">Monto</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700">Pagado</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700">Estadísticas</th>
                       <th className="text-right py-3 px-2 font-semibold text-slate-700">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     {cobroLoading && cobros.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                        <td colSpan={7} className="py-8 text-center text-slate-500">
                           Cargando...
                         </td>
                       </tr>
                     ) : filteredCobros.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-8 text-center text-slate-500">
+                        <td colSpan={7} className="py-8 text-center text-slate-500">
                           No hay cuotas. Agregá una cuota única o generá cuotas recurrentes.
                         </td>
                       </tr>
@@ -1515,6 +1581,20 @@ export default function Admin92Page() {
                               }`}
                             >
                               {c.paid ? <Check className="w-4 h-4" /> : null}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleEstadisticas(c)}
+                              title={c.estadisticasEnviadas ? "Marcar como no enviadas" : "Marcar estadísticas enviadas"}
+                              className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 transition-colors cursor-pointer ${
+                                c.estadisticasEnviadas
+                                  ? "border-blue-500 bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                  : "border-slate-300 bg-white text-slate-400 hover:border-slate-400 hover:bg-slate-50"
+                              }`}
+                            >
+                              {c.estadisticasEnviadas ? <Check className="w-4 h-4" /> : null}
                             </button>
                           </td>
                           <td className="py-3 px-2 text-right">
@@ -1568,9 +1648,15 @@ export default function Admin92Page() {
               </button>
             </div>
 
-            {subError && (
+            {(subError || searchParams.get("impersonate") === "error" || searchParams.get("impersonate") === "notfound") && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900">
-                <p className="text-sm">{subError}</p>
+                <p className="text-sm">
+                  {searchParams.get("impersonate") === "notfound"
+                    ? "Suscripción no encontrada o cancelada."
+                    : searchParams.get("impersonate") === "error"
+                      ? "Error al iniciar sesión como usuario."
+                      : subError}
+                </p>
               </div>
             )}
 
@@ -1583,7 +1669,7 @@ export default function Admin92Page() {
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Plan</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">Estado</th>
                       <th className="text-left py-3 px-4 font-semibold text-slate-700">GA4 Property ID</th>
-                      <th className="text-right py-3 px-4 font-semibold text-slate-700">Acción</th>
+                      <th className="text-right py-3 px-4 font-semibold text-slate-700">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1649,17 +1735,33 @@ export default function Admin92Page() {
                           </td>
                           <td className="py-3 px-4 text-right">
                             {editingSub?.preapprovalId === s.preapprovalId ? null : (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingSub(s);
-                                  setEditGa4PropertyId(s.ga4PropertyId || "");
-                                }}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                              >
-                                <Pencil className="w-4 h-4" />
-                                {s.ga4PropertyId ? "Editar" : "Asignar"}
-                              </button>
+                              <div className="flex items-center justify-end gap-2">
+                                <a
+                                  href={`/api/admin/impersonate?preapprovalId=${encodeURIComponent(s.preapprovalId)}`}
+                                  className="inline-flex items-center gap-1 rounded-lg bg-[#84b9ed] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#6ba3d9]"
+                                  title="Entrar a Mi cuenta como este usuario"
+                                >
+                                  Ver como usuario
+                                </a>
+                                <Link
+                                  href={`/admin92/suscripciones/${encodeURIComponent(s.preapprovalId)}/metricas`}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                                  title="Cargar métricas de performance"
+                                >
+                                  Métricas
+                                </Link>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingSub(s);
+                                    setEditGa4PropertyId(s.ga4PropertyId || "");
+                                  }}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                  {s.ga4PropertyId ? "Editar GA4" : "Asignar GA4"}
+                                </button>
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -1673,5 +1775,17 @@ export default function Admin92Page() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function Admin92Page() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-slate-500">Cargando...</p>
+      </main>
+    }>
+      <Admin92PageContent />
+    </Suspense>
   );
 }

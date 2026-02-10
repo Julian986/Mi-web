@@ -118,20 +118,42 @@ export async function POST(req: NextRequest) {
     let details: Record<string, unknown> = {};
 
     if (token && id) {
-      const isPayment = bodyType === "payment" || bodyType === "subscription_authorized_payment";
-      const urlFetch = isPayment
-        ? `https://api.mercadopago.com/v1/payments/${encodeURIComponent(id)}`
-        : `https://api.mercadopago.com/preapproval/${encodeURIComponent(id)}`;
+      const isPayment = bodyType === "payment";
+      const isSubscriptionAuthorizedPayment = bodyType === "subscription_authorized_payment";
 
-      const detailsRes = await fetch(urlFetch, {
-        method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      details = (await detailsRes.json().catch(() => ({}))) as Record<string, unknown>;
+      const tryFetchJson = async (urlFetch: string) => {
+        const res = await fetch(urlFetch, {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+        return { ok: res.ok, status: res.status, json };
+      };
 
-      if (detailsRes.ok && details) {
+      let fetched: { ok: boolean; status: number; json: Record<string, unknown> } | null = null;
+
+      if (isPayment) {
+        // payment: el objeto es un pago (data.id suele ser el payment id)
+        fetched = await tryFetchJson(
+          `https://api.mercadopago.com/v1/payments/${encodeURIComponent(String(id))}`
+        );
+      } else {
+        // Subscriptions: el objeto es la suscripción (preapproval)
+        const preapprovalId = isSubscriptionAuthorizedPayment
+          ? String((body as any)?.data?.id || id)
+          : String(id);
+        fetched = await tryFetchJson(
+          `https://api.mercadopago.com/preapproval/${encodeURIComponent(preapprovalId)}`
+        );
+      }
+
+      if (fetched?.json) details = fetched.json;
+
+      if (fetched?.ok && details) {
         if (isPayment) {
-          const amount = (details as any)?.transaction_amount ?? (details as any)?.transaction_details?.total_paid_amount;
+          const amount =
+            (details as any)?.transaction_amount ??
+            (details as any)?.transaction_details?.total_paid_amount;
           summary = {
             amount: typeof amount === "number" ? amount : undefined,
             currency: (details as any)?.currency_id,
@@ -139,9 +161,14 @@ export async function POST(req: NextRequest) {
             status: (details as any)?.status,
           };
         } else {
+          // preapproval: usar summarized.last_charged_amount si existe
           const recurring = (details as any)?.auto_recurring;
+          const summarized = (details as any)?.summarized;
+          const amount =
+            summarized?.last_charged_amount ??
+            recurring?.transaction_amount;
           summary = {
-            amount: recurring?.transaction_amount,
+            amount: typeof amount === "number" ? amount : undefined,
             currency: (details as any)?.currency_id || recurring?.currency_id,
             payerEmail: (details as any)?.payer_email,
             status: (details as any)?.status,
@@ -172,7 +199,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true });
     }
 
-    const isPayment = bodyType === "payment" || bodyType === "subscription_authorized_payment";
+    const isPayment = bodyType === "payment";
     const status = (details as any)?.status as string | undefined;
     const externalReference = (details as any)?.external_reference as string | undefined;
     const upgradeFrom = parseUpgradeFrom(externalReference);

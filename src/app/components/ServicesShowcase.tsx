@@ -25,8 +25,8 @@ export default function ServicesShowcase() {
         description: "Más consultas con un sitio rápido y claro",
         features: [
           "Diseño que guía al cliente a contactarte",
-          "SEO técnico y performance reales",
-          "Medición y mejoras iterativas",
+          "SEO técnico y velocidad de carga optimizada",
+          "Medimos resultados y mejoramos tu web mes a mes",
           "Dominio incluido",
           "Hosting incluido",
           "Certificado SSL",
@@ -40,7 +40,7 @@ export default function ServicesShowcase() {
       },
       {
         id: "ecommerce",
-        name: "Tienda Online",
+        name: "Tienda online",
         description: "Vendé más con un checkout sin fricción",
         features: [
           "Checkout optimizado para convertir",

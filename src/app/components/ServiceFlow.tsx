@@ -28,7 +28,7 @@ type PaymentErrorKey = "name" | "email" | "celular";
 
 const serviceNames = {
   web: "Sitio Web",
-  ecommerce: "Tienda Online",
+  ecommerce: "Tienda online",
   custom: "Aplicación a medida",
 };
 

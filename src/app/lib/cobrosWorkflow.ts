@@ -44,6 +44,7 @@ export type CobroForWorkflow = {
   dueDate: string;
   paid: boolean;
   servicio?: string;
+  estadisticasEnviadas?: boolean;
 };
 
 /** Cobros que requieren recordatorio hoy */
@@ -54,10 +55,10 @@ export function getRemindersToday(cobros: CobroForWorkflow[], today?: string): C
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
-/** Cobros que requieren envío de estadísticas hoy (pagados, día +5) */
+/** Cobros que requieren envío de estadísticas hoy (pagados, día +5, no enviadas aún) */
 export function getStatsToday(cobros: CobroForWorkflow[], today?: string): CobroForWorkflow[] {
   const todayStr = today ?? getTodayStr();
   return cobros
-    .filter((c) => c.paid && isStatsDay(c.dueDate, true, todayStr))
+    .filter((c) => c.paid && !c.estadisticasEnviadas && isStatsDay(c.dueDate, true, todayStr))
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }

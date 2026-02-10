@@ -19,7 +19,7 @@ function getBaseUrl(req: NextRequest) {
 }
 
 const PRICE_BY_SERVICE: Record<"web" | "ecommerce", { ars: number; usd: number }> = {
-  web: { ars: 20, usd: 21 }, // TODO: volver a 25000 después de prueba
+  web: { ars: 25000, usd: 21 },
   ecommerce: { ars: 35000, usd: 29 },
 };
 
@@ -76,7 +76,9 @@ export async function POST(req: NextRequest) {
       transaction_amount: price.ars,
       currency_id: "ARS",
     },
-    back_url: `${baseUrl}/account`,
+    // Usamos /api/account/return para que, cuando MP redirija con ?preapproval_id=,
+    // se actualice automáticamente la cookie glomun_sub al nuevo preapproval.
+    back_url: `${baseUrl}/api/account/return`,
     external_reference: `glomun-upgrade-${serviceType}-${Date.now()}|from:${preapprovalId}`,
     notification_url: notificationUrl,
     status: "pending",

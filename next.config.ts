@@ -5,6 +5,36 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  async redirects() {
+    const oldToSlug: Record<string, string> = {
+      "dev-1": "kinesiologia-y-salud",
+      "dev-2": "amo-mi-casa",
+      "dev-3": "pedri",
+      "dev-4": "salud-dental",
+      "dev-5": "natalia-domecq",
+      "dev-6": "nutricion-integral",
+      "dev-andrea-cohen": "andrea-cohen",
+      "dev-7": "estudio-juridico",
+      "dev-tuturno": "tu-turno-barberia",
+      "dev-8": "pablo-perez",
+      "dev-peliculas": "tienda-peliculas",
+      "dev-13": "aaci",
+      "dev-9": "a-mar-salud",
+      "dev-10": "eukinesia",
+      "dev-11": "crs-informatica",
+      "dev-12": "wanda-perrin",
+      "dev-internet-retro": "internet-retro",
+      "dev-14": "victoria-nazra",
+    };
+    return Object.entries(oldToSlug).map(([oldId, slug]) => ({
+      source: `/projects/${oldId}`,
+      destination: `/projects/${slug}`,
+      permanent: true,
+    }));
+  },
+  experimental: {
+    optimizePackageImports: ["framer-motion"],
+  },
   images: {
     remotePatterns: [
       {

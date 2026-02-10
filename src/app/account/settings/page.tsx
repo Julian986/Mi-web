@@ -5,8 +5,6 @@ import Link from "next/link";
 import { ArrowLeft, LogOut, X } from "lucide-react";
 
 export default function SettingsPage() {
-  const [language, setLanguage] = useState<"es" | "en" | "fr">("es");
-  const [theme, setTheme] = useState<"light" | "dark">("light");
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [hasSession, setHasSession] = useState(false);
@@ -86,71 +84,35 @@ export default function SettingsPage() {
       <main className="pt-14">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-16">
           <p className="text-sm text-slate-600 mb-6">
-            Idioma, tema y otras preferencias
+            Preferencias de tu cuenta
           </p>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-5 sm:p-6 space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Idioma</label>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value as "es" | "en" | "fr")}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                  >
-                    <option value="es">Español</option>
-                    <option value="en">English</option>
-                    <option value="fr">Français</option>
-                  </select>
-                  <p className="text-xs text-slate-500 mt-2">
-                    Por ahora es visual (próximamente lo aplicamos a toda la web).
-                  </p>
-                </div>
+          {/* Próximamente: idioma y tema */}
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 sm:p-6">
+            <p className="text-sm font-semibold text-slate-700 mb-2">Próximamente</p>
+            <p className="text-sm text-slate-600 mb-3">
+              Estamos trabajando en estas funcionalidades para que las tengas disponibles pronto:
+            </p>
+            <ul className="text-sm text-slate-600 space-y-1 list-disc list-inside">
+              <li>Elegir idioma de la interfaz</li>
+              <li>Tema claro / oscuro</li>
+            </ul>
+          </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Tema</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setTheme("light")}
-                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                        theme === "light"
-                          ? "bg-[#84b9ed] text-white"
-                          : "bg-white border border-slate-200 text-slate-900 hover:bg-slate-50"
-                      }`}
-                    >
-                      Claro
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTheme("dark")}
-                      className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                        theme === "dark"
-                          ? "bg-[#84b9ed] text-white"
-                          : "bg-white border border-slate-200 text-slate-900 hover:bg-slate-50"
-                      }`}
-                    >
-                      Oscuro
-                    </button>
-                  </div>
-                  <p className="text-xs text-slate-500 mt-2">
-                    Próximamente: modo oscuro real con toggle en toda la app.
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowLogoutModal(true)}
-                    disabled={logoutLoading || sessionLoading || !hasSession}
-                    className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:hover:bg-slate-100"
-                    title="Cerrar sesión"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    {logoutLoading ? "Cerrando..." : "Cerrar sesión"}
-                  </button>
-                </div>
-              </div>
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-5 sm:p-6">
+              <button
+                type="button"
+                onClick={() => setShowLogoutModal(true)}
+                disabled={logoutLoading || sessionLoading || !hasSession}
+                className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-100 disabled:text-slate-400 disabled:border-slate-200 disabled:hover:bg-slate-100"
+                title="Cerrar sesión"
+              >
+                <LogOut className="w-4 h-4" />
+                {logoutLoading ? "Cerrando..." : "Cerrar sesión"}
+              </button>
             </div>
+          </div>
           {showLogoutModal && (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center p-4"

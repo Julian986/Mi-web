@@ -78,22 +78,22 @@ export default function ProjectsShowcase() {
     }
   }, [showAll]);
 
-  // Al montar, verificar si hay un projectId guardado y restaurar showAll si es necesario
+  // Al montar, verificar si hay un slug guardado y restaurar showAll si es necesario
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const lastViewedProjectId = sessionStorage.getItem("last-viewed-project-id");
-      if (lastViewedProjectId) {
-        const peliculasIndex = developments.findIndex((d) => d.id === "dev-peliculas");
+      const lastViewedSlug = sessionStorage.getItem("last-viewed-project-slug");
+      if (lastViewedSlug) {
+        const peliculasIndex = developments.findIndex((d) => d.slug === "tienda-peliculas");
         const initialVisibleCount = peliculasIndex !== -1 ? peliculasIndex + 1 : developments.length;
-        const projectIndex = developments.findIndex((d) => d.id === lastViewedProjectId);
+        const projectIndex = developments.findIndex((d) => d.slug === lastViewedSlug);
         
         // Si el proyecto está en la parte expandida, restaurar showAll
         if (projectIndex >= initialVisibleCount) {
           setShowAll(true);
         }
         
-        // Limpiar el projectId guardado después de usarlo
-        sessionStorage.removeItem("last-viewed-project-id");
+        // Limpiar el slug guardado después de usarlo
+        sessionStorage.removeItem("last-viewed-project-slug");
       }
     }
   }, [developments]);
@@ -116,8 +116,8 @@ export default function ProjectsShowcase() {
   }, []);
 
   // Memoizar callbacks para evitar re-renders
-  const handleMouseEnter = useCallback((id: string) => {
-    setActiveId(id);
+  const handleMouseEnter = useCallback((slug: string) => {
+    setActiveId(slug);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
@@ -216,16 +216,16 @@ export default function ProjectsShowcase() {
         >
           <defs>
             {developments.map((dev) => (
-              <linearGradient key={dev.id} id={`cable-gradient-${dev.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+              <linearGradient key={dev.slug} id={`cable-gradient-${dev.slug}`} x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop
                   offset="0%"
                   stopColor={`rgb(${dev.accentRgb})`}
-                  stopOpacity={activeId === dev.id ? 1 : 0.2}
+                  stopOpacity={activeId === dev.slug ? 1 : 0.2}
                 />
                 <stop
                   offset="100%"
                   stopColor={`rgb(${dev.accentRgb})`}
-                  stopOpacity={activeId === dev.id ? 0.8 : 0.1}
+                  stopOpacity={activeId === dev.slug ? 0.8 : 0.1}
                 />
               </linearGradient>
             ))}
@@ -233,14 +233,14 @@ export default function ProjectsShowcase() {
 
           {developments.map((dev) => {
             const path = makeCablePath(STACK_X, STACK_Y, dev.cableX, dev.cableY);
-            const isActive = activeId === dev.id;
+            const isActive = activeId === dev.slug;
 
             return (
               <motion.path
-                key={dev.id}
+                key={dev.slug}
                 d={path}
                 fill="none"
-                stroke={`url(#cable-gradient-${dev.id})`}
+                stroke={`url(#cable-gradient-${dev.slug})`}
                 strokeWidth={isActive ? 2.5 : 1.5}
                 strokeLinecap="round"
                 initial={{ pathLength: 0, opacity: 0 }}
@@ -294,7 +294,7 @@ export default function ProjectsShowcase() {
       {/* Grid de Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 max-w-4xl mx-auto">
         {visibleDevelopments.map((dev, index) => {
-          const isActive = activeId === dev.id;
+          const isActive = activeId === dev.slug;
           // Para las nuevas cards que aparecen después de "Ver más", usar delay relativo desde 0
           const isNewCard = showAll && index >= initialVisibleCount;
           // Si es una nueva card, usar delay relativo desde 0. Si no, usar el delay basado en su índice
@@ -302,9 +302,9 @@ export default function ProjectsShowcase() {
 
           return (
               <motion.div
-              key={dev.id}
+              key={dev.slug}
               className="group relative"
-              onMouseEnter={() => handleMouseEnter(dev.id)}
+              onMouseEnter={() => handleMouseEnter(dev.slug)}
               onMouseLeave={handleMouseLeave}
               initial={{ opacity: 0, y: 20 }}
               animate={{
@@ -320,9 +320,9 @@ export default function ProjectsShowcase() {
                 onClick={() => {
                   // Guardar el projectId antes de navegar
                   if (typeof window !== "undefined") {
-                    sessionStorage.setItem("last-viewed-project-id", dev.id);
+                    sessionStorage.setItem("last-viewed-project-slug", dev.slug);
                   }
-                  router.push(`/projects/${dev.id}`);
+                  router.push(`/projects/${dev.slug}`);
                 }}
                 className="relative flex items-center cursor-pointer overflow-hidden rounded-xl bg-white border border-black/10 hover:border-black/20 transition-all will-change-transform"
                 animate={
@@ -353,7 +353,7 @@ export default function ProjectsShowcase() {
                 <div 
                   className="relative w-36 h-24 md:w-40 md:h-24 flex-shrink-0 overflow-hidden rounded-xl border flex items-center justify-center transition-colors ml-4"
                   style={{
-                    backgroundColor: dev.id === "dev-3" ? "rgb(12, 16, 21)" : `rgba(${dev.accentRgb}, 0.08)`,
+                    backgroundColor: dev.slug === "pedri" ? "rgb(12, 16, 21)" : `rgba(${dev.accentRgb}, 0.08)`,
                     borderColor: `rgba(${dev.accentRgb}, 0.15)`,
                   }}
                 >
@@ -381,7 +381,13 @@ export default function ProjectsShowcase() {
                         }}
                       />
                       <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                        {dev.type === "web" ? "Sitio Web" : dev.type === "ecommerce" ? "Tienda Online" : "App"}
+                        {dev.slug === "pedri"
+                          ? "App privada"
+                          : dev.type === "web"
+                            ? "Sitio Web"
+                            : dev.type === "ecommerce"
+                              ? "Tienda online"
+                              : "App"}
                       </span>
                     </div>
 

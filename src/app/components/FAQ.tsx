@@ -11,36 +11,59 @@ type FAQItem = {
 
 const faqData: FAQItem[] = [
   {
-    question: "¿Cuánto tiempo toma desarrollar un proyecto?",
-    answer: "El tiempo de desarrollo varía según la complejidad del proyecto. Una página web básica puede tomar entre 2-4 semanas, mientras que una aplicación completa puede requerir de 2-6 meses. Te proporcionamos un cronograma detallado después de analizar tus necesidades específicas.",
+    question: "¿Qué incluye mi suscripción / cuenta premium?",
+    answer:
+      "Con tu suscripción tenés tu sitio o tienda online activa, dominio y hosting incluidos (según el plan), certificado SSL, acceso a “Mi cuenta” para ver tus estadísticas, historial de pagos y datos de tu plan, soporte por WhatsApp y la posibilidad de pedir cambios en tu sitio.",
   },
   {
-    question: "¿Qué tecnologías utilizan?",
-    answer: "Trabajamos con tecnologías modernas y probadas: Next.js, React, TypeScript, Node.js, y bases de datos como PostgreSQL y MongoDB. Para e-commerce utilizamos plataformas como Shopify o desarrollos custom según tus necesidades. Siempre elegimos la mejor stack tecnológica para tu proyecto.",
+    question: "¿Qué es un certificado SSL y por qué lo necesito?",
+    answer:
+      "El certificado SSL es lo que hace que tu web muestre el candado y el “https”. Protege los datos que tus clientes envían (formularios, pagos, etc.) y genera confianza. Sin SSL, muchos navegadores marcan tu sitio como “no seguro” y eso puede espantar visitas.",
   },
   {
-    question: "¿Ofrecen mantenimiento después del lanzamiento?",
-    answer: "Sí, ofrecemos planes de mantenimiento que incluyen actualizaciones de seguridad, mejoras de rendimiento, soporte técnico y nuevas funcionalidades. Puedes elegir entre planes mensuales o contratar soporte bajo demanda según tus necesidades.",
+    question: "¿Dominio y hosting están incluidos o los pago aparte?",
+    answer:
+      "En los planes indicados, nos encargamos del dominio y del hosting por vos. Vos no tenés que tocar servidores ni configuraciones raras: nosotros nos ocupamos de que tu sitio esté online y se mantenga funcionando.",
   },
   {
-    question: "¿Cómo funciona el proceso de trabajo?",
-    answer: "Nuestro proceso es colaborativo: 1) Reunión inicial para entender tus objetivos, 2) Propuesta y presupuesto detallado, 3) Diseño y aprobación, 4) Desarrollo con entregas incrementales, 5) Testing y ajustes, 6) Lanzamiento y capacitación. Te mantenemos informado en cada etapa.",
+    question: "¿Qué significa que puedo hacer cambios ilimitados?",
+    answer:
+      "Podés pedirnos cambios razonables en tu sitio: textos, fotos, secciones simples, actualización de precios, horarios, etc. No hay límite fijo de cantidad. Lo que no entra como “cambio” es rehacer todo el diseño o desarrollar una aplicación nueva desde cero; eso se cotiza aparte.",
   },
   {
-    question: "¿Pueden integrar mi proyecto con sistemas existentes?",
-    answer: "Absolutamente. Integramos tu proyecto con APIs, sistemas de pago, CRMs, herramientas de marketing, y cualquier otro sistema que necesites. Trabajamos con integraciones estándar y también desarrollamos conexiones personalizadas cuando es necesario.",
+    question: "¿El mantenimiento está incluido o se paga aparte?",
+    answer:
+      "Mientras tengas la suscripción activa nos encargamos del mantenimiento básico: actualizaciones, seguridad, pequeños arreglos y cambios razonables en tu sitio. Si necesitás algo grande (como un rediseño completo o una funcionalidad nueva a medida), lo vemos juntos y se cotiza por separado.",
   },
   {
-    question: "¿Qué incluye el precio de un proyecto?",
-    answer: "El precio incluye: diseño, desarrollo, testing, despliegue inicial, documentación técnica, y capacitación básica. No incluye hosting, dominios, o servicios de terceros (a menos que se especifique). Te proporcionamos un desglose detallado antes de comenzar.",
+    question: "¿Puedo cancelar cuando quiera? ¿Hay permanencia mínima?",
+    answer:
+      "Sí, podés cancelar tu suscripción cuando quieras desde “Mi cuenta” o escribiéndonos. No hay contrato de permanencia. Cuando cancelás, dejamos de cobrarte los próximos meses y tu sitio deja de estar activo al finalizar el período ya abonado.",
   },
   {
-    question: "¿Ofrecen diseño además de desarrollo?",
-    answer: "Sí, ofrecemos servicios completos de diseño UI/UX. Nuestro equipo diseña interfaces modernas, intuitivas y optimizadas para conversión. El diseño siempre está alineado con tu marca y objetivos de negocio.",
+    question: "¿Qué es exactamente la sección “Mi cuenta”?",
+    answer:
+      "“Mi cuenta” es tu panel como cliente: ahí ves tu plan, el monto mensual, próximos cobros, historial de pagos y estadísticas de tu sitio (visitas, rendimiento, etc.). También tenés accesos rápidos para ver tu web y contactarnos por soporte.",
   },
   {
-    question: "¿Cómo garantizan la calidad del código?",
-    answer: "Aplicamos las mejores prácticas: código limpio y documentado, testing automatizado, revisiones de código, y seguimiento de estándares de la industria. Utilizamos control de versiones (Git) y metodologías ágiles para asegurar calidad en cada entrega.",
+    question: "¿Cómo funcionan las estadísticas y métricas de mi sitio?",
+    answer:
+      "Medimos visitas y rendimiento de tu sitio usando herramientas como Google Analytics y auditorías de performance. En “Mi cuenta” ves un resumen claro para entender cómo está funcionando tu web y tomar decisiones (por ejemplo, si conviene mejorar textos, campañas, etc.).",
+  },
+  {
+    question: "Ya tengo dominio o sitio, ¿lo puedo usar con Glomun?",
+    answer:
+      "Sí. Si ya tenés un dominio, podemos apuntarlo a tu nuevo sitio en Glomun. Si tenés una web vieja, podemos usarla como base de contenido y hacer un rediseño más moderno y rápido.",
+  },
+  {
+    question: "¿En cuánto tiempo está lista mi web o tienda?",
+    answer:
+      "Una web o tienda estándar suele estar lista en pocas semanas desde que nos pasás el contenido (textos, logo, fotos). Si el proyecto es más complejo o a medida, te contamos el tiempo estimado antes de empezar.",
+  },
+  {
+    question: "¿Qué necesito tener listo para empezar?",
+    answer:
+      "Con que tengas claro el nombre de tu negocio, logo (si tenés), textos básicos sobre qué hacés y algunas fotos ya podemos arrancar. Si te falta algo, te guiamos paso a paso para armarlo juntos.",
   },
 ];
 

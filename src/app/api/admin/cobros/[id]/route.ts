@@ -25,7 +25,7 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { amount, servicio, paid, paidAt, updateFuture } = body;
+    const { amount, servicio, paid, paidAt, estadisticasEnviadas, updateFuture } = body;
 
     const updates: Record<string, unknown> = {};
     let unsetFields: string[] = [];
@@ -54,6 +54,9 @@ export async function PATCH(
     }
     if (paidAt !== undefined && paidAt !== null) {
       updates.paidAt = /^\d{4}-\d{2}-\d{2}$/.test(String(paidAt)) ? String(paidAt) : undefined;
+    }
+    if (estadisticasEnviadas !== undefined) {
+      updates.estadisticasEnviadas = Boolean(estadisticasEnviadas);
     }
 
     // Si updateFuture: actualizar cuotas futuras pendientes del mismo cliente

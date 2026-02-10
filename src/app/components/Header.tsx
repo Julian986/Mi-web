@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSidebar } from "./sidebar/SidebarProvider";
 import { User } from "lucide-react";
 
@@ -15,18 +15,87 @@ export default function Header() {
   const isHome = pathname === "/";
   const isAccount = pathname === "/account" || pathname?.startsWith("/account/");
   const base = isHome ? "" : "/";
+  const isProgrammaticScrollRef = useRef(false);
+
+  // En home: scroll programático a la sección
+  const handleSectionClick = (e: React.MouseEvent<HTMLAnchorElement>, hash: string) => {
+    if (!isHome || !hash || hash === "#") return;
+    const id = hash.startsWith("#") ? hash.slice(1) : hash;
+    const el = document.getElementById(id);
+    if (el) {
+      e.preventDefault();
+      window.history.pushState(null, "", hash);
+      setActiveSection(hash);
+      isProgrammaticScrollRef.current = true;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+      }, 400);
+    }
+  };
 
   // Detectar la sección activa basada en el hash de la URL (solo en home)
   useEffect(() => {
     if (!isHome) return;
-    const updateActiveSection = () => {
+    const updateActiveSectionFromHash = () => {
       const hash = window.location.hash;
       setActiveSection(hash || "#top");
     };
 
-    updateActiveSection();
-    window.addEventListener("hashchange", updateActiveSection);
-    return () => window.removeEventListener("hashchange", updateActiveSection);
+    updateActiveSectionFromHash();
+    window.addEventListener("hashchange", updateActiveSectionFromHash);
+    return () => window.removeEventListener("hashchange", updateActiveSectionFromHash);
+  }, [isHome]);
+
+  // Actualizar sección activa según el scroll usando IntersectionObserver (solo en home)
+  useEffect(() => {
+    if (!isHome) return;
+    if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
+
+    const sectionIds = ["top", "services", "work", "faq", "contact"];
+
+    const updateActiveFromScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
+      const viewportCenter = window.innerHeight / 2;
+      let bestId = "#top";
+      let bestDistance = Infinity;
+
+      sectionIds.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        const sectionCenter = rect.top + rect.height / 2;
+        const distance = Math.abs(sectionCenter - viewportCenter);
+
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestId = `#${id}`;
+        }
+      });
+
+      setActiveSection((prev) => (prev === bestId ? prev : bestId));
+    };
+
+    const observer = new IntersectionObserver(
+      () => {
+        updateActiveFromScroll();
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px 0px 0px",
+        threshold: [0.1, 0.25, 0.5],
+      }
+    );
+
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    // Set inicial al montar
+    updateActiveFromScroll();
+
+    return () => observer.disconnect();
   }, [isHome]);
 
   // Bloquear scroll cuando el menú mobile está abierto
@@ -75,6 +144,7 @@ export default function Header() {
               <nav className="hidden md:flex items-center gap-1">
                 <a
                   href={`${base}#top`}
+                  onClick={(e) => handleSectionClick(e, "#top")}
                   className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                     isHome && (activeSection === "#top" || activeSection === "")
                       ? ""
@@ -96,6 +166,7 @@ export default function Header() {
                 </a>
                 <a
                   href={`${base}#services`}
+                  onClick={(e) => handleSectionClick(e, "#services")}
                   className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                     isHome && activeSection === "#services"
                       ? ""
@@ -117,6 +188,7 @@ export default function Header() {
                 </a>
                 <a
                   href={`${base}#work`}
+                  onClick={(e) => handleSectionClick(e, "#work")}
                   className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                     isHome && activeSection === "#work"
                       ? ""
@@ -138,6 +210,7 @@ export default function Header() {
                 </a>
                 <a
                   href={`${base}#faq`}
+                  onClick={(e) => handleSectionClick(e, "#faq")}
                   className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                     isHome && activeSection === "#faq"
                       ? ""
@@ -159,6 +232,7 @@ export default function Header() {
                 </a>
                 <a
                   href={`${base}#contact`}
+                  onClick={(e) => handleSectionClick(e, "#contact")}
                   className={`group relative inline-flex cursor-pointer items-center justify-center gap-x-1 whitespace-nowrap px-3 py-2 text-sm/6 font-semibold text-slate-900 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-black/10 ${
                     isHome && activeSection === "#contact"
                       ? ""
@@ -199,12 +273,14 @@ export default function Header() {
                 </Link>
                 <a
                   href={`${base}#services`}
+                  onClick={(e) => handleSectionClick(e, "#services")}
                   className="rounded-lg border border-black/10 bg-white px-4 py-2 text-sm font-medium text-slate-900 transition-colors hover:bg-slate-50"
                 >
                   Ver servicios
                 </a>
                 <a
                   href={`${base}#contact`}
+                  onClick={(e) => handleSectionClick(e, "#contact")}
                   className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-slate-800"
                 >
                   Agendar llamada
@@ -274,35 +350,35 @@ export default function Header() {
               <div className="pt-3">
                 <a
                   href={`${base}#top`}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={(e) => { handleSectionClick(e, "#top"); setIsMenuOpen(false); }}
                   className="block rounded-xl px-4 py-3 text-base font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
                 >
                   Inicio
                 </a>
                 <a
                   href={`${base}#services`}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={(e) => { handleSectionClick(e, "#services"); setIsMenuOpen(false); }}
                   className="block rounded-xl px-4 py-3 text-base font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
                 >
                   Servicios
                 </a>
                 <a
                   href={`${base}#work`}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={(e) => { handleSectionClick(e, "#work"); setIsMenuOpen(false); }}
                   className="block rounded-xl px-4 py-3 text-base font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
                 >
                   Desarrollos
                 </a>
                 <a
                   href={`${base}#faq`}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={(e) => { handleSectionClick(e, "#faq"); setIsMenuOpen(false); }}
                   className="block rounded-xl px-4 py-3 text-base font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
                 >
                   Preguntas frecuentes
                 </a>
                 <a
                   href={`${base}#contact`}
-                  onClick={() => setIsMenuOpen(false)}
+                  onClick={(e) => { handleSectionClick(e, "#contact"); setIsMenuOpen(false); }}
                   className="block rounded-xl px-4 py-3 text-base font-semibold text-slate-900 hover:bg-slate-50 transition-colors"
                 >
                   Contacto

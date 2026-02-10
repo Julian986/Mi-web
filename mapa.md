@@ -5,33 +5,24 @@ Objetivo: Salir al mercado.
 Temitas a trabajar antes de salir:
 
 
-- Revisar el texto de Servicios✅
-- Revisar el texto de desarrollos✅
-- Revisar el texto de marcas✅
-- Foco del menu a  Servicios✅
-- Ponerle un cursor pointer a la flecha para subir✅
-- Poener flecha para subir en 'Mi Cuenta'✅
-- Agregar preguntas frecuentes al menu✅
-- Revisar el paso 3 (Revisa tu pedido) del flujo de compra✅ 
-- Identificamos cada cuenta con el nombre o email o teléfono✅
-- Poner mensaje de podes cancelar cuando quieras en la pantalla de Pago?✅
-- Comprobar que funcione el magin link iniciar sesion
+- Poner en preguntas frecuentes que es cuenta premiun, ssl, etc✅
+- Que el active(subrayado) del menu se actualice al ir cambiando el foco en la pantalla✅
+- Precio de servicios y tema usd✅
+- Pagina de Mi Cuenta
+- Testimonios de los desarrollos (Imágenes de las personas)
+- Enlaces del footer
+- Revisar numeros de visitantes en los desarrollos✅
+
+- Comprobar que funcione el magic link iniciar sesion
 - Analizar el flujo de apis al hacer una suscripcion
 - Verificar los campos de email, numero en Pago✅
 - Enviar un post (email(jona) con magic link )
-- Como hacemos real las estadísticas para que se actualicen cada dia - poner base 3 por dia
-- Construir las paginas de soporte y dominio
-- Como se que se cancela la anterior suscripcion
-- Poner en preguntas frecuentes que es cuenta premiun, ssl, etc
-- Que el active(subrayado) del menu se actualice al ir cambiando el foco en la pantalla 
-- Pagina de Mi Cuenta
-- Boton de cancelar suscripcion
-- Boton de cerrar sesion
-- Boton de iniciar sesion
-- Boton flecha para ir hacia arriba en Desarrollo Detail✅
-- Testimonios de los desarrollos (Imágenes de las personas)
-- Enlaces del footer
-- Revisar numeros de visitantes en los desarrollos
+- Impersonacion - ver como usuario suscriptor 'Mi Cuenta'✅  
+
+- Google analytics 4 - script e implementar el seguimiento de cambios de ruta.  En cada proyecto
+
+
+- Como se que se cancela la anterior suscripcion✅
 - Origen de visitantes?
 - Responsive design (en todas las pantallas)
 - Revisar los desarrollos (cada desarrollo)
@@ -46,9 +37,22 @@ Con eso ya salir al mercado luego seguimos mejorando Glomun.
 
 
 
-
-
-
+- Boton de cancelar suscripcion✅
+- Boton de cerrar sesion✅
+- Boton de iniciar sesion✅
+- Boton flecha para ir hacia arriba en Desarrollo Detail✅
+- Como hacemos real las estadísticas para que se actualicen cada dia - poner base 3 por dia✅
+- Construir las paginas de soporte y dominio✅
+- Revisar el texto de Servicios✅
+- Revisar el texto de desarrollos✅
+- Revisar el texto de marcas✅
+- Foco del menu a  Servicios✅
+- Ponerle un cursor pointer a la flecha para subir✅
+- Poener flecha para subir en 'Mi Cuenta'✅
+- Agregar preguntas frecuentes al menu✅
+- Revisar el paso 3 (Revisa tu pedido) del flujo de compra✅ 
+- Identificamos cada cuenta con el nombre o email o teléfono✅
+- Poner mensaje de podes cancelar cuando quieras en la pantalla de Pago?✅
 
 - Revisar diseño de la card de servicios✅
 - Corregir imagen de 'amo mi casa'✅

@@ -12,6 +12,19 @@ export type SubscriptionDoc = {
   updatedAt?: Date;
   /** ID numérico de la propiedad GA4 del sitio del cliente (ej. "432109876"). Si no está, se muestran datos mock. */
   ga4PropertyId?: string;
+  /** Métricas de performance (PageSpeed/Lighthouse) ingresadas manualmente por admin */
+  performanceMetrics?: {
+    siteUrl?: string;
+    performance?: number;
+    accessibility?: number;
+    bestPractices?: number;
+    seo?: number;
+    fcp?: number;
+    lcp?: number;
+    tbt?: number;
+    cls?: number;
+    si?: number;
+  };
 };
 
 function getDbName() {
@@ -124,4 +137,42 @@ export async function updateSubscriptionGa4PropertyId(
       { $set: { ga4PropertyId: ga4PropertyId.trim(), ...update } }
     );
   }
+}
+
+export async function updateSubscriptionPerformanceMetrics(
+  preapprovalId: string,
+  metrics: {
+    siteUrl?: string;
+    performance?: number;
+    accessibility?: number;
+    bestPractices?: number;
+    seo?: number;
+    fcp?: number;
+    lcp?: number;
+    tbt?: number;
+    cls?: number;
+    si?: number;
+  }
+) {
+  const client = await getMongoClient();
+  const db = client.db(getDbName());
+  const col = db.collection<SubscriptionDoc>(COLLECTION);
+  const existing = await col.findOne({ preapprovalId });
+  const current = (existing?.performanceMetrics || {}) as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...current };
+  if (metrics.siteUrl !== undefined) merged.siteUrl = metrics.siteUrl?.trim() || null;
+  if (metrics.performance !== undefined) merged.performance = metrics.performance;
+  if (metrics.accessibility !== undefined) merged.accessibility = metrics.accessibility;
+  if (metrics.bestPractices !== undefined) merged.bestPractices = metrics.bestPractices;
+  if (metrics.seo !== undefined) merged.seo = metrics.seo;
+  if (metrics.fcp !== undefined) merged.fcp = metrics.fcp;
+  if (metrics.lcp !== undefined) merged.lcp = metrics.lcp;
+  if (metrics.tbt !== undefined) merged.tbt = metrics.tbt;
+  if (metrics.cls !== undefined) merged.cls = metrics.cls;
+  if (metrics.si !== undefined) merged.si = metrics.si;
+
+  await col.updateOne(
+    { preapprovalId },
+    { $set: { performanceMetrics: merged, updatedAt: new Date() } }
+  );
 }

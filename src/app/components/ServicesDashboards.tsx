@@ -15,7 +15,6 @@ type Service = {
   featured: boolean;
   price?: {
     ars: string;
-    usd: string;
   };
 };
 
@@ -34,8 +33,8 @@ export default function ServicesDashboards() {
         description: "Más consultas con un sitio rápido y claro",
         features: [
           "Diseño que guía al cliente a contactarte",
-          "SEO técnico y performance reales",
-          "Medición y mejoras iterativas",
+          "SEO técnico y velocidad de carga optimizada",
+          "Medimos resultados y mejoramos tu web mes a mes",
           "Dominio incluido",
           "Hosting incluido",
           "Certificado SSL",
@@ -47,13 +46,12 @@ export default function ServicesDashboards() {
         ctaLabel: "Quiero una web",
         featured: false,
         price: {
-          ars: "$10",
-          usd: "$21",
+          ars: "$25.000",
         },
       },
       {
         id: "ecommerce",
-        name: "Tienda Online",
+        name: "Tienda online",
         description: "Vendé más con un checkout sin fricción",
         features: [
           "Checkout optimizado para convertir",
@@ -71,7 +69,6 @@ export default function ServicesDashboards() {
         featured: true,
         price: {
           ars: "$35.000",
-          usd: "$29",
         },
       },
       {
@@ -93,7 +90,6 @@ export default function ServicesDashboards() {
         featured: false,
         price: {
           ars: "Consultar",
-          usd: "Consultar",
         },
       },
     ],
@@ -140,17 +136,13 @@ export default function ServicesDashboards() {
             </h3>
             {service.price && (
               <div className="mt-4">
-                <div className={classNames(
-                  service.featured ? "text-white" : "text-slate-900",
-                  "text-3xl font-bold"
-                )}>
-                  {service.price.ars} {service.price.ars !== "Consultar" && "ARS"}
-                </div>
-                <div className={classNames(
-                  service.featured ? "text-slate-400" : "text-slate-500",
-                  "text-sm mt-1"
-                )}>
-                  {service.price.usd} {service.price.usd !== "Consultar" && "USD / mes"}
+                <div
+                  className={classNames(
+                    service.featured ? "text-white" : "text-slate-900",
+                    "text-3xl font-bold"
+                  )}
+                >
+                  {service.price.ars} {service.price.ars !== "Consultar" && "ARS / mes"}
                 </div>
               </div>
             )}

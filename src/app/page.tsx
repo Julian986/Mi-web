@@ -1,22 +1,13 @@
-import dynamic from "next/dynamic";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
-import { SidebarProvider } from "./components/sidebar/SidebarProvider";
-// import DrawerSidebar from "./components/sidebar/DrawerSidebar";
 import FAQ from "./components/FAQ";
-import Brands from "./components/Brands";
+import { SidebarProvider } from "./components/sidebar/SidebarProvider";
 import Footer from "./components/Footer";
 import BackToTopButton from "./components/BackToTopButton";
 import ScrollToHashOnLoad from "./components/ScrollToHashOnLoad";
-
-// Lazy load de componentes pesados para mejorar First Contentful Paint
-const ServicesDashboards = dynamic(() => import("./components/ServicesDashboards"), {
-  loading: () => <div className="h-96 animate-pulse bg-slate-50" />,
-});
-
-const ProjectsShowcase = dynamic(() => import("./components/ProjectsShowcase"), {
-  loading: () => <div className="h-96 animate-pulse bg-slate-50" />,
-});
+import ServicesDashboards from "./components/ServicesDashboards";
+import ProjectsShowcase from "./components/ProjectsShowcase";
+import Brands from "./components/Brands";
 
 export default function Home() {
   return (
@@ -40,7 +31,6 @@ export default function Home() {
           </div>
 
           <ProjectsShowcase />
-
         </section>
 
         <FAQ />

@@ -1,7 +1,10 @@
 import { getMongoClient } from "@/app/lib/mongoClient";
+import type { Filter } from "mongodb";
 
 export type CobroDoc = {
   _id?: string;
+  /** Alias conveniente del _id como string */
+  id?: string;
   clientName: string;
   amount: number;
   dueDate: string; // YYYY-MM-DD
@@ -9,6 +12,7 @@ export type CobroDoc = {
   paidAt?: string; // YYYY-MM-DD
   servicio?: string;
   notes?: string;
+  estadisticasEnviadas?: boolean;
   createdAt: Date;
 };
 
@@ -61,6 +65,52 @@ export async function listCobros(limit = 1000): Promise<CobroDoc[]> {
     .sort({ dueDate: 1, createdAt: 1 })
     .limit(limit)
     .toArray();
+  return docs.map((d) => {
+    const id = d._id?.toString() ?? "";
+    return { ...d, _id: id, id, createdAt: d.createdAt };
+  });
+}
+
+function escapeRegex(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Lista cobros por nombre(s) de cliente (match exacto case-insensitive).
+ * Útil para el historial del cliente.
+ */
+export async function listCobrosByClientNames(
+  clientNames: string[],
+  limit = 500
+): Promise<CobroDoc[]> {
+  const normalized = Array.from(
+    new Set(
+      (clientNames || [])
+        .map((n) => String(n || "").trim())
+        .filter(Boolean)
+    )
+  );
+  if (normalized.length === 0) return [];
+
+  const client = await getMongoClient();
+  const db = client.db(getDbName());
+  const col = db.collection<CobroDoc>(COLLECTION);
+
+  const regexes = normalized.map(
+    (n) => new RegExp(`^${escapeRegex(n)}$`, "i")
+  );
+
+  const query =
+    regexes.length === 1
+      ? { clientName: { $regex: regexes[0] } }
+      : { $or: regexes.map((r) => ({ clientName: { $regex: r } })) };
+
+  const docs = await col
+    .find(query as Filter<CobroDoc>)
+    .sort({ dueDate: -1, createdAt: -1 })
+    .limit(limit)
+    .toArray();
+
   return docs.map((d) => {
     const id = d._id?.toString() ?? "";
     return { ...d, _id: id, id, createdAt: d.createdAt };

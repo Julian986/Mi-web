@@ -5,16 +5,31 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Gauge, Zap, Eye, Shield, Search, Timer, Layout, Activity, ChevronDown, ChevronUp } from "lucide-react";
 import BackToTopButton from "@/app/components/BackToTopButton";
 
+type PerformanceMetricsData = {
+  siteUrl?: string;
+  performance?: number;
+  accessibility?: number;
+  bestPractices?: number;
+  seo?: number;
+  fcp?: number;
+  lcp?: number;
+  tbt?: number;
+  cls?: number;
+  si?: number;
+};
+
 type PerformanceMetricsProps = {
   projectId: string;
   hideValues?: boolean;
   /** En Mi cuenta mostramos menos texto que en Desarrollo detail */
   compact?: boolean;
+  /** Datos reales cargados por admin (PageSpeed). Si existe, se usan en lugar de generatePerformanceData */
+  performanceMetrics?: PerformanceMetricsData | null;
 };
 
 type ScoreData = {
   label: string;
-  value: number;
+  value: number | "—";
   icon: React.ReactNode;
   color: string;
   bgColor: string;
@@ -75,7 +90,10 @@ function generatePerformanceData(projectId: string) {
   };
 }
 
-function getScoreColor(score: number): { color: string; bgColor: string } {
+function getScoreColor(score: number | "—"): { color: string; bgColor: string } {
+  if (score === "—" || typeof score !== "number") {
+    return { color: "text-slate-500", bgColor: "bg-slate-50" };
+  }
   if (score >= 90) {
     return { color: "text-green-700", bgColor: "bg-green-50" };
   } else if (score >= 50) {
@@ -96,8 +114,75 @@ function getMetricStatusColor(status: "good" | "needs-improvement" | "poor"): st
   }
 }
 
-export default function PerformanceMetrics({ projectId, hideValues, compact }: PerformanceMetricsProps) {
-  const data = useMemo(() => generatePerformanceData(projectId), [projectId]);
+/** Datos vacíos para estado "Aún no hay métricas" - usamos "—" en lugar de 0 para no confundir con "mal rendimiento" */
+const EMPTY_PERFORMANCE_DATA: { scores: Record<string, number | "—">; metrics: ReturnType<typeof generatePerformanceData>["metrics"] } = {
+  scores: { performance: "—", accessibility: "—", bestPractices: "—", seo: "—" },
+  metrics: {
+    fcp: { value: "—", unit: "s", status: "good" },
+    lcp: { value: "—", unit: "s", status: "good" },
+    tbt: { value: "—", unit: "ms", status: "good" },
+    cls: { value: "—", unit: "", status: "good" },
+    si: { value: "—", unit: "s", status: "good" },
+  },
+};
+
+type PerformanceDisplayData = {
+  scores: { performance: number | "—"; accessibility: number | "—"; bestPractices: number | "—"; seo: number | "—" };
+  metrics: ReturnType<typeof generatePerformanceData>["metrics"];
+};
+
+/** Convierte métricas guardadas en el formato del componente y calcula status */
+function metricsFromStored(stored: PerformanceMetricsData | null | undefined): PerformanceDisplayData | null {
+  if (!stored) return null;
+  const hasScores = stored.performance != null || stored.accessibility != null || stored.bestPractices != null || stored.seo != null;
+  const hasMetrics = stored.fcp != null || stored.lcp != null || stored.tbt != null || stored.cls != null || stored.si != null;
+  if (!hasScores && !hasMetrics) return null;
+
+  const p: number | "—" = stored.performance != null ? stored.performance : "—";
+  const a: number | "—" = stored.accessibility != null ? stored.accessibility : "—";
+  const bp: number | "—" = stored.bestPractices != null ? stored.bestPractices : "—";
+  const s: number | "—" = stored.seo != null ? stored.seo : "—";
+  const fcp = stored.fcp != null ? stored.fcp.toFixed(1) : "—";
+  const lcp = stored.lcp != null ? stored.lcp.toFixed(1) : "—";
+  const tbt = stored.tbt != null ? Math.round(stored.tbt).toString() : "—";
+  const cls = stored.cls != null ? stored.cls.toFixed(3) : "—";
+  const si = stored.si != null ? stored.si.toFixed(1) : "—";
+
+  const fcpStatus: "good" | "needs-improvement" | "poor" = stored.fcp != null
+    ? (stored.fcp <= 1.8 ? "good" : stored.fcp <= 3.0 ? "needs-improvement" : "poor")
+    : "good";
+  const lcpStatus: "good" | "needs-improvement" | "poor" = stored.lcp != null
+    ? (stored.lcp <= 2.5 ? "good" : stored.lcp <= 4.0 ? "needs-improvement" : "poor")
+    : "good";
+  const tbtStatus: "good" | "needs-improvement" | "poor" = stored.tbt != null
+    ? (stored.tbt <= 200 ? "good" : stored.tbt <= 600 ? "needs-improvement" : "poor")
+    : "good";
+  const clsStatus: "good" | "needs-improvement" | "poor" = stored.cls != null
+    ? (stored.cls <= 0.1 ? "good" : stored.cls <= 0.25 ? "needs-improvement" : "poor")
+    : "good";
+  const siStatus: "good" | "needs-improvement" | "poor" = stored.si != null
+    ? (stored.si <= 3.4 ? "good" : stored.si <= 5.8 ? "needs-improvement" : "poor")
+    : "good";
+
+  return {
+    scores: { performance: p, accessibility: a, bestPractices: bp, seo: s },
+    metrics: {
+      fcp: { value: fcp, unit: "s", status: fcpStatus },
+      lcp: { value: lcp, unit: "s", status: lcpStatus },
+      tbt: { value: tbt, unit: "ms", status: tbtStatus },
+      cls: { value: cls, unit: "", status: clsStatus },
+      si: { value: si, unit: "s", status: siStatus },
+    },
+  };
+}
+
+export default function PerformanceMetrics({ projectId, hideValues, compact, performanceMetrics }: PerformanceMetricsProps) {
+  const storedData = useMemo(() => metricsFromStored(performanceMetrics), [performanceMetrics]);
+  const generatedData = useMemo(() => generatePerformanceData(projectId), [projectId]);
+  const isAccountContext = performanceMetrics !== undefined;
+  const data = storedData ?? (isAccountContext ? EMPTY_PERFORMANCE_DATA : generatedData);
+  const hasRealMetrics = storedData != null;
+  const showEmptyMessage = isAccountContext && !hasRealMetrics && !hideValues;
   const [showTechnicalMetrics, setShowTechnicalMetrics] = useState(false);
   const metricsRef = useRef<HTMLDivElement>(null);
   
@@ -191,8 +276,15 @@ export default function PerformanceMetrics({ projectId, hideValues, compact }: P
       <div className="mb-8">
         <h2 className="text-2xl font-bold text-slate-900 mb-2">Métricas de Performance</h2>
         <p className="text-slate-600">
-        Análisis de rendimiento basado en Lighthouse. Métricas de rendimiento en tiempo real
+          Análisis de rendimiento basado en Lighthouse. Métricas de rendimiento en tiempo real
         </p>
+        {showEmptyMessage && (
+          <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm text-slate-700">
+              Aún no hay métricas cargadas. Cuando se registren los resultados de PageSpeed para tu sitio, los verás aquí.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Botón para mostrar/ocultar métricas técnicas */}
@@ -251,10 +343,12 @@ export default function PerformanceMetrics({ projectId, hideValues, compact }: P
                   <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: hideValues ? "0%" : `${score.value}%` }}
+                      animate={{ width: hideValues || score.value === "—" ? "0%" : `${score.value}%` }}
                       transition={{ duration: 0.5, delay: 0.2 + index * 0.05 }}
                       className={`h-2 rounded-full ${
-                        score.value >= 90
+                        score.value === "—"
+                          ? "bg-slate-300"
+                          : score.value >= 90
                           ? "bg-green-600"
                           : score.value >= 50
                           ? "bg-yellow-600"

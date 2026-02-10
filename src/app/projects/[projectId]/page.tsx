@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalLink, Globe } from "lucide-react";
-import { getDevelopmentById } from "@/app/lib/developmentsCatalog";
+import { getDevelopmentBySlug } from "@/app/lib/developmentsCatalog";
 import VisitorsChart from "@/app/components/VisitorsChart";
 import PerformanceMetrics from "@/app/components/PerformanceMetrics";
+import PrivateAppMetrics from "@/app/components/PrivateAppMetrics";
 import ProjectDetailHeader from "./ProjectDetailHeader";
 
 type PageProps = {
@@ -14,7 +15,7 @@ type PageProps = {
 
 const typeLabels = {
   web: "Sitio Web",
-  ecommerce: "Tienda Online",
+  ecommerce: "Tienda online",
   app: "Aplicación",
 };
 
@@ -26,7 +27,7 @@ const typeColors = {
 
 export default async function ProjectDetailPage({ params }: PageProps) {
   const { projectId } = await params;
-  const development = getDevelopmentById(projectId);
+  const development = getDevelopmentBySlug(projectId);
 
   if (!development) {
     return (
@@ -36,7 +37,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           <p className="mt-2 text-slate-600">El proyecto que buscas no existe.</p>
           <div className="mt-6">
             <Link
-              href="/#projects"
+              href="/#work"
               className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
             >
               Volver a desarrollos
@@ -83,7 +84,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
               <span
                 className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${typeColors[development.type]}`}
               >
-                {typeLabels[development.type]}
+                {development.slug === "pedri" ? "App privada" : typeLabels[development.type]}
               </span>
               <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-slate-100 text-slate-700">
                 {development.technology}
@@ -120,9 +121,13 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Sección de Analytics */}
+        {/* Sección de Analytics: visitantes para sitios públicos, métricas de uso interno para app privada (Pedri) */}
         <div className="mt-12 lg:mt-16">
-          <VisitorsChart projectId={projectId} />
+          {development.slug === "pedri" ? (
+            <PrivateAppMetrics projectSlug={projectId} teamName="Pedri" />
+          ) : (
+            <VisitorsChart projectId={projectId} />
+          )}
         </div>
 
         {/* Sección de Performance Metrics */}
