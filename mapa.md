@@ -5,19 +5,13 @@ Objetivo: Salir al mercado.
 Temitas a trabajar antes de salir:
 
 
-- Poner en preguntas frecuentes que es cuenta premiun, ssl, etc✅
-- Que el active(subrayado) del menu se actualice al ir cambiando el foco en la pantalla✅
-- Precio de servicios y tema usd✅
-- Pagina de Mi Cuenta
+
 - Testimonios de los desarrollos (Imágenes de las personas)
-- Enlaces del footer
-- Revisar numeros de visitantes en los desarrollos✅
+    Proximo: Pablo Pérez
 
 - Comprobar que funcione el magic link iniciar sesion
 - Analizar el flujo de apis al hacer una suscripcion
-- Verificar los campos de email, numero en Pago✅
 - Enviar un post (email(jona) con magic link )
-- Impersonacion - ver como usuario suscriptor 'Mi Cuenta'✅  
 
 - Google analytics 4 - script e implementar el seguimiento de cambios de ruta.  En cada proyecto
 
@@ -26,7 +20,7 @@ Temitas a trabajar antes de salir:
 - Origen de visitantes?
 - Responsive design (en todas las pantallas)
 - Revisar los desarrollos (cada desarrollo)
-- Hacer numeros de la empresa en /admin92
+- Hacer numeros de la empresa en /admin92✅
 - Menu mobile✅
 
 - Idiomas
@@ -37,6 +31,14 @@ Con eso ya salir al mercado luego seguimos mejorando Glomun.
 
 
 
+- Poner en preguntas frecuentes que es cuenta premiun, ssl, etc✅
+- Que el active(subrayado) del menu se actualice al ir cambiando el foco en la pantalla✅
+- Precio de servicios y tema usd✅
+- Pagina de Mi Cuenta✅
+- Enlaces del footer✅
+- Revisar numeros de visitantes en los desarrollos✅
+- Verificar los campos de email, numero en Pago✅
+- Impersonacion - ver como usuario suscriptor 'Mi Cuenta'✅  
 - Boton de cancelar suscripcion✅
 - Boton de cerrar sesion✅
 - Boton de iniciar sesion✅
