@@ -14,6 +14,9 @@ function getDailyBaseForProject(projectId: string): number | null {
   if (projectId === "a-mar-salud") {
     return 12;
   }
+  if (projectId === "victoria-nazra") {
+    return 16;
+  }
 
   return null;
 }
