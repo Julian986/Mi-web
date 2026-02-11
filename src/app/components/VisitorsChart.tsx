@@ -8,6 +8,16 @@ type VisitorsData = {
   visitors: number;
 };
 
+// Base de promedio diario por proyecto (overrides específicos)
+function getDailyBaseForProject(projectId: string): number | null {
+  // Overrides manuales por proyecto
+  if (projectId === "a-mar-salud") {
+    return 12;
+  }
+
+  return null;
+}
+
 // Generador de números pseudoaleatorios determinístico (seeded)
 class SeededRandom {
   private seed: number;
@@ -37,20 +47,26 @@ function generateDailyData(projectId: string): VisitorsData[] {
   const data: VisitorsData[] = [];
   const today = new Date();
   
-  // Generar base de visitantes variada según projectId (mínimo 19, máximo ~100)
-  const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const baseVariation = (hash % 15) + 1; // 1-15
-  // Distribución: algunos proyectos con 19-30, otros con 40-60, algunos con 70-100
+  // Generar base de visitantes variada según projectId (mínimo 19, máximo ~100),
+  // permitiendo overrides manuales para proyectos específicos.
+  const overrideDailyBase = getDailyBaseForProject(projectId);
   let baseVisitors: number;
-  if (baseVariation <= 5) {
-    // 33% de proyectos: 19-30 promedio
-    baseVisitors = 19 + (hash % 12);
-  } else if (baseVariation <= 10) {
-    // 33% de proyectos: 40-60 promedio
-    baseVisitors = 40 + (hash % 21);
+  if (overrideDailyBase !== null) {
+    baseVisitors = overrideDailyBase;
   } else {
-    // 33% de proyectos: 70-100 promedio
-    baseVisitors = 70 + (hash % 31);
+    const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const baseVariation = (hash % 15) + 1; // 1-15
+    // Distribución: algunos proyectos con 19-30, otros con 40-60, algunos con 70-100
+    if (baseVariation <= 5) {
+      // 33% de proyectos: 19-30 promedio
+      baseVisitors = 19 + (hash % 12);
+    } else if (baseVariation <= 10) {
+      // 33% de proyectos: 40-60 promedio
+      baseVisitors = 40 + (hash % 21);
+    } else {
+      // 33% de proyectos: 70-100 promedio
+      baseVisitors = 70 + (hash % 31);
+    }
   }
   
   let trend = 0;
@@ -91,15 +107,20 @@ function generateWeeklyData(projectId: string): VisitorsData[] {
   const today = new Date();
   
   // Calcular base semanal basado en el promedio diario del proyecto
-  const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const baseVariation = (hash % 15) + 1;
+  const overrideDailyBase = getDailyBaseForProject(projectId);
   let dailyBase: number;
-  if (baseVariation <= 5) {
-    dailyBase = 19 + (hash % 12);
-  } else if (baseVariation <= 10) {
-    dailyBase = 40 + (hash % 21);
+  if (overrideDailyBase !== null) {
+    dailyBase = overrideDailyBase;
   } else {
-    dailyBase = 70 + (hash % 31);
+    const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const baseVariation = (hash % 15) + 1;
+    if (baseVariation <= 5) {
+      dailyBase = 19 + (hash % 12);
+    } else if (baseVariation <= 10) {
+      dailyBase = 40 + (hash % 21);
+    } else {
+      dailyBase = 70 + (hash % 31);
+    }
   }
   const baseVisitors = dailyBase * 7; // Promedio diario * 7 días
   
@@ -138,15 +159,20 @@ function generateMonthlyData(projectId: string): VisitorsData[] {
   const today = new Date();
   
   // Calcular base mensual basado en el promedio diario del proyecto
-  const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const baseVariation = (hash % 15) + 1;
+  const overrideDailyBase = getDailyBaseForProject(projectId);
   let dailyBase: number;
-  if (baseVariation <= 5) {
-    dailyBase = 19 + (hash % 12);
-  } else if (baseVariation <= 10) {
-    dailyBase = 40 + (hash % 21);
+  if (overrideDailyBase !== null) {
+    dailyBase = overrideDailyBase;
   } else {
-    dailyBase = 70 + (hash % 31);
+    const hash = projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const baseVariation = (hash % 15) + 1;
+    if (baseVariation <= 5) {
+      dailyBase = 19 + (hash % 12);
+    } else if (baseVariation <= 10) {
+      dailyBase = 40 + (hash % 21);
+    } else {
+      dailyBase = 70 + (hash % 31);
+    }
   }
   const baseVisitors = dailyBase * 30; // Promedio diario * 30 días
   

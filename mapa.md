@@ -7,7 +7,7 @@ Temitas a trabajar antes de salir:
 
 
 - Testimonios de los desarrollos (Imágenes de las personas)
-    Proximo: Pablo Pérez
+    Proximo: Victoria nazra
 
 - Comprobar que funcione el magic link iniciar sesion
 - Analizar el flujo de apis al hacer una suscripcion
