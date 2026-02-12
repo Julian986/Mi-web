@@ -4,8 +4,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy } from "lucide-react";
-import { getRemindersToday, getStatsToday } from "@/app/lib/cobrosWorkflow";
-import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS } from "@/app/lib/cobrosMensajes";
+import { getRemindersToday, getRemindersWeekBefore, getStatsToday } from "@/app/lib/cobrosWorkflow";
+import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_PAGO } from "@/app/lib/cobrosMensajes";
 
 const MONTH_NAMES = [
   "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -435,6 +435,10 @@ function Admin92PageContent() {
 
   const remindersToday = useMemo(
     () => getRemindersToday(cobros),
+    [cobros]
+  );
+  const remindersWeekBefore = useMemo(
+    () => getRemindersWeekBefore(cobros),
     [cobros]
   );
   const statsToday = useMemo(
@@ -1198,9 +1202,9 @@ function Admin92PageContent() {
                 >
                   <Calendar className="w-4 h-4" />
                   Acciones de hoy
-                  {(remindersToday.length + statsToday.length) > 0 && (
+                  {(remindersToday.length + remindersWeekBefore.length + statsToday.length) > 0 && (
                     <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-xs ${cobroFormMode === "actions" ? "bg-white/20" : "bg-amber-100 text-amber-800"}`}>
-                      {remindersToday.length + statsToday.length}
+                      {remindersToday.length + remindersWeekBefore.length + statsToday.length}
                     </span>
                   )}
                 </button>
@@ -1213,6 +1217,23 @@ function Admin92PageContent() {
                     <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
                       <h3 className="text-sm font-semibold text-amber-900 mb-2">Recordatorio de pago (día +2 o +3)</h3>
                       <p className="text-xs text-amber-800/80 mb-3">Enviar por WhatsApp a clientes con cuota pendiente</p>
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span className="text-xs font-medium text-amber-900">Mensaje guardado</span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(MENSAJE_RECORDATORIO_PAGO, "recordatorio-plantilla")}
+                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium bg-amber-200 text-amber-900 hover:bg-amber-300 cursor-pointer"
+                          >
+                            <Copy className="w-3 h-3" />
+                            {copiedId === "recordatorio-plantilla" ? "Copiado" : "Copiar"}
+                          </button>
+                        </div>
+                        <pre className="whitespace-pre-wrap rounded-lg bg-white/60 p-3 text-slate-800 text-xs border border-amber-200/50">
+                          {MENSAJE_RECORDATORIO_PAGO}
+                        </pre>
+                        <p className="text-xs text-amber-700/80 mt-1">(__MONTO__ se reemplaza por el monto de cada cliente)</p>
+                      </div>
                       {remindersToday.length === 0 ? (
                         <p className="text-sm text-amber-700/70">Nada para hoy</p>
                       ) : (
@@ -1241,6 +1262,36 @@ function Admin92PageContent() {
                             );
                           })}
                         </ul>
+                      )}
+                      {remindersWeekBefore.length > 0 && (
+                        <>
+                          <h4 className="text-xs font-semibold text-amber-800 mt-4 mb-2">Recordatorio semana anterior (vencen en 7 días)</h4>
+                          <ul className="space-y-4">
+                            {remindersWeekBefore.map((c) => {
+                              const mensaje = formatRecordatorioMensaje(c.amount);
+                              return (
+                                <li key={c.id} className="text-sm">
+                                  <div className="flex items-center justify-between gap-2 mb-1">
+                                    <span className="font-medium text-slate-900">{c.clientName}</span>
+                                    <span className="text-slate-600">{c.servicio || "—"}</span>
+                                    <span className="text-slate-600">{formatLocalDate(c.dueDate)}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleCopy(mensaje, `recordatorio-wb-${c.id}`)}
+                                      className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium bg-amber-200 text-amber-900 hover:bg-amber-300 cursor-pointer"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                      {copiedId === `recordatorio-wb-${c.id}` ? "Copiado" : "Copiar"}
+                                    </button>
+                                  </div>
+                                  <pre className="whitespace-pre-wrap rounded-lg bg-white/60 p-3 text-slate-800 text-xs border border-amber-200/50">
+                                    {mensaje}
+                                  </pre>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </>
                       )}
                     </div>
                     <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">

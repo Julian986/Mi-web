@@ -10,6 +10,10 @@
 const REMINDER_DAYS = [2, 3] as const;
 const STATS_DAY = 5;
 
+/** Clientes que reciben recordatorio la semana anterior (vencimiento en 7 días). Solo nombres. */
+export const CLIENTES_RECORDATORIO_SEMANA_ANTERIOR = ["Florencia"] as const;
+const DIAS_SEMANA_ANTERIOR = 7;
+
 /** Suma días a una fecha YYYY-MM-DD */
 function addDays(dateStr: string, days: number): string {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -47,11 +51,25 @@ export type CobroForWorkflow = {
   estadisticasEnviadas?: boolean;
 };
 
-/** Cobros que requieren recordatorio hoy */
+/** Cobros que requieren recordatorio hoy (día +2 o +3) */
 export function getRemindersToday(cobros: CobroForWorkflow[], today?: string): CobroForWorkflow[] {
   const todayStr = today ?? getTodayStr();
   return cobros
     .filter((c) => !c.paid && isReminderDay(c.dueDate, todayStr))
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+}
+
+/** Cobros que requieren recordatorio "semana anterior" (vencen en 7 días). Solo clientes en CLIENTES_RECORDATORIO_SEMANA_ANTERIOR. */
+export function getRemindersWeekBefore(cobros: CobroForWorkflow[], today?: string): CobroForWorkflow[] {
+  const todayStr = today ?? getTodayStr();
+  const dueIn7 = addDays(todayStr, DIAS_SEMANA_ANTERIOR);
+  return cobros
+    .filter(
+      (c) =>
+        !c.paid &&
+        c.dueDate === dueIn7 &&
+        CLIENTES_RECORDATORIO_SEMANA_ANTERIOR.some((name) => name === c.clientName)
+    )
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 }
 
