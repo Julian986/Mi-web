@@ -13,6 +13,7 @@ export type CobroDoc = {
   servicio?: string;
   notes?: string;
   estadisticasEnviadas?: boolean;
+  recordatorioEnviado?: boolean;
   createdAt: Date;
 };
 

@@ -75,6 +75,7 @@ type Cobro = {
   servicio?: string;
   notes?: string;
   estadisticasEnviadas?: boolean;
+  recordatorioEnviado?: boolean;
 };
 
 const typeLabels: Record<AccountingType, string> = {
@@ -554,6 +555,24 @@ function Admin92PageContent() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estadisticasEnviadas: !c.estadisticasEnviadas }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo actualizar.");
+        return;
+      }
+      fetchCobros();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al actualizar.");
+    }
+  };
+
+  const handleToggleRecordatorio = async (c: Cobro) => {
+    try {
+      const res = await fetch(`/api/admin/cobros/${c.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recordatorioEnviado: !c.recordatorioEnviado }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -1215,7 +1234,7 @@ function Admin92PageContent() {
                 <div className="space-y-6 mb-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
-                      <h3 className="text-sm font-semibold text-amber-900 mb-2">Recordatorio de pago (día +2 o +3)</h3>
+                      <h3 className="text-sm font-semibold text-amber-900 mb-2">Recordatorio de pago (día +2 o +3 · −7 Florencia)</h3>
                       <p className="text-xs text-amber-800/80 mb-3">Enviar por WhatsApp a clientes con cuota pendiente</p>
                       <div className="mb-3">
                         <div className="flex items-center justify-between gap-2 mb-1">
@@ -1265,7 +1284,7 @@ function Admin92PageContent() {
                       )}
                       {remindersWeekBefore.length > 0 && (
                         <>
-                          <h4 className="text-xs font-semibold text-amber-800 mt-4 mb-2">Recordatorio semana anterior (vencen en 7 días)</h4>
+                          <h4 className="text-xs font-semibold text-amber-800 mt-4 mb-2">Recordatorio semana anterior (−7 Florencia)</h4>
                           <ul className="space-y-4">
                             {remindersWeekBefore.map((c) => {
                               const mensaje = formatRecordatorioMensaje(c.amount);
@@ -1596,6 +1615,7 @@ function Admin92PageContent() {
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Fecha</th>
                       <th className="text-right py-3 px-2 font-semibold text-slate-700">Monto</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700">Pagado</th>
+                      <th className="text-center py-3 px-2 font-semibold text-slate-700">Recordatorio</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700">Estadísticas</th>
                       <th className="text-right py-3 px-2 font-semibold text-slate-700">Acciones</th>
                     </tr>
@@ -1603,13 +1623,13 @@ function Admin92PageContent() {
                   <tbody>
                     {cobroLoading && cobros.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-500">
+                        <td colSpan={8} className="py-8 text-center text-slate-500">
                           Cargando...
                         </td>
                       </tr>
                     ) : filteredCobros.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="py-8 text-center text-slate-500">
+                        <td colSpan={8} className="py-8 text-center text-slate-500">
                           No hay cuotas. Agregá una cuota única o generá cuotas recurrentes.
                         </td>
                       </tr>
@@ -1632,6 +1652,20 @@ function Admin92PageContent() {
                               }`}
                             >
                               {c.paid ? <Check className="w-4 h-4" /> : null}
+                            </button>
+                          </td>
+                          <td className="py-3 px-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleRecordatorio(c)}
+                              title={c.recordatorioEnviado ? "Marcar recordatorio no enviado" : "Marcar recordatorio enviado"}
+                              className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 transition-colors cursor-pointer ${
+                                c.recordatorioEnviado
+                                  ? "border-amber-500 bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                  : "border-slate-300 bg-white text-slate-400 hover:border-slate-400 hover:bg-slate-50"
+                              }`}
+                            >
+                              {c.recordatorioEnviado ? <Check className="w-4 h-4" /> : null}
                             </button>
                           </td>
                           <td className="py-3 px-2 text-center">
