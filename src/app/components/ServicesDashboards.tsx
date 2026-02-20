@@ -68,7 +68,7 @@ export default function ServicesDashboards() {
         ctaLabel: "Quiero una tienda",
         featured: true,
         price: {
-          ars: "$35.000",
+          ars: "$25.000",
         },
       },
       {

@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 
 const PRICE_BY_SERVICE: Record<Exclude<SubscriptionBody["serviceType"], undefined>, { ars: number; usd: number }> = {
   web: { ars: 25000, usd: 21 },
-  ecommerce: { ars: 35000, usd: 29 },
+  ecommerce: { ars: 25000, usd: 29 },
   custom: { ars: 0, usd: 0 },
 };
 

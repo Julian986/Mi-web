@@ -20,7 +20,7 @@ function getBaseUrl(req: NextRequest) {
 
 const PRICE_BY_SERVICE: Record<"web" | "ecommerce", { ars: number; usd: number }> = {
   web: { ars: 25000, usd: 21 },
-  ecommerce: { ars: 35000, usd: 29 },
+  ecommerce: { ars: 25000, usd: 29 },
 };
 
 export async function POST(req: NextRequest) {

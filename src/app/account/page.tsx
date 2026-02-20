@@ -85,7 +85,7 @@ function AccountPageContent() {
     localStorage.removeItem(DEV_SUBSCRIPTION_KEY);
   };
   const prices = useMemo(() => {
-    const baseARS = plan === "web" ? 25000 : 35000;
+    const baseARS = plan === "web" ? 25000 : 25000;
     const baseUSD = plan === "web" ? 21 : 29;
     return { baseARS, baseUSD };
   }, [plan]);
