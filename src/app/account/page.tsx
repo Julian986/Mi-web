@@ -86,8 +86,7 @@ function AccountPageContent() {
   };
   const prices = useMemo(() => {
     const baseARS = plan === "web" ? 25000 : 25000;
-    const baseUSD = plan === "web" ? 21 : 29;
-    return { baseARS, baseUSD };
+    return { baseARS };
   }, [plan]);
 
   const nextPaymentDate = useMemo(() => {
@@ -345,9 +344,6 @@ function AccountPageContent() {
                   <p className="text-xs text-slate-500 mb-1">Mensualidad actual</p>
                   <p className="text-base font-semibold text-slate-900">
                     {effectiveSubscription ? `$${prices.baseARS.toLocaleString("es-AR")} ARS` : "..."}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {effectiveSubscription ? `$${prices.baseUSD} USD / mes` : "..."}
                   </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
