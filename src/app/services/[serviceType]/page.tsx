@@ -535,6 +535,9 @@ export default function ServiceFlowPage() {
                 <p className="text-sm text-slate-600 mt-1">
                   Podés cancelar cuando quieras.
                 </p>
+                <p className="text-xs text-slate-500 mt-2">
+                  Aceptamos crédito, débito o saldo en Mercado Pago. Si usás débito, verificá que tengas habilitadas las compras online en tu banco.
+                </p>
               </div>
             </div>
           </div>
