@@ -18,7 +18,41 @@ function getDailyBaseForProject(projectId: string): number | null {
     return 16;
   }
 
+  // Overrides de base diaria por proyecto para que todos los desarrollos tengan
+  // órdenes de magnitud similares de tráfico mensual, excepto "amo-mi-casa"
+  // que se deja con el comportamiento original.
+  const dailyBaseOverrides: Record<string, number> = {
+    // Salud (rango mensual ~110-220, con clamp extra en la vista mensual)
+    "kinesiologia-y-salud": 5,
+    "salud-dental": 7,
+    "natalia-domecq": 6,
+    "nutricion-integral": 8,
+    // Otros desarrollos web / apps: similares pero sin clamp estricto
+    "pedri": 9,
+    "andrea-cohen": 6,
+    "estudio-juridico": 7,
+    "tu-turno-barberia": 8,
+    "tienda-peliculas": 9,
+    "aaci": 7,
+    "a-mar-salud": 7,
+    "eukinesia": 6,
+    "crs-informatica": 6,
+    "wanda-perrin": 6,
+    "internet-retro": 8,
+    "victoria-nazra": 8,
+    // IMPORTANTE: "amo-mi-casa" NO se toca (queda con la lógica por defecto)
+  };
+  if (projectId in dailyBaseOverrides) {
+    return dailyBaseOverrides[projectId];
+  }
+
   return null;
+}
+
+const HEALTH_SLUGS = ["kinesiologia-y-salud", "salud-dental", "natalia-domecq", "nutricion-integral"];
+
+function isHealthProject(projectId: string): boolean {
+  return HEALTH_SLUGS.includes(projectId);
 }
 
 // Generador de números pseudoaleatorios determinístico (seeded)
@@ -72,28 +106,30 @@ function generateDailyData(projectId: string): VisitorsData[] {
     }
   }
   
+  const isHealth = isHealthProject(projectId);
   let trend = 0;
   const rng = new SeededRandom(projectId + "-day");
 
   for (let i = 29; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
-    
-    trend += rng.next() * 0.3 - 0.1;
+    // Más variación día a día para que la línea no sea plana
+    trend += (rng.next() - 0.5) * (isHealth ? 1.2 : 0.5);
     const dayOfWeek = date.getDay();
     const weekendBoost = (dayOfWeek === 0 || dayOfWeek === 6) ? 1.15 : 1.0;
-    const randomVariation = 0.7 + rng.next() * 0.6;
-    
-    const visitors = Math.round((baseVisitors + trend * (baseVisitors * 0.1)) * weekendBoost * randomVariation);
-    
+    const randomVariation = isHealth ? 0.5 + rng.next() * 1.0 : 0.7 + rng.next() * 0.6;
+    const visitors = Math.round((baseVisitors + trend * (baseVisitors * 0.15)) * weekendBoost * randomVariation);
+
     const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     const month = monthNames[date.getMonth()];
     const day = date.getDate();
     const dateStr = `${day} ${month}`;
 
-    // Límites dinámicos basados en el promedio base
-    const minVisitors = Math.max(10, Math.round(baseVisitors * 0.6));
-    const maxVisitors = Math.round(baseVisitors * 1.8);
+    // Salud: rango amplio para que se vea variación (ej. base 6 → ~2 a ~14)
+    // Resto de desarrollos: bajamos el mínimo a 5 para que los promedios diarios
+    // sean más coherentes con el promedio mensual configurado.
+    const minVisitors = isHealth ? Math.max(2, Math.round(baseVisitors * 0.4)) : Math.max(5, Math.round(baseVisitors * 0.6));
+    const maxVisitors = isHealth ? Math.round(baseVisitors * 2.4) : Math.round(baseVisitors * 1.8);
 
     data.push({
       date: dateStr,
@@ -126,26 +162,25 @@ function generateWeeklyData(projectId: string): VisitorsData[] {
     }
   }
   const baseVisitors = dailyBase * 7; // Promedio diario * 7 días
-  
+  const isHealth = isHealthProject(projectId);
+
   let trend = 0;
   const rng = new SeededRandom(projectId + "-week");
 
   for (let i = 11; i >= 0; i--) {
     const weekStart = new Date(today);
     weekStart.setDate(weekStart.getDate() - (i * 7 + weekStart.getDay()));
-    
-    trend += rng.next() * (baseVisitors * 0.02) - (baseVisitors * 0.005);
-    const randomVariation = 0.75 + rng.next() * 0.5;
-    
+    trend += (rng.next() - 0.5) * (isHealth ? baseVisitors * 0.15 : baseVisitors * 0.02);
+    const randomVariation = isHealth ? 0.6 + rng.next() * 0.8 : 0.75 + rng.next() * 0.5;
     const visitors = Math.round((baseVisitors + trend) * randomVariation);
-    
+
     const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     const month = monthNames[weekStart.getMonth()];
     const day = weekStart.getDate();
     const dateStr = `Sem ${i + 1} (${day} ${month})`;
 
-    const minVisitors = Math.round(baseVisitors * 0.6);
-    const maxVisitors = Math.round(baseVisitors * 1.8);
+    const minVisitors = isHealth ? Math.round(baseVisitors * 0.5) : Math.round(baseVisitors * 0.6);
+    const maxVisitors = isHealth ? Math.round(baseVisitors * 1.6) : Math.round(baseVisitors * 1.8);
 
     data.push({
       date: dateStr,
@@ -177,26 +212,27 @@ function generateMonthlyData(projectId: string): VisitorsData[] {
       dailyBase = 70 + (hash % 31);
     }
   }
-  const baseVisitors = dailyBase * 30; // Promedio diario * 30 días
-  
+  // Promedio mensual = promedio diario × 30 (concordancia con vista diaria/semanal)
+  const baseVisitors = dailyBase * 30;
+  const isHealth = isHealthProject(projectId);
+
   let trend = 0;
   const rng = new SeededRandom(projectId + "-month");
 
   for (let i = 11; i >= 0; i--) {
     const monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    
-    trend += rng.next() * (baseVisitors * 0.05) - (baseVisitors * 0.01);
-    const randomVariation = 0.8 + rng.next() * 0.4;
-    
+    trend += (rng.next() - 0.5) * (isHealth ? baseVisitors * 0.08 : baseVisitors * 0.05);
+    const randomVariation = isHealth ? 0.7 + rng.next() * 0.6 : 0.8 + rng.next() * 0.4;
     const visitors = Math.round((baseVisitors + trend) * randomVariation);
-    
+
     const monthNames = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
     const month = monthNames[monthDate.getMonth()];
     const year = monthDate.getFullYear();
     const dateStr = `${month} ${year}`;
 
-    const minVisitors = Math.round(baseVisitors * 0.6);
-    const maxVisitors = Math.round(baseVisitors * 1.8);
+    // Salud: rango mensual entre 110 y 220; otros proyectos según base
+    const minVisitors = isHealth ? 110 : Math.round(baseVisitors * 0.6);
+    const maxVisitors = isHealth ? 220 : Math.round(baseVisitors * 1.8);
 
     data.push({
       date: dateStr,
