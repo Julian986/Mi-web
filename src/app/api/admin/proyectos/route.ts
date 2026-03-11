@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const body = await req.json();
-    const { name, clientName, status, type, fechaInicio, ultimaActualizacion, notes } = body;
+    const { name, clientName, status, type, fechaInicio, ultimaActualizacion, ultimaSolicitud, notes } = body;
 
     const nameStr = String(name || "").trim();
     if (!nameStr) {
@@ -90,7 +90,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const doc = {
+    const ultimaSolicitudStr = String(ultimaSolicitud || "").trim();
+    if (ultimaSolicitudStr && !isValidDate(ultimaSolicitudStr)) {
+      return NextResponse.json(
+        { error: "La fecha de última solicitud es inválida (formato YYYY-MM-DD)" },
+        { status: 400 }
+      );
+    }
+
+    const doc: any = {
       name: nameStr,
       clientName: clientStr,
       status: statusVal,
@@ -99,6 +107,10 @@ export async function POST(req: NextRequest) {
       ultimaActualizacion: ultimaActualizacionStr,
       notes: notes ? String(notes).trim() : undefined,
     };
+
+    if (ultimaSolicitudStr) {
+      doc.ultimaSolicitud = ultimaSolicitudStr;
+    }
 
     const id = await insertProyecto(doc);
     return NextResponse.json({ ok: true, id });

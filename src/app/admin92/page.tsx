@@ -126,7 +126,10 @@ function Admin92PageContent() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AccountingRecord | null>(null);
-  const [filterMonth, setFilterMonth] = useState<string>(""); // "" = Todos, "YYYY-MM" = mes específico
+  const [filterMonth, setFilterMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // "YYYY-MM" mes actual
+  }); // "" = Todos, "YYYY-MM" = mes específico
 
   // Cuaderno de cobros
   const [cobros, setCobros] = useState<Cobro[]>([]);
@@ -152,7 +155,10 @@ function Admin92PageContent() {
   const [editCobroServicio, setEditCobroServicio] = useState("");
   const [editCobroUpdateFuture, setEditCobroUpdateFuture] = useState(false);
   const [cobroFilterClient, setCobroFilterClient] = useState("");
-  const [cobroFilterMonth, setCobroFilterMonth] = useState("");
+  const [cobroFilterMonth, setCobroFilterMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // "YYYY-MM" mes actual
+  });
   const [cobroFilterPaid, setCobroFilterPaid] = useState<"" | "paid" | "pending">("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 

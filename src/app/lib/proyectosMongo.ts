@@ -16,6 +16,8 @@ export type ProyectoDoc = {
   type: string;
   fechaInicio: string; // YYYY-MM-DD
   ultimaActualizacion: string; // YYYY-MM-DD
+  /** Última solicitud concreta del cliente (ej. pedido de cambio) */
+  ultimaSolicitud?: string; // YYYY-MM-DD
   notes?: string;
   createdAt: Date;
 };

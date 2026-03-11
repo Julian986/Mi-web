@@ -18,6 +18,8 @@ type Proyecto = {
   type: string;
   fechaInicio: string;
   ultimaActualizacion: string;
+  /** Última solicitud puntual del cliente (ej. pedido de cambio) */
+  ultimaSolicitud?: string;
   notes?: string;
 };
 
@@ -62,6 +64,7 @@ export default function ProyectosPage() {
   const [formType, setFormType] = useState("Web");
   const [formFechaInicio, setFormFechaInicio] = useState(todayStr);
   const [formUltimaActualizacion, setFormUltimaActualizacion] = useState(todayStr);
+  const [formUltimaSolicitud, setFormUltimaSolicitud] = useState(todayStr);
   const [formStatus, setFormStatus] = useState<ProyectoStatus>("en_desarrollo");
   const [formNotes, setFormNotes] = useState("");
 
@@ -72,6 +75,7 @@ export default function ProyectosPage() {
   const [editType, setEditType] = useState("Web");
   const [editFechaInicio, setEditFechaInicio] = useState("");
   const [editUltimaActualizacion, setEditUltimaActualizacion] = useState("");
+  const [editUltimaSolicitud, setEditUltimaSolicitud] = useState("");
   const [editStatus, setEditStatus] = useState<ProyectoStatus>("en_desarrollo");
   const [editNotes, setEditNotes] = useState("");
 
@@ -136,6 +140,7 @@ export default function ProyectosPage() {
           type: formType,
           fechaInicio: formFechaInicio,
           ultimaActualizacion: formUltimaActualizacion,
+          ultimaSolicitud: formUltimaSolicitud,
           status: formStatus,
           notes: formNotes.trim() || undefined,
         }),
@@ -147,6 +152,7 @@ export default function ProyectosPage() {
       setFormNotes("");
       setFormFechaInicio(todayStr());
       setFormUltimaActualizacion(todayStr());
+      setFormUltimaSolicitud(todayStr());
       fetchProyectos();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Error al guardar");
@@ -162,6 +168,7 @@ export default function ProyectosPage() {
     setEditType(p.type);
     setEditFechaInicio(p.fechaInicio);
     setEditUltimaActualizacion(p.ultimaActualizacion);
+    setEditUltimaSolicitud(p.ultimaSolicitud || "");
     setEditStatus(p.status);
     setEditNotes(p.notes || "");
   };
@@ -189,6 +196,7 @@ export default function ProyectosPage() {
           type: editType,
           fechaInicio: editFechaInicio,
           ultimaActualizacion: editUltimaActualizacion,
+          ultimaSolicitud: editUltimaSolicitud || undefined,
           status: editStatus,
           notes: editNotes.trim() || undefined,
         }),
@@ -325,6 +333,15 @@ export default function ProyectosPage() {
               />
             </div>
             <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Última solicitud</label>
+              <input
+                type="date"
+                value={formUltimaSolicitud}
+                onChange={(e) => setFormUltimaSolicitud(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+              />
+            </div>
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Última actualización</label>
               <input
                 type="date"
@@ -418,6 +435,7 @@ export default function ProyectosPage() {
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Cliente</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Tipo</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Fecha inicio</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Últ. solicitud</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Últ. actualización</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Estado</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Notas</th>
@@ -473,6 +491,15 @@ export default function ProyectosPage() {
                               </select>
                             </div>
                             <div>
+                              <label className="block text-xs font-medium text-slate-600 mb-1">Últ. solicitud</label>
+                              <input
+                                type="date"
+                                value={editUltimaSolicitud}
+                                onChange={(e) => setEditUltimaSolicitud(e.target.value)}
+                                className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                              />
+                            </div>
+                            <div>
                               <label className="block text-xs font-medium text-slate-600 mb-1">Últ. actualización</label>
                               <input
                                 type="date"
@@ -523,6 +550,7 @@ export default function ProyectosPage() {
                           <td className="py-3 px-4 text-slate-600">{p.clientName}</td>
                           <td className="py-3 px-4 text-slate-600">{p.type}</td>
                           <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.fechaInicio)}</td>
+                          <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.ultimaSolicitud || "")}</td>
                           <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.ultimaActualizacion)}</td>
                           <td className="py-3 px-4">
                             <span

@@ -95,6 +95,16 @@ export async function PATCH(
       }
       updates.ultimaActualizacion = String(body.ultimaActualizacion).trim();
     }
+    if (body.ultimaSolicitud !== undefined) {
+      const value = String(body.ultimaSolicitud || "").trim();
+      if (value && !isValidDate(value)) {
+        return NextResponse.json(
+          { error: "Última solicitud inválida (formato YYYY-MM-DD)" },
+          { status: 400 }
+        );
+      }
+      updates.ultimaSolicitud = value || undefined;
+    }
     if (body.notes !== undefined) {
       updates.notes = body.notes ? String(body.notes).trim() : undefined;
     }
