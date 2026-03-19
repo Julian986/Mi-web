@@ -61,16 +61,9 @@ export function middleware(req: NextRequest) {
 
   const auth = req.headers.get("authorization");
   if (!auth || !auth.toLowerCase().startsWith("basic ")) {
-    // Registrar fallo
-    if (now - entry.firstFailAt > windowMs) {
-      entry.firstFailAt = now;
-      entry.fails = 0;
-    }
-    entry.fails += 1;
-    if (entry.fails >= maxFails) {
-      entry.blockedUntil = now + blockMs;
-    }
-    store.set(ip, entry);
+    // No penalizamos la ausencia de credenciales:
+    // muchos navegadores disparan requests sin Authorization (prefetch/preload),
+    // y eso no debería bloquear al usuario legítimo.
     return unauthorized();
   }
 
