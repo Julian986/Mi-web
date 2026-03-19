@@ -1,10 +1,5 @@
 import type { MetadataRoute } from "next";
 
-const PADDED_ICON_192 =
-  "https://res.cloudinary.com/dzoupwn0e/image/upload/w_192,h_192,c_pad,b_transparent,f_png,q_auto/v1768140895/gotita_loca_iskndh.webp?app=proyectos-v2";
-const PADDED_ICON_512 =
-  "https://res.cloudinary.com/dzoupwn0e/image/upload/w_512,h_512,c_pad,b_transparent,f_png,q_auto/v1768140895/gotita_loca_iskndh.webp?app=proyectos-v2";
-
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Glomun Proyectos",
@@ -17,13 +12,13 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#84b9ed",
     icons: [
       {
-        src: PADDED_ICON_192,
+        src: "/admin92/proyectos/app-icon/192?v=proyectos-v3",
         sizes: "192x192",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any",
       },
       {
-        src: PADDED_ICON_512,
+        src: "/admin92/proyectos/app-icon/512?v=proyectos-v3",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",
