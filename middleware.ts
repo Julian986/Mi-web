@@ -32,6 +32,17 @@ function unauthorized() {
 }
 
 export function middleware(req: NextRequest) {
+  const path = req.nextUrl.pathname;
+
+  // Recursos PWA públicos para que Chrome pueda resolver íconos/manifest
+  // al crear acceso directo (sin romper la protección de /admin92).
+  if (
+    path === "/admin92/proyectos/manifest.webmanifest" ||
+    path.startsWith("/admin92/proyectos/app-icon/")
+  ) {
+    return NextResponse.next();
+  }
+
   const user = process.env.ADMIN_BASIC_USER;
   const pass = process.env.ADMIN_BASIC_PASS;
 
