@@ -7,14 +7,14 @@
 export const MENSAJE_RECORDATORIO_PAGO = `Recordatorio mensualidad web
 
 Hola [nombre] 😊
-Te escribo para recordarte que ya venció la mensualidad del servicio web.
+Te escribo para recordarte la mensualidad del servicio web de este mes.
 
 Monto: __MONTO__
 Alias: julian.desarrollador
 
-Cuando realices la transferencia, por favor enviame el comprobante.
+Cuando realices la transferencia, envíame el comprobante así puedo registrarlo.
 
-Gracias.`;
+¡Muchas gracias!`;
 
 /** Mensaje para enviar junto con las estadísticas del sitio. */
 export const MENSAJE_ESTADISTICAS = `Estadísticas mensuales de tu web

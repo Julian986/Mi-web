@@ -105,6 +105,16 @@ export async function PATCH(
       }
       updates.ultimaSolicitud = value || undefined;
     }
+    if (body.prioridad !== undefined) {
+      const prioridadVal = Number(body.prioridad);
+      if (!Number.isFinite(prioridadVal) || !Number.isInteger(prioridadVal) || prioridadVal < 0) {
+        return NextResponse.json(
+          { error: "La prioridad debe ser un entero >= 0" },
+          { status: 400 }
+        );
+      }
+      updates.prioridad = prioridadVal;
+    }
     if (body.notes !== undefined) {
       updates.notes = body.notes ? String(body.notes).trim() : undefined;
     }

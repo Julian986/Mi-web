@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       );
     }
     const body = await req.json();
-    const { name, clientName, status, type, fechaInicio, ultimaActualizacion, ultimaSolicitud, notes } = body;
+    const { name, clientName, status, type, fechaInicio, ultimaActualizacion, ultimaSolicitud, prioridad, notes } = body;
 
     const nameStr = String(name || "").trim();
     if (!nameStr) {
@@ -98,6 +98,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const prioridadVal = prioridad === undefined ? undefined : Number(prioridad);
+    if (prioridadVal !== undefined) {
+      if (!Number.isFinite(prioridadVal) || !Number.isInteger(prioridadVal) || prioridadVal < 0) {
+        return NextResponse.json(
+          { error: "La prioridad debe ser un entero >= 0" },
+          { status: 400 }
+        );
+      }
+    }
+
     const doc: any = {
       name: nameStr,
       clientName: clientStr,
@@ -110,6 +120,10 @@ export async function POST(req: NextRequest) {
 
     if (ultimaSolicitudStr) {
       doc.ultimaSolicitud = ultimaSolicitudStr;
+    }
+
+    if (prioridadVal !== undefined) {
+      doc.prioridad = prioridadVal;
     }
 
     const id = await insertProyecto(doc);

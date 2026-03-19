@@ -18,6 +18,11 @@ export type ProyectoDoc = {
   ultimaActualizacion: string; // YYYY-MM-DD
   /** Última solicitud concreta del cliente (ej. pedido de cambio) */
   ultimaSolicitud?: string; // YYYY-MM-DD
+  /**
+   * Prioridad/orden manual: valor entero donde 0 es el más prioritario.
+   * Si no existe en un documento viejo, se usa un fallback en la UI.
+   */
+  prioridad?: number;
   notes?: string;
   createdAt: Date;
 };

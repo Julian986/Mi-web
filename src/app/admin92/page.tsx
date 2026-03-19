@@ -104,6 +104,14 @@ function Admin92PageContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState<"webhooks" | "contabilidad" | "suscripciones">("webhooks");
 
+  // Permite que otras páginas (ej. /admin92/proyectos) filtren/seleccionen el tab con `?tab=...`
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "webhooks" || tab === "contabilidad" || tab === "suscripciones") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
   // Webhooks state
   const [events, setEvents] = useState<WebhookEvent[]>([]);
   const [webhookProviderFilter, setWebhookProviderFilter] = useState<"all" | "mp" | "resend">("all");
@@ -691,11 +699,11 @@ function Admin92PageContent() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
         <div className="flex items-center gap-2 mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Admin</h1>
-          <div className="flex rounded-lg border border-slate-200 p-1">
+          <div className="flex w-full rounded-lg border border-slate-200 p-1 overflow-x-auto sm:overflow-x-visible">
             <button
               type="button"
               onClick={() => setActiveTab("webhooks")}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
+              className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === "webhooks"
                   ? "bg-slate-900 text-white"
                   : "text-slate-600 hover:bg-slate-100"
@@ -706,7 +714,7 @@ function Admin92PageContent() {
             <button
               type="button"
               onClick={() => setActiveTab("contabilidad")}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer ${
+              className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                 activeTab === "contabilidad"
                   ? "bg-slate-900 text-white"
                   : "text-slate-600 hover:bg-slate-100"
@@ -717,7 +725,7 @@ function Admin92PageContent() {
             <button
               type="button"
               onClick={() => setActiveTab("suscripciones")}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 ${
+              className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
                 activeTab === "suscripciones"
                   ? "bg-slate-900 text-white"
                   : "text-slate-600 hover:bg-slate-100"
@@ -728,7 +736,7 @@ function Admin92PageContent() {
             </button>
             <Link
               href="/admin92/proyectos"
-              className="rounded-md px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 text-slate-600 hover:bg-slate-100"
+              className="rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap text-slate-600 hover:bg-slate-100"
             >
               <FolderKanban className="w-4 h-4" />
               Proyectos
@@ -1113,64 +1121,147 @@ function Admin92PageContent() {
                   No hay registros para {formatMonthLabel(filterMonth)}. Cambiá el filtro o agregá registros.
                 </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-200">
-                        <th className="text-left py-3 px-2 font-semibold text-slate-700">Fecha</th>
-                        <th className="text-left py-3 px-2 font-semibold text-slate-700">Tipo</th>
-                        <th className="text-left py-3 px-2 font-semibold text-slate-700">Descripción</th>
-                        <th className="text-left py-3 px-2 font-semibold text-slate-700">Categoría</th>
-                        <th className="text-right py-3 px-2 font-semibold text-slate-700">Monto</th>
-                        <th className="text-right py-3 px-2 font-semibold text-slate-700">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRecords.map((r) => (
-                        <tr key={r._id || r.createdAt} className="border-b border-slate-100 hover:bg-slate-50/50">
-                          <td className="py-3 px-2 text-slate-600">
-                            {new Date(r.date).toLocaleDateString("es-AR")}
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[r.type]}`}>
-                              {typeLabels[r.type]}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 text-slate-900">{r.description}</td>
-                          <td className="py-3 px-2 text-slate-500">{r.category || "—"}</td>
-                          <td className="py-3 px-2 text-right font-medium">
-                            <span className={r.type === "gasto" || r.type === "inversion" ? "text-red-600" : "text-green-600"}>
+                <>
+                  {/* Desktop: tabla tradicional */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="text-left py-3 px-2 font-semibold text-slate-700">Fecha</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-700">Tipo</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-700">Descripción</th>
+                          <th className="text-left py-3 px-2 font-semibold text-slate-700">Categoría</th>
+                          <th className="text-right py-3 px-2 font-semibold text-slate-700">Monto</th>
+                          <th className="text-right py-3 px-2 font-semibold text-slate-700">Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredRecords.map((r) => (
+                          <tr
+                            key={r._id || r.createdAt}
+                            className="border-b border-slate-100 hover:bg-slate-50/50"
+                          >
+                            <td className="py-3 px-2 text-slate-600">
+                              {new Date(r.date).toLocaleDateString("es-AR")}
+                            </td>
+                            <td className="py-3 px-2">
+                              <span
+                                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[r.type]}`}
+                              >
+                                {typeLabels[r.type]}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 text-slate-900">{r.description}</td>
+                            <td className="py-3 px-2 text-slate-500">{r.category || "—"}</td>
+                            <td className="py-3 px-2 text-right font-medium">
+                              <span
+                                className={
+                                  r.type === "gasto" || r.type === "inversion"
+                                    ? "text-red-600"
+                                    : "text-green-600"
+                                }
+                              >
+                                {r.type === "gasto" || r.type === "inversion" ? "-" : "+"}
+                                {formatCurrency(r.amount)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEdit(r)}
+                                  title="Editar"
+                                  aria-label="Editar"
+                                  className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#84b9ed] transition-colors"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(r)}
+                                  title="Eliminar"
+                                  aria-label="Eliminar"
+                                  className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Mobile: cards */}
+                  <div className="sm:hidden space-y-2">
+                    {filteredRecords.map((r) => (
+                      <div
+                        key={r._id || r.createdAt}
+                        className="rounded-xl border border-slate-200 bg-white p-3"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs text-slate-500">Fecha</p>
+                            <p className="text-sm font-medium text-slate-900">
+                              {new Date(r.date).toLocaleDateString("es-AR")}
+                            </p>
+                          </div>
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[r.type]}`}
+                          >
+                            {typeLabels[r.type]}
+                          </span>
+                        </div>
+
+                        <div className="mt-2 space-y-1.5">
+                          <div>
+                            <p className="text-xs text-slate-500">Descripción</p>
+                            <p className="text-sm text-slate-900">{r.description}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-slate-500">Categoría</p>
+                            <p className="text-sm text-slate-600">{r.category || "—"}</p>
+                          </div>
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="text-xs text-slate-500">Monto</p>
+                            <p
+                              className={`text-sm font-semibold ${
+                                r.type === "gasto" || r.type === "inversion"
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
                               {r.type === "gasto" || r.type === "inversion" ? "-" : "+"}
                               {formatCurrency(r.amount)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                type="button"
-                                onClick={() => handleEdit(r)}
-                                title="Editar"
-                                aria-label="Editar"
-                                className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#84b9ed] transition-colors"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDelete(r)}
-                                title="Eliminar"
-                                aria-label="Eliminar"
-                                className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(r)}
+                            title="Editar"
+                            aria-label="Editar"
+                            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#84b9ed] transition-colors"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(r)}
+                            title="Eliminar"
+                            aria-label="Eliminar"
+                            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
