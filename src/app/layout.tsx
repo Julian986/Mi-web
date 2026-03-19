@@ -84,6 +84,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
+        <link rel="manifest" href="/manifest.json" />
         {/* Google Analytics 4 - Glomun */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-1MMSD9D0BN"
