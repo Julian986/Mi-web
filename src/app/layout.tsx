@@ -32,6 +32,7 @@ export const metadata: Metadata = {
   description:
     "Glomun es una empresa de desarrollo de software en Argentina especializada en sitios web, tiendas online y aplicaciones a medida de alto rendimiento.",
   metadataBase: new URL(SITE_URL),
+  manifest: "/manifest.json",
   icons: {
     icon: [
       {
@@ -84,7 +85,6 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <link rel="manifest" href="/manifest.json" />
         {/* Google Analytics 4 - Glomun */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-1MMSD9D0BN"
