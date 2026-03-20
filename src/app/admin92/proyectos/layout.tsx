@@ -4,7 +4,7 @@ const LOCAL_ICON_192 = "/admin92/proyectos/app-icon/192?v=proyectos-v3";
 const LOCAL_ICON_512 = "/admin92/proyectos/app-icon/512?v=proyectos-v3";
 
 export const metadata: Metadata = {
-  manifest: "/admin92/proyectos/manifest.webmanifest",
+  manifest: "/manifest-proyectos.webmanifest",
   icons: {
     icon: [{ url: LOCAL_ICON_192, type: "image/png" }],
     apple: [{ url: LOCAL_ICON_192, type: "image/png" }],
