@@ -20,7 +20,7 @@ type Proyecto = {
   status: ProyectoStatus;
   type: string;
   fechaInicio: string;
-  ultimaActualizacion: string;
+  ultimaActualizacion?: string;
   /** Última solicitud puntual del cliente (ej. pedido de cambio) */
   ultimaSolicitud?: string;
   /** Prioridad/orden manual (0 = más prioritario) */
@@ -70,7 +70,7 @@ export default function ProyectosPage() {
   const [formClient, setFormClient] = useState("");
   const [formType, setFormType] = useState("Web");
   const [formFechaInicio, setFormFechaInicio] = useState(todayStr);
-  const [formUltimaActualizacion, setFormUltimaActualizacion] = useState(todayStr);
+  const [formUltimaActualizacion, setFormUltimaActualizacion] = useState("");
   const [formUltimaSolicitud, setFormUltimaSolicitud] = useState(todayStr);
   const [formStatus, setFormStatus] = useState<ProyectoStatus>("en_desarrollo");
   const [formNotes, setFormNotes] = useState("");
@@ -278,7 +278,7 @@ export default function ProyectosPage() {
           clientName: formClient.trim(),
           type: formType,
           fechaInicio: formFechaInicio,
-          ultimaActualizacion: formUltimaActualizacion,
+          ultimaActualizacion: formUltimaActualizacion || undefined,
           ultimaSolicitud: formUltimaSolicitud,
           status: formStatus,
           notes: formNotes.trim() || undefined,
@@ -290,7 +290,7 @@ export default function ProyectosPage() {
       setFormClient("");
       setFormNotes("");
       setFormFechaInicio(todayStr());
-      setFormUltimaActualizacion(todayStr());
+      setFormUltimaActualizacion("");
       setFormUltimaSolicitud(todayStr());
       setShowAddModal(false);
       fetchProyectos();
@@ -342,7 +342,7 @@ export default function ProyectosPage() {
         <td className="py-3 px-4 text-slate-600">{p.type}</td>
         <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.fechaInicio)}</td>
         <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.ultimaSolicitud || "")}</td>
-        <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.ultimaActualizacion)}</td>
+        <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.ultimaActualizacion || "")}</td>
         <td className="py-3 px-4">
           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[p.status]}`}>
             {STATUS_LABELS[p.status]}
@@ -401,7 +401,7 @@ export default function ProyectosPage() {
     setEditClient(p.clientName);
     setEditType(p.type);
     setEditFechaInicio(p.fechaInicio);
-    setEditUltimaActualizacion(p.ultimaActualizacion);
+    setEditUltimaActualizacion(p.ultimaActualizacion || "");
     setEditUltimaSolicitud(p.ultimaSolicitud || "");
     setEditStatus(p.status);
     setEditNotes(p.notes || "");
@@ -429,8 +429,9 @@ export default function ProyectosPage() {
           clientName: editClient.trim(),
           type: editType,
           fechaInicio: editFechaInicio,
+          // Enviamos string (incluido vacío) para que backend pueda limpiar con $unset.
           ultimaActualizacion: editUltimaActualizacion,
-          ultimaSolicitud: editUltimaSolicitud || undefined,
+          ultimaSolicitud: editUltimaSolicitud,
           status: editStatus,
           notes: editNotes.trim() || undefined,
         }),
@@ -888,7 +889,7 @@ export default function ProyectosPage() {
                             <td className="py-3 px-4 text-slate-600">{p.type}</td>
                             <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.fechaInicio)}</td>
                             <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.ultimaSolicitud || "")}</td>
-                            <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.ultimaActualizacion)}</td>
+                            <td className="py-3 px-4 text-slate-600">{formatLocalDate(p.ultimaActualizacion || "")}</td>
                             <td className="py-3 px-4">
                               <span
                                 className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[p.status]}`}

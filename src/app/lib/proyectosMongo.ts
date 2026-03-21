@@ -15,7 +15,7 @@ export type ProyectoDoc = {
   status: ProyectoStatus;
   type: string;
   fechaInicio: string; // YYYY-MM-DD
-  ultimaActualizacion: string; // YYYY-MM-DD
+  ultimaActualizacion?: string; // YYYY-MM-DD
   /** Última solicitud concreta del cliente (ej. pedido de cambio) */
   ultimaSolicitud?: string; // YYYY-MM-DD
   /**
@@ -103,8 +103,21 @@ export async function updateProyecto(
   const client = await getMongoClient();
   const db = client.db(getDbName());
   const col = db.collection(COLLECTION);
-  const setDoc = { ...doc };
-  const updateOp = { $set: setDoc };
+  const setDoc: Record<string, unknown> = {};
+  const unsetDoc: Record<string, "" | 1> = {};
+
+  for (const [key, value] of Object.entries(doc)) {
+    if (value === undefined) {
+      // Permite limpiar campos opcionales (ej. ultimaActualizacion / ultimaSolicitud / notes).
+      unsetDoc[key] = "";
+    } else {
+      setDoc[key] = value;
+    }
+  }
+
+  const updateOp: Record<string, Record<string, unknown>> = {};
+  if (Object.keys(setDoc).length > 0) updateOp.$set = setDoc;
+  if (Object.keys(unsetDoc).length > 0) updateOp.$unset = unsetDoc;
   const result = await col.updateOne(
     { _id: new ObjectId(id) },
     updateOp

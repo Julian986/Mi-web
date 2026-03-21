@@ -87,13 +87,14 @@ export async function PATCH(
       updates.fechaInicio = String(body.fechaInicio).trim();
     }
     if (body.ultimaActualizacion !== undefined) {
-      if (!isValidDate(String(body.ultimaActualizacion))) {
+      const value = String(body.ultimaActualizacion || "").trim();
+      if (value && !isValidDate(value)) {
         return NextResponse.json(
           { error: "Última actualización inválida (formato YYYY-MM-DD)" },
           { status: 400 }
         );
       }
-      updates.ultimaActualizacion = String(body.ultimaActualizacion).trim();
+      updates.ultimaActualizacion = value || undefined;
     }
     if (body.ultimaSolicitud !== undefined) {
       const value = String(body.ultimaSolicitud || "").trim();

@@ -82,10 +82,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const ultimaActualizacionStr = String(ultimaActualizacion || fechaInicioStr).trim();
-    if (!ultimaActualizacionStr || !isValidDate(ultimaActualizacionStr)) {
+    const ultimaActualizacionStr = String(ultimaActualizacion || "").trim();
+    if (ultimaActualizacionStr && !isValidDate(ultimaActualizacionStr)) {
       return NextResponse.json(
-        { error: "La fecha de última actualización es requerida (formato YYYY-MM-DD)" },
+        { error: "La fecha de última actualización es inválida (formato YYYY-MM-DD)" },
         { status: 400 }
       );
     }
@@ -114,9 +114,12 @@ export async function POST(req: NextRequest) {
       status: statusVal,
       type: typeVal,
       fechaInicio: fechaInicioStr,
-      ultimaActualizacion: ultimaActualizacionStr,
       notes: notes ? String(notes).trim() : undefined,
     };
+
+    if (ultimaActualizacionStr) {
+      doc.ultimaActualizacion = ultimaActualizacionStr;
+    }
 
     if (ultimaSolicitudStr) {
       doc.ultimaSolicitud = ultimaSolicitudStr;
