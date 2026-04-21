@@ -5,7 +5,21 @@ import Link from "next/link";
 import { closestCenter, DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, FolderKanban, GripVertical, BarChart3, X } from "lucide-react";
+import { Pencil, Trash2, FolderKanban, GripVertical, BarChart3, X, FileText } from "lucide-react";
+
+/**
+ * Word Online (vínculo “Compartir → Copiar vínculo”):
+ * - En `.env.local` / Vercel: `NEXT_PUBLIC_ENLACE_WORD` (recomendado) o `NEXT_PUBLIC_PROYECTOS_WORD_URL`.
+ * - En el navegador solo existen variables con prefijo `NEXT_PUBLIC_` (no uses `ENLACE_WORD` sin ese prefijo).
+ * Si está vacío, igual se muestra el botón (deshabilitado) con tooltip.
+ */
+const PROYECTOS_WORD_ONLINE_URL =
+  (process.env.NEXT_PUBLIC_ENLACE_WORD?.trim() ||
+    process.env.NEXT_PUBLIC_PROYECTOS_WORD_URL?.trim() ||
+    "") as string;
+
+const WORD_ONLINE_BTN_CLASS =
+  "inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors";
 
 type ProyectoStatus =
   | "en_desarrollo"
@@ -703,6 +717,27 @@ export default function ProyectosPage() {
           >
             {sortDesc ? "↑ Desc" : "↑ Asc"}
           </button>
+          {PROYECTOS_WORD_ONLINE_URL ? (
+            <a
+              href={PROYECTOS_WORD_ONLINE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${WORD_ONLINE_BTN_CLASS} hover:border-slate-400 hover:bg-slate-50`}
+            >
+              <FileText className="h-4 w-4 shrink-0 text-[#84b9ed]" aria-hidden />
+              Word online
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="Definí NEXT_PUBLIC_ENLACE_WORD (o NEXT_PUBLIC_PROYECTOS_WORD_URL) en .env.local y reiniciá el servidor de desarrollo"
+              className={`${WORD_ONLINE_BTN_CLASS} cursor-not-allowed border-dashed border-slate-300 text-slate-400 opacity-90`}
+            >
+              <FileText className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+              Word online
+            </button>
+          )}
           <button
             type="button"
             onClick={fetchProyectos}
