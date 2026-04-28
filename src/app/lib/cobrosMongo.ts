@@ -12,6 +12,7 @@ export type CobroDoc = {
   paidAt?: string; // YYYY-MM-DD
   servicio?: string;
   notes?: string;
+  origen?: "manual" | "suscripcion_mp";
   estadisticasEnviadas?: boolean;
   recordatorioEnviado?: boolean;
   createdAt: Date;
@@ -68,7 +69,13 @@ export async function listCobros(limit = 1000): Promise<CobroDoc[]> {
     .toArray();
   return docs.map((d) => {
     const id = d._id?.toString() ?? "";
-    return { ...d, _id: id, id, createdAt: d.createdAt };
+    return {
+      ...d,
+      _id: id,
+      id,
+      origen: d.origen === "suscripcion_mp" ? "suscripcion_mp" : "manual",
+      createdAt: d.createdAt,
+    };
   });
 }
 

@@ -25,7 +25,18 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const { amount, servicio, paid, paidAt, estadisticasEnviadas, recordatorioEnviado, updateFuture } = body;
+    const {
+      amount,
+      servicio,
+      paid,
+      paidAt,
+      dueDate,
+      dueDateFrom,
+      estadisticasEnviadas,
+      recordatorioEnviado,
+      updateFuture,
+      origen,
+    } = body;
 
     const updates: Record<string, unknown> = {};
     let unsetFields: string[] = [];
@@ -55,11 +66,24 @@ export async function PATCH(
     if (paidAt !== undefined && paidAt !== null) {
       updates.paidAt = /^\d{4}-\d{2}-\d{2}$/.test(String(paidAt)) ? String(paidAt) : undefined;
     }
+    if (dueDate !== undefined && dueDate !== null) {
+      const dueDateStr = String(dueDate).trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dueDateStr)) {
+        return NextResponse.json(
+          { error: "La fecha de cobro debe tener formato YYYY-MM-DD" },
+          { status: 400 }
+        );
+      }
+      updates.dueDate = dueDateStr;
+    }
     if (estadisticasEnviadas !== undefined) {
       updates.estadisticasEnviadas = Boolean(estadisticasEnviadas);
     }
     if (recordatorioEnviado !== undefined) {
       updates.recordatorioEnviado = Boolean(recordatorioEnviado);
+    }
+    if (origen !== undefined) {
+      updates.origen = String(origen) === "suscripcion_mp" ? "suscripcion_mp" : "manual";
     }
 
     // Si updateFuture: actualizar cuotas futuras pendientes del mismo cliente
@@ -68,7 +92,7 @@ export async function PATCH(
       if (!isNaN(numAmount) && numAmount > 0) {
         await updateCobrosByClient(
           String(body.clientName).trim(),
-          body.dueDate || "",
+          String(dueDateFrom || dueDate || ""),
           { amount: numAmount }
         );
       }

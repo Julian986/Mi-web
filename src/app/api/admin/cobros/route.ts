@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
     const body = await req.json();
 
-    // Bulk: { cobros: [{ clientName, amount, dueDate, servicio? }, ...] }
+    // Bulk: { cobros: [{ clientName, amount, dueDate, servicio?, origen? }, ...] }
     if (Array.isArray(body.cobros) && body.cobros.length > 0) {
       const docs = body.cobros.map((c: Record<string, unknown>) => {
         const clientName = String(c.clientName || "").trim();
@@ -48,6 +48,8 @@ export async function POST(req: NextRequest) {
         if (!clientName || isNaN(amount) || amount <= 0 || !dueDate) {
           throw new Error("Cada cobro debe tener clientName, amount > 0 y dueDate (YYYY-MM-DD)");
         }
+        const origenRaw = String(c.origen || "manual").trim();
+        const origen = origenRaw === "suscripcion_mp" ? "suscripcion_mp" : "manual";
         return {
           clientName,
           amount,
@@ -55,14 +57,15 @@ export async function POST(req: NextRequest) {
           paid: false,
           servicio: c.servicio ? String(c.servicio).trim() : undefined,
           notes: c.notes ? String(c.notes).trim() : undefined,
+          origen,
         };
       });
       const ids = await insertCobrosBulk(docs);
       return NextResponse.json({ ok: true, count: ids.length, ids });
     }
 
-    // Single: { clientName, amount, dueDate, servicio?, paid?, paidAt? }
-    const { clientName, amount, dueDate, servicio, paid, paidAt } = body;
+    // Single: { clientName, amount, dueDate, servicio?, paid?, paidAt?, origen? }
+    const { clientName, amount, dueDate, servicio, paid, paidAt, origen } = body;
     const client = String(clientName || "").trim();
     if (!client) {
       return NextResponse.json(
@@ -85,6 +88,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const origenRaw = String(origen || "manual").trim();
+    const cobroOrigen = origenRaw === "suscripcion_mp" ? "suscripcion_mp" : "manual";
+
     const doc = {
       clientName: client,
       amount: numAmount,
@@ -93,6 +99,7 @@ export async function POST(req: NextRequest) {
       paidAt: paidAt && /^\d{4}-\d{2}-\d{2}$/.test(String(paidAt)) ? String(paidAt) : undefined,
       servicio: servicio ? String(servicio).trim() : undefined,
       notes: undefined,
+      origen: cobroOrigen,
     };
 
     const id = await insertCobro(doc);

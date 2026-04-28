@@ -48,6 +48,7 @@ export type CobroForWorkflow = {
   dueDate: string;
   paid: boolean;
   servicio?: string;
+  origen?: "manual" | "suscripcion_mp";
   estadisticasEnviadas?: boolean;
 };
 

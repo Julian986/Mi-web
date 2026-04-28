@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy } from "lucide-react";
+import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy, FileText } from "lucide-react";
 import { getRemindersToday, getRemindersWeekBefore, getStatsToday } from "@/app/lib/cobrosWorkflow";
 import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_PAGO } from "@/app/lib/cobrosMensajes";
 
@@ -40,6 +40,11 @@ function getMonthKeySafe(dateStr: string | Date): string {
 
 const SERVICIO_OPTIONS = ["", "App", "Tienda", "Web", "Mantenimiento", "Otro"] as const;
 
+const WORD_ONLINE_URL =
+  process.env.NEXT_PUBLIC_ENLACE_WORD?.trim() ||
+  process.env.NEXT_PUBLIC_PROYECTOS_WORD_URL?.trim() ||
+  "";
+
 type WebhookEvent = {
   receivedAt: string;
   path: string;
@@ -73,6 +78,7 @@ type Cobro = {
   paid: boolean;
   paidAt?: string;
   servicio?: string;
+  origen?: "manual" | "suscripcion_mp";
   notes?: string;
   estadisticasEnviadas?: boolean;
   recordatorioEnviado?: boolean;
@@ -102,7 +108,7 @@ type SubscriptionAdmin = {
 
 function Admin92PageContent() {
   const searchParams = useSearchParams();
-  const [activeTab, setActiveTab] = useState<"webhooks" | "contabilidad" | "suscripciones">("webhooks");
+  const [activeTab, setActiveTab] = useState<"webhooks" | "contabilidad" | "suscripciones">("contabilidad");
 
   // Permite que otras páginas (ej. /admin92/proyectos) filtren/seleccionen el tab con `?tab=...`
   useEffect(() => {
@@ -134,6 +140,8 @@ function Admin92PageContent() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AccountingRecord | null>(null);
+  const [showNewRecordForm, setShowNewRecordForm] = useState(false);
+  const [showRecordsList, setShowRecordsList] = useState(false);
   const [filterMonth, setFilterMonth] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // "YYYY-MM" mes actual
@@ -145,9 +153,11 @@ function Admin92PageContent() {
   const [cobroError, setCobroError] = useState("");
   const [cobroSubmitting, setCobroSubmitting] = useState(false);
   const [cobroFormMode, setCobroFormMode] = useState<"single" | "recurrent" | "actions">("single");
+  const [showSingleCobroForm, setShowSingleCobroForm] = useState(false);
   const [cobroClient, setCobroClient] = useState("");
   const [cobroAmount, setCobroAmount] = useState("");
   const [cobroServicio, setCobroServicio] = useState("");
+  const [cobroOrigen, setCobroOrigen] = useState<"manual" | "suscripcion_mp">("manual");
   const [cobroDueDate, setCobroDueDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -161,6 +171,7 @@ function Admin92PageContent() {
   const [editingCobro, setEditingCobro] = useState<Cobro | null>(null);
   const [editCobroAmount, setEditCobroAmount] = useState("");
   const [editCobroServicio, setEditCobroServicio] = useState("");
+  const [editCobroDueDate, setEditCobroDueDate] = useState("");
   const [editCobroUpdateFuture, setEditCobroUpdateFuture] = useState(false);
   const [cobroFilterClient, setCobroFilterClient] = useState("");
   const [cobroFilterMonth, setCobroFilterMonth] = useState<string>(() => {
@@ -168,6 +179,7 @@ function Admin92PageContent() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // "YYYY-MM" mes actual
   });
   const [cobroFilterPaid, setCobroFilterPaid] = useState<"" | "paid" | "pending">("");
+  const [cobroFilterOrigen, setCobroFilterOrigen] = useState<"" | "manual" | "suscripcion_mp">("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Suscripciones (GA4 Property ID)
@@ -177,6 +189,7 @@ function Admin92PageContent() {
   const [editingSub, setEditingSub] = useState<SubscriptionAdmin | null>(null);
   const [editGa4PropertyId, setEditGa4PropertyId] = useState("");
   const [subSaving, setSubSaving] = useState(false);
+  const [subStatusFilter, setSubStatusFilter] = useState<"all" | "pending" | "authorized" | "other">("all");
 
   const fetchSubscriptions = async () => {
     setSubLoading(true);
@@ -218,6 +231,18 @@ function Admin92PageContent() {
       setSubSaving(false);
     }
   };
+
+  const filteredSubscriptions = useMemo(() => {
+    if (subStatusFilter === "all") return subscriptions;
+    if (subStatusFilter === "pending") return subscriptions.filter((s) => s.status === "pending");
+    if (subStatusFilter === "authorized") return subscriptions.filter((s) => s.status === "authorized");
+    return subscriptions.filter((s) => s.status !== "pending" && s.status !== "authorized");
+  }, [subscriptions, subStatusFilter]);
+
+  const pendingSubscriptionsCount = useMemo(
+    () => subscriptions.filter((s) => s.status === "pending").length,
+    [subscriptions],
+  );
 
   const fetchEvents = async () => {
     setLoading(true);
@@ -275,7 +300,13 @@ function Admin92PageContent() {
         return;
       }
       const list = Array.isArray(data?.cobros) ? data.cobros : [];
-      setCobros(list.map((c: Cobro & { _id?: string }) => ({ ...c, id: c.id || c._id || "" })));
+      setCobros(
+        list.map((c: Cobro & { _id?: string }) => ({
+          ...c,
+          id: c.id || c._id || "",
+          origen: c.origen === "suscripcion_mp" ? "suscripcion_mp" : "manual",
+        })),
+      );
     } catch (e: any) {
       setCobroError(e?.message || "Error de red.");
     } finally {
@@ -439,8 +470,14 @@ function Admin92PageContent() {
     }
     if (cobroFilterPaid === "paid") list = list.filter((c) => c.paid);
     if (cobroFilterPaid === "pending") list = list.filter((c) => !c.paid);
+    if (cobroFilterOrigen) list = list.filter((c) => c.origen === cobroFilterOrigen);
     return list.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  }, [cobros, cobroFilterClient, cobroFilterMonth, cobroFilterPaid]);
+  }, [cobros, cobroFilterClient, cobroFilterMonth, cobroFilterPaid, cobroFilterOrigen]);
+
+  const totalCobrosFiltrados = useMemo(
+    () => filteredCobros.reduce((sum, c) => sum + c.amount, 0),
+    [filteredCobros],
+  );
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -476,6 +513,7 @@ function Admin92PageContent() {
           amount,
           dueDate: cobroDueDate,
           servicio: cobroServicio || undefined,
+          origen: cobroOrigen,
           paid: false,
         }),
       });
@@ -488,6 +526,7 @@ function Admin92PageContent() {
       setCobroClient("");
       setCobroAmount("");
       setCobroServicio("");
+      setCobroOrigen("manual");
       setCobroDueDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
       fetchCobros();
     } catch (e: any) {
@@ -510,7 +549,13 @@ function Admin92PageContent() {
       const dueDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       const exists = cobros.some((c) => c.clientName === cobroClient.trim() && c.dueDate === dueDate);
       if (!exists) {
-        toInsert.push({ clientName: cobroClient.trim(), amount, dueDate, servicio: cobroServicio || undefined });
+        toInsert.push({
+          clientName: cobroClient.trim(),
+          amount,
+          dueDate,
+          servicio: cobroServicio || undefined,
+          origen: cobroOrigen,
+        });
       }
     }
     if (toInsert.length === 0) {
@@ -533,6 +578,7 @@ function Admin92PageContent() {
       setCobroClient("");
       setCobroAmount("");
       setCobroServicio("");
+      setCobroOrigen("manual");
       setCobroDayOfMonth("1");
       const now = new Date();
       setCobroFromMonth(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
@@ -603,6 +649,7 @@ function Admin92PageContent() {
     setEditingCobro(c);
     setEditCobroAmount(String(c.amount));
     setEditCobroServicio(c.servicio || "");
+    setEditCobroDueDate(c.dueDate);
     setEditCobroUpdateFuture(false);
   };
 
@@ -610,6 +657,7 @@ function Admin92PageContent() {
     setEditingCobro(null);
     setEditCobroAmount("");
     setEditCobroServicio("");
+    setEditCobroDueDate("");
     setEditCobroUpdateFuture(false);
   };
 
@@ -618,6 +666,10 @@ function Admin92PageContent() {
     if (!editingCobro) return;
     const newAmount = parseFloat(editCobroAmount);
     if (isNaN(newAmount) || newAmount <= 0) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(editCobroDueDate)) {
+      setCobroError("La fecha debe tener formato YYYY-MM-DD.");
+      return;
+    }
     setCobroSubmitting(true);
     setCobroError("");
     try {
@@ -627,9 +679,10 @@ function Admin92PageContent() {
         body: JSON.stringify({
           amount: newAmount,
           servicio: editCobroServicio || undefined,
+          dueDate: editCobroDueDate,
           updateFuture: editCobroUpdateFuture,
           clientName: editCobroUpdateFuture ? editingCobro.clientName : undefined,
-          dueDate: editCobroUpdateFuture ? editingCobro.dueDate : undefined,
+          dueDateFrom: editCobroUpdateFuture ? editingCobro.dueDate : undefined,
         }),
       });
       const data = await res.json();
@@ -640,6 +693,7 @@ function Admin92PageContent() {
       setEditingCobro(null);
       setEditCobroAmount("");
       setEditCobroServicio("");
+      setEditCobroDueDate("");
       setEditCobroUpdateFuture(false);
       fetchCobros();
     } catch (e: any) {
@@ -1006,9 +1060,20 @@ function Admin92PageContent() {
             {/* Formulario */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">
-                  {editingRecord ? "Editar registro" : "Nuevo registro"}
-                </h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    {editingRecord ? "Editar registro" : "Nuevo registro"}
+                  </h2>
+                  {!editingRecord && (
+                    <button
+                      type="button"
+                      onClick={() => setShowNewRecordForm((v) => !v)}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      {showNewRecordForm ? "Ocultar formulario" : "Ver formulario"}
+                    </button>
+                  )}
+                </div>
                 {editingRecord && (
                   <button
                     type="button"
@@ -1019,78 +1084,80 @@ function Admin92PageContent() {
                   </button>
                 )}
               </div>
-              <form onSubmit={handleSubmitRecord} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value as AccountingType)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                  >
-                    <option value="ingreso">Ingreso</option>
-                    <option value="gasto">Gasto</option>
-                    <option value="inversion">Inversión</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Monto (ARS)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    step="0.01"
-                    value={formAmount}
-                    onChange={(e) => setFormAmount(e.target.value)}
-                    placeholder="25000"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
-                  <input
-                    type="text"
-                    value={formDescription}
-                    onChange={(e) => setFormDescription(e.target.value)}
-                    placeholder="Suscripción cliente X"
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-                  <input
-                    type="date"
-                    value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Categoría (opcional)</label>
-                  <input
-                    type="text"
-                    value={formCategory}
-                    onChange={(e) => setFormCategory(e.target.value)}
-                    placeholder="Hosting, dominio, etc."
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                  />
-                </div>
-                <div className="flex items-end gap-2">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className={`rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors ${
-                      submitting
-                        ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                        : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9] cursor-pointer"
-                    }`}
-                  >
-                    {submitting
-                      ? "Guardando..."
-                      : editingRecord
-                        ? "Guardar cambios"
-                        : "Agregar"}
-                  </button>
-                </div>
-              </form>
+              {!editingRecord && !showNewRecordForm ? null : (
+                <form onSubmit={handleSubmitRecord} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
+                    <select
+                      value={formType}
+                      onChange={(e) => setFormType(e.target.value as AccountingType)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    >
+                      <option value="ingreso">Ingreso</option>
+                      <option value="gasto">Gasto</option>
+                      <option value="inversion">Inversión</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Monto (ARS)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.01"
+                      value={formAmount}
+                      onChange={(e) => setFormAmount(e.target.value)}
+                      placeholder="25000"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Descripción</label>
+                    <input
+                      type="text"
+                      value={formDescription}
+                      onChange={(e) => setFormDescription(e.target.value)}
+                      placeholder="Suscripción cliente X"
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
+                    <input
+                      type="date"
+                      value={formDate}
+                      onChange={(e) => setFormDate(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Categoría (opcional)</label>
+                    <input
+                      type="text"
+                      value={formCategory}
+                      onChange={(e) => setFormCategory(e.target.value)}
+                      placeholder="Hosting, dominio, etc."
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className={`rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors ${
+                        submitting
+                          ? "bg-slate-200 text-slate-500 cursor-not-allowed"
+                          : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9] cursor-pointer"
+                      }`}
+                    >
+                      {submitting
+                        ? "Guardando..."
+                        : editingRecord
+                          ? "Guardar cambios"
+                          : "Agregar"}
+                    </button>
+                  </div>
+                </form>
+              )}
               {accError && (
                 <p className="mt-3 text-sm text-red-600">{accError}</p>
               )}
@@ -1099,7 +1166,16 @@ function Admin92PageContent() {
             {/* Listado */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">Registros</h2>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-lg font-semibold text-slate-900">Registros</h2>
+                  <button
+                    type="button"
+                    onClick={() => setShowRecordsList((v) => !v)}
+                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                  >
+                    {showRecordsList ? "Ocultar lista" : "Ver lista"}
+                  </button>
+                </div>
                 <button
                   type="button"
                   onClick={fetchRecords}
@@ -1110,158 +1186,160 @@ function Admin92PageContent() {
                 </button>
               </div>
 
-              {accLoading && records.length === 0 ? (
-                <p className="text-slate-600 py-8 text-center">Cargando...</p>
-              ) : records.length === 0 ? (
-                <p className="text-slate-600 py-8 text-center">
-                  No hay registros. Agregá el primero con el formulario de arriba.
-                </p>
-              ) : filteredRecords.length === 0 ? (
-                <p className="text-slate-600 py-8 text-center">
-                  No hay registros para {formatMonthLabel(filterMonth)}. Cambiá el filtro o agregá registros.
-                </p>
-              ) : (
-                <>
-                  {/* Desktop: tabla tradicional */}
-                  <div className="hidden sm:block overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-200">
-                          <th className="text-left py-3 px-2 font-semibold text-slate-700">Fecha</th>
-                          <th className="text-left py-3 px-2 font-semibold text-slate-700">Tipo</th>
-                          <th className="text-left py-3 px-2 font-semibold text-slate-700">Descripción</th>
-                          <th className="text-left py-3 px-2 font-semibold text-slate-700">Categoría</th>
-                          <th className="text-right py-3 px-2 font-semibold text-slate-700">Monto</th>
-                          <th className="text-right py-3 px-2 font-semibold text-slate-700">Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredRecords.map((r) => (
-                          <tr
-                            key={r._id || r.createdAt}
-                            className="border-b border-slate-100 hover:bg-slate-50/50"
-                          >
-                            <td className="py-3 px-2 text-slate-600">
-                              {new Date(r.date).toLocaleDateString("es-AR")}
-                            </td>
-                            <td className="py-3 px-2">
-                              <span
-                                className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[r.type]}`}
-                              >
-                                {typeLabels[r.type]}
-                              </span>
-                            </td>
-                            <td className="py-3 px-2 text-slate-900">{r.description}</td>
-                            <td className="py-3 px-2 text-slate-500">{r.category || "—"}</td>
-                            <td className="py-3 px-2 text-right font-medium">
-                              <span
-                                className={
+              {!showRecordsList ? null : (
+                accLoading && records.length === 0 ? (
+                  <p className="text-slate-600 py-8 text-center">Cargando...</p>
+                ) : records.length === 0 ? (
+                  <p className="text-slate-600 py-8 text-center">
+                    No hay registros. Agregá el primero con el formulario de arriba.
+                  </p>
+                ) : filteredRecords.length === 0 ? (
+                  <p className="text-slate-600 py-8 text-center">
+                    No hay registros para {formatMonthLabel(filterMonth)}. Cambiá el filtro o agregá registros.
+                  </p>
+                ) : (
+                  <>
+                    {/* Desktop: tabla tradicional */}
+                    <div className="hidden sm:block overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-slate-200">
+                            <th className="text-left py-3 px-2 font-semibold text-slate-700">Fecha</th>
+                            <th className="text-left py-3 px-2 font-semibold text-slate-700">Tipo</th>
+                            <th className="text-left py-3 px-2 font-semibold text-slate-700">Descripción</th>
+                            <th className="text-left py-3 px-2 font-semibold text-slate-700">Categoría</th>
+                            <th className="text-right py-3 px-2 font-semibold text-slate-700">Monto</th>
+                            <th className="text-right py-3 px-2 font-semibold text-slate-700">Acciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredRecords.map((r) => (
+                            <tr
+                              key={r._id || r.createdAt}
+                              className="border-b border-slate-100 hover:bg-slate-50/50"
+                            >
+                              <td className="py-3 px-2 text-slate-600">
+                                {new Date(r.date).toLocaleDateString("es-AR")}
+                              </td>
+                              <td className="py-3 px-2">
+                                <span
+                                  className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[r.type]}`}
+                                >
+                                  {typeLabels[r.type]}
+                                </span>
+                              </td>
+                              <td className="py-3 px-2 text-slate-900">{r.description}</td>
+                              <td className="py-3 px-2 text-slate-500">{r.category || "—"}</td>
+                              <td className="py-3 px-2 text-right font-medium">
+                                <span
+                                  className={
+                                    r.type === "gasto" || r.type === "inversion"
+                                      ? "text-red-600"
+                                      : "text-green-600"
+                                  }
+                                >
+                                  {r.type === "gasto" || r.type === "inversion" ? "-" : "+"}
+                                  {formatCurrency(r.amount)}
+                                </span>
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <div className="flex items-center justify-end gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEdit(r)}
+                                    title="Editar"
+                                    aria-label="Editar"
+                                    className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#84b9ed] transition-colors"
+                                  >
+                                    <Pencil className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDelete(r)}
+                                    title="Eliminar"
+                                    aria-label="Eliminar"
+                                    className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Mobile: cards */}
+                    <div className="sm:hidden space-y-2">
+                      {filteredRecords.map((r) => (
+                        <div
+                          key={r._id || r.createdAt}
+                          className="rounded-xl border border-slate-200 bg-white p-3"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="text-xs text-slate-500">Fecha</p>
+                              <p className="text-sm font-medium text-slate-900">
+                                {new Date(r.date).toLocaleDateString("es-AR")}
+                              </p>
+                            </div>
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[r.type]}`}
+                            >
+                              {typeLabels[r.type]}
+                            </span>
+                          </div>
+
+                          <div className="mt-2 space-y-1.5">
+                            <div>
+                              <p className="text-xs text-slate-500">Descripción</p>
+                              <p className="text-sm text-slate-900">{r.description}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-slate-500">Categoría</p>
+                              <p className="text-sm text-slate-600">{r.category || "—"}</p>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                              <p className="text-xs text-slate-500">Monto</p>
+                              <p
+                                className={`text-sm font-semibold ${
                                   r.type === "gasto" || r.type === "inversion"
                                     ? "text-red-600"
                                     : "text-green-600"
-                                }
+                                }`}
                               >
                                 {r.type === "gasto" || r.type === "inversion" ? "-" : "+"}
                                 {formatCurrency(r.amount)}
-                              </span>
-                            </td>
-                            <td className="py-3 px-2 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => handleEdit(r)}
-                                  title="Editar"
-                                  aria-label="Editar"
-                                  className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#84b9ed] transition-colors"
-                                >
-                                  <Pencil className="w-4 h-4" />
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleDelete(r)}
-                                  title="Eliminar"
-                                  aria-label="Eliminar"
-                                  className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                              </p>
+                            </div>
+                          </div>
 
-                  {/* Mobile: cards */}
-                  <div className="sm:hidden space-y-2">
-                    {filteredRecords.map((r) => (
-                      <div
-                        key={r._id || r.createdAt}
-                        className="rounded-xl border border-slate-200 bg-white p-3"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="text-xs text-slate-500">Fecha</p>
-                            <p className="text-sm font-medium text-slate-900">
-                              {new Date(r.date).toLocaleDateString("es-AR")}
-                            </p>
-                          </div>
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${typeColors[r.type]}`}
-                          >
-                            {typeLabels[r.type]}
-                          </span>
-                        </div>
-
-                        <div className="mt-2 space-y-1.5">
-                          <div>
-                            <p className="text-xs text-slate-500">Descripción</p>
-                            <p className="text-sm text-slate-900">{r.description}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-slate-500">Categoría</p>
-                            <p className="text-sm text-slate-600">{r.category || "—"}</p>
-                          </div>
-                          <div className="flex items-center justify-between gap-3">
-                            <p className="text-xs text-slate-500">Monto</p>
-                            <p
-                              className={`text-sm font-semibold ${
-                                r.type === "gasto" || r.type === "inversion"
-                                  ? "text-red-600"
-                                  : "text-green-600"
-                              }`}
+                          <div className="mt-2 flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEdit(r)}
+                              title="Editar"
+                              aria-label="Editar"
+                              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#84b9ed] transition-colors"
                             >
-                              {r.type === "gasto" || r.type === "inversion" ? "-" : "+"}
-                              {formatCurrency(r.amount)}
-                            </p>
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(r)}
+                              title="Eliminar"
+                              aria-label="Eliminar"
+                              className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
-
-                        <div className="mt-2 flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleEdit(r)}
-                            title="Editar"
-                            aria-label="Editar"
-                            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-[#84b9ed] transition-colors"
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(r)}
-                            title="Eliminar"
-                            aria-label="Eliminar"
-                            className="p-2 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                      ))}
+                    </div>
+                  </>
+                )
               )}
             </div>
 
@@ -1269,14 +1347,27 @@ function Admin92PageContent() {
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold text-slate-900">Cuaderno de cobros</h2>
-                <button
-                  type="button"
-                  onClick={fetchCobros}
-                  disabled={cobroLoading}
-                  className="text-sm font-medium text-[#84b9ed] hover:text-[#6ba3d9] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                >
-                  {cobroLoading ? "Cargando..." : "Actualizar"}
-                </button>
+                <div className="flex items-center gap-3">
+                  {WORD_ONLINE_URL ? (
+                    <a
+                      href={WORD_ONLINE_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 transition-colors"
+                    >
+                      <FileText className="h-4 w-4 shrink-0 text-[#84b9ed]" aria-hidden />
+                      Word online
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={fetchCobros}
+                    disabled={cobroLoading}
+                    className="text-sm font-medium text-[#84b9ed] hover:text-[#6ba3d9] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    {cobroLoading ? "Cargando..." : "Actualizar"}
+                  </button>
+                </div>
               </div>
               {cobroError && (
                 <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800 text-sm">
@@ -1448,7 +1539,88 @@ function Admin92PageContent() {
                   </div>
                 </div>
               ) : cobroFormMode === "single" ? (
-                <form onSubmit={handleAddSingleCobro} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+                <div className="mb-6">
+                  <div className="mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowSingleCobroForm((v) => !v)}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      {showSingleCobroForm ? "Ocultar formulario" : "Ver formulario"}
+                    </button>
+                  </div>
+                  {!showSingleCobroForm ? null : (
+                    <form onSubmit={handleAddSingleCobro} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
+                        <input
+                          type="text"
+                          value={cobroClient}
+                          onChange={(e) => setCobroClient(e.target.value)}
+                          placeholder="Nombre del cliente"
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Servicio</label>
+                        <select
+                          value={cobroServicio}
+                          onChange={(e) => setCobroServicio(e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                        >
+                          {SERVICIO_OPTIONS.map((opt) => (
+                            <option key={opt || "vacio"} value={opt}>{opt || "—"}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Origen</label>
+                        <select
+                          value={cobroOrigen}
+                          onChange={(e) => setCobroOrigen(e.target.value as "manual" | "suscripcion_mp")}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                        >
+                          <option value="manual">Manual</option>
+                          <option value="suscripcion_mp">Suscripción MP</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Monto (ARS)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={cobroAmount}
+                          onChange={(e) => setCobroAmount(e.target.value)}
+                          placeholder="20000"
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Fecha de cobro</label>
+                        <input
+                          type="date"
+                          value={cobroDueDate}
+                          onChange={(e) => setCobroDueDate(e.target.value)}
+                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                        />
+                      </div>
+                      <div className="flex items-end">
+                        <button
+                          type="submit"
+                          disabled={cobroSubmitting}
+                          className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+                            cobroSubmitting ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9]"
+                          }`}
+                        >
+                          {cobroSubmitting ? "Guardando..." : "Agregar"}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              ) : (
+                <form onSubmit={handleAddRecurrentCobros} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 mb-6">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
                     <input
@@ -1472,60 +1644,14 @@ function Admin92PageContent() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Monto (ARS)</label>
-                    <input
-                      type="number"
-                      min="1"
-                      step="0.01"
-                      value={cobroAmount}
-                      onChange={(e) => setCobroAmount(e.target.value)}
-                      placeholder="20000"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Fecha de cobro</label>
-                    <input
-                      type="date"
-                      value={cobroDueDate}
-                      onChange={(e) => setCobroDueDate(e.target.value)}
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <button
-                      type="submit"
-                      disabled={cobroSubmitting}
-                      className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors cursor-pointer ${
-                        cobroSubmitting ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9]"
-                      }`}
-                    >
-                      {cobroSubmitting ? "Guardando..." : "Agregar"}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <form onSubmit={handleAddRecurrentCobros} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
-                    <input
-                      type="text"
-                      value={cobroClient}
-                      onChange={(e) => setCobroClient(e.target.value)}
-                      placeholder="Nombre del cliente"
-                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Servicio</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Origen</label>
                     <select
-                      value={cobroServicio}
-                      onChange={(e) => setCobroServicio(e.target.value)}
+                      value={cobroOrigen}
+                      onChange={(e) => setCobroOrigen(e.target.value as "manual" | "suscripcion_mp")}
                       className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
                     >
-                      {SERVICIO_OPTIONS.map((opt) => (
-                        <option key={opt || "vacio"} value={opt}>{opt || "—"}</option>
-                      ))}
+                      <option value="manual">Manual</option>
+                      <option value="suscripcion_mp">Suscripción MP</option>
                     </select>
                   </div>
                   <div>
@@ -1621,6 +1747,15 @@ function Admin92PageContent() {
                         ))}
                       </select>
                     </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Fecha</label>
+                      <input
+                        type="date"
+                        value={editCobroDueDate}
+                        onChange={(e) => setEditCobroDueDate(e.target.value)}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                      />
+                    </div>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
                         type="checkbox"
@@ -1654,51 +1789,69 @@ function Admin92PageContent() {
 
               {/* Filtros - ocultos en Acciones de hoy */}
               {cobroFormMode !== "actions" && (
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <label className="text-sm font-medium text-slate-700">Filtros:</label>
-                <select
-                  value={cobroFilterClient}
-                  onChange={(e) => setCobroFilterClient(e.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[140px] cursor-pointer"
-                >
-                  <option value="">Todos los clientes</option>
-                  {cobroClients.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={cobroFilterMonth}
-                  onChange={(e) => setCobroFilterMonth(e.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[140px] cursor-pointer"
-                >
-                  <option value="">Todos los meses</option>
-                  {cobroMonthOptions.map((ym) => (
-                    <option key={ym} value={ym}>
-                      {formatMonthLabel(ym)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={cobroFilterPaid}
-                  onChange={(e) => setCobroFilterPaid(e.target.value as "" | "paid" | "pending")}
-                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[120px] cursor-pointer"
-                >
-                  <option value="">Todos</option>
-                  <option value="paid">Pagados</option>
-                  <option value="pending">Pendientes</option>
-                </select>
-                {cobroFilterClient && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteAllCobrosOfClient(cobroFilterClient)}
-                    className="text-sm font-medium text-red-600 hover:text-red-700 cursor-pointer"
-                  >
-                    Eliminar todas las cuotas de {cobroFilterClient}
-                  </button>
-                )}
-              </div>
+                <>
+                  <div className="flex flex-wrap items-center gap-3 mb-4">
+                    <label className="text-sm font-medium text-slate-700">Filtros:</label>
+                    <select
+                      value={cobroFilterClient}
+                      onChange={(e) => setCobroFilterClient(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[140px] cursor-pointer"
+                    >
+                      <option value="">Todos los clientes</option>
+                      {cobroClients.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={cobroFilterMonth}
+                      onChange={(e) => setCobroFilterMonth(e.target.value)}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[140px] cursor-pointer"
+                    >
+                      <option value="">Todos los meses</option>
+                      {cobroMonthOptions.map((ym) => (
+                        <option key={ym} value={ym}>
+                          {formatMonthLabel(ym)}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={cobroFilterPaid}
+                      onChange={(e) => setCobroFilterPaid(e.target.value as "" | "paid" | "pending")}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[120px] cursor-pointer"
+                    >
+                      <option value="">Todos</option>
+                      <option value="paid">Pagados</option>
+                      <option value="pending">Pendientes</option>
+                    </select>
+                    <select
+                      value={cobroFilterOrigen}
+                      onChange={(e) => setCobroFilterOrigen(e.target.value as "" | "manual" | "suscripcion_mp")}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[160px] cursor-pointer"
+                    >
+                      <option value="">Todos los orígenes</option>
+                      <option value="manual">Manual</option>
+                      <option value="suscripcion_mp">Suscripción MP</option>
+                    </select>
+                    {cobroFilterClient && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAllCobrosOfClient(cobroFilterClient)}
+                        className="text-sm font-medium text-red-600 hover:text-red-700 cursor-pointer"
+                      >
+                        Eliminar todas las cuotas de {cobroFilterClient}
+                      </button>
+                    )}
+                  </div>
+                  <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    <span className="font-medium">Total listado:</span>{" "}
+                    <span className="font-semibold text-slate-900">{formatCurrency(totalCobrosFiltrados)}</span>
+                    {cobroFilterMonth && (
+                      <span className="text-slate-500">{" "}· Mes: {formatMonthLabel(cobroFilterMonth)}</span>
+                    )}
+                  </div>
+                </>
               )}
 
               {/* Tabla de cuotas - oculta en Acciones de hoy */}
@@ -1709,6 +1862,7 @@ function Admin92PageContent() {
                     <tr className="border-b border-slate-200">
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Cliente</th>
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Servicio</th>
+                      <th className="text-left py-3 px-2 font-semibold text-slate-700">Origen</th>
                       <th className="text-left py-3 px-2 font-semibold text-slate-700">Fecha</th>
                       <th className="text-right py-3 px-2 font-semibold text-slate-700">Monto</th>
                       <th className="text-center py-3 px-2 font-semibold text-slate-700">Pagado</th>
@@ -1720,13 +1874,13 @@ function Admin92PageContent() {
                   <tbody>
                     {cobroLoading && cobros.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-8 text-center text-slate-500">
+                        <td colSpan={9} className="py-8 text-center text-slate-500">
                           Cargando...
                         </td>
                       </tr>
                     ) : filteredCobros.length === 0 ? (
                       <tr>
-                        <td colSpan={8} className="py-8 text-center text-slate-500">
+                        <td colSpan={9} className="py-8 text-center text-slate-500">
                           No hay cuotas. Agregá una cuota única o generá cuotas recurrentes.
                         </td>
                       </tr>
@@ -1735,6 +1889,15 @@ function Admin92PageContent() {
                         <tr key={c.id} className={`border-b border-slate-100 hover:bg-slate-50/50 ${c.paid ? "bg-green-50/30" : ""}`}>
                           <td className="py-3 px-2 font-medium text-slate-900">{c.clientName}</td>
                           <td className="py-3 px-2 text-slate-600">{c.servicio || "—"}</td>
+                          <td className="py-3 px-2">
+                            <span
+                              className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                                c.origen === "suscripcion_mp" ? "bg-blue-100 text-blue-800" : "bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
+                            </span>
+                          </td>
                           <td className="py-3 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
                           <td className="py-3 px-2 text-right font-medium text-slate-900">{formatCurrency(c.amount)}</td>
                           <td className="py-3 px-2 text-center">
@@ -1755,7 +1918,11 @@ function Admin92PageContent() {
                             <button
                               type="button"
                               onClick={() => handleToggleRecordatorio(c)}
-                              title={c.recordatorioEnviado ? "Marcar recordatorio no enviado" : "Marcar recordatorio enviado"}
+                              title={
+                                c.recordatorioEnviado
+                                  ? "Marcar recordatorio no enviado"
+                                  : "Marcar recordatorio enviado"
+                              }
                               className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 transition-colors cursor-pointer ${
                                 c.recordatorioEnviado
                                   ? "border-amber-500 bg-amber-100 text-amber-700 hover:bg-amber-200"
@@ -1818,16 +1985,21 @@ function Admin92PageContent() {
               <p className="text-sm text-slate-600">
                 Asigná el <strong>Property ID</strong> de GA4 a cada suscripción para que el cliente vea estadísticas reales en Mi cuenta.
               </p>
-              <button
-                type="button"
-                onClick={fetchSubscriptions}
-                className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                  subLoading ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9] cursor-pointer"
-                }`}
-                disabled={subLoading}
-              >
-                {subLoading ? "Cargando..." : "Actualizar"}
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex rounded-full bg-amber-100 px-2 py-1 text-xs font-medium text-amber-800">
+                  Pendientes: {pendingSubscriptionsCount}
+                </span>
+                <button
+                  type="button"
+                  onClick={fetchSubscriptions}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                    subLoading ? "bg-slate-200 text-slate-500 cursor-not-allowed" : "bg-[#84b9ed] text-white hover:bg-[#6ba3d9] cursor-pointer"
+                  }`}
+                  disabled={subLoading}
+                >
+                  {subLoading ? "Cargando..." : "Actualizar"}
+                </button>
+              </div>
             </div>
 
             {(subError || searchParams.get("impersonate") === "error" || searchParams.get("impersonate") === "notfound") && (
@@ -1843,6 +2015,20 @@ function Admin92PageContent() {
             )}
 
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+              <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
+                <label className="text-sm font-medium text-slate-700">Filtrar estado:</label>
+                <select
+                  value={subStatusFilter}
+                  onChange={(e) => setSubStatusFilter(e.target.value as "all" | "pending" | "authorized" | "other")}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent cursor-pointer"
+                >
+                  <option value="all">Todos</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="authorized">Autorizadas</option>
+                  <option value="other">Otros estados</option>
+                </select>
+                <span className="text-xs text-slate-500">{filteredSubscriptions.length} suscripción(es)</span>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
@@ -1861,14 +2047,14 @@ function Admin92PageContent() {
                           Cargando...
                         </td>
                       </tr>
-                    ) : subscriptions.length === 0 ? (
+                    ) : filteredSubscriptions.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="py-8 text-center text-slate-500">
-                          No hay suscripciones.
+                          No hay suscripciones para el filtro seleccionado.
                         </td>
                       </tr>
                     ) : (
-                      subscriptions.map((s) => (
+                      filteredSubscriptions.map((s) => (
                         <tr key={s.preapprovalId} className="border-b border-slate-100 hover:bg-slate-50/50">
                           <td className="py-3 px-4 font-medium text-slate-900">{s.email}</td>
                           <td className="py-3 px-4 text-slate-600">{s.plan}</td>
@@ -1918,6 +2104,21 @@ function Admin92PageContent() {
                           <td className="py-3 px-4 text-right">
                             {editingSub?.preapprovalId === s.preapprovalId ? null : (
                               <div className="flex items-center justify-end gap-2">
+                                {s.status === "pending" && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleCopy(
+                                        `Hola ${s.name || ""}, te escribo de Glomun.\nTu suscripción figura como pendiente en Mercado Pago y falta terminar la confirmación del medio de pago para activarla.\nCuando quieras te paso el enlace para completarlo.`,
+                                        `sub-pending-${s.preapprovalId}`,
+                                      )
+                                    }
+                                    className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100 cursor-pointer"
+                                    title="Copiar mensaje de seguimiento"
+                                  >
+                                    {copiedId === `sub-pending-${s.preapprovalId}` ? "Copiado" : "Copiar seguimiento"}
+                                  </button>
+                                )}
                                 <a
                                   href={`/api/admin/impersonate?preapprovalId=${encodeURIComponent(s.preapprovalId)}`}
                                   className="inline-flex items-center gap-1 rounded-lg bg-[#84b9ed] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#6ba3d9]"
