@@ -543,7 +543,13 @@ function Admin92PageContent() {
     const months = Math.min(60, Math.max(1, parseInt(cobroMonthsToGenerate, 10) || 12));
     if (!cobroClient.trim() || isNaN(amount) || amount <= 0) return;
     const [y, m] = cobroFromMonth.split("-").map(Number);
-    const toInsert: { clientName: string; amount: number; dueDate: string; servicio?: string }[] = [];
+    const toInsert: {
+      clientName: string;
+      amount: number;
+      dueDate: string;
+      servicio?: string;
+      origen: "manual" | "suscripcion_mp";
+    }[] = [];
     for (let i = 0; i < months; i++) {
       const d = new Date(y, m - 1 + i, Math.min(day, new Date(y, m + i, 0).getDate()));
       const dueDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;

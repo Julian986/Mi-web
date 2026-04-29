@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
           throw new Error("Cada cobro debe tener clientName, amount > 0 y dueDate (YYYY-MM-DD)");
         }
         const origenRaw = String(c.origen || "manual").trim();
-        const origen = origenRaw === "suscripcion_mp" ? "suscripcion_mp" : "manual";
+        const origen: "manual" | "suscripcion_mp" =
+          origenRaw === "suscripcion_mp" ? "suscripcion_mp" : "manual";
         return {
           clientName,
           amount,
@@ -89,7 +90,8 @@ export async function POST(req: NextRequest) {
     }
 
     const origenRaw = String(origen || "manual").trim();
-    const cobroOrigen = origenRaw === "suscripcion_mp" ? "suscripcion_mp" : "manual";
+    const cobroOrigen: "manual" | "suscripcion_mp" =
+      origenRaw === "suscripcion_mp" ? "suscripcion_mp" : "manual";
 
     const doc = {
       clientName: client,
