@@ -38,7 +38,9 @@ export function middleware(req: NextRequest) {
   // al crear acceso directo (sin romper la protección de /admin92).
   if (
     path === "/admin92/proyectos/manifest.webmanifest" ||
-    path.startsWith("/admin92/proyectos/app-icon/")
+    path.startsWith("/admin92/proyectos/app-icon/") ||
+    path === "/admin92/contabilidad/manifest.webmanifest" ||
+    path.startsWith("/admin92/contabilidad/app-icon/")
   ) {
     return NextResponse.next();
   }

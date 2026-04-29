@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy, FileText } from "lucide-react";
 import { getRemindersToday, getRemindersWeekBefore, getStatsToday } from "@/app/lib/cobrosWorkflow";
 import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_PAGO } from "@/app/lib/cobrosMensajes";
@@ -107,16 +107,23 @@ type SubscriptionAdmin = {
 };
 
 function Admin92PageContent() {
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isContabilidadPwa = pathname?.startsWith("/admin92/contabilidad") ?? false;
+
   const [activeTab, setActiveTab] = useState<"webhooks" | "contabilidad" | "suscripciones">("contabilidad");
 
-  // Permite que otras páginas (ej. /admin92/proyectos) filtren/seleccionen el tab con `?tab=...`
+  // Ruta dedicada /admin92/contabilidad (PWA) → siempre contabilidad. Si no, `?tab=` en /admin92.
   useEffect(() => {
+    if (isContabilidadPwa) {
+      setActiveTab("contabilidad");
+      return;
+    }
     const tab = searchParams.get("tab");
     if (tab === "webhooks" || tab === "contabilidad" || tab === "suscripciones") {
       setActiveTab(tab);
     }
-  }, [searchParams]);
+  }, [searchParams, isContabilidadPwa]);
 
   // Webhooks state
   const [events, setEvents] = useState<WebhookEvent[]>([]);
@@ -759,49 +766,71 @@ function Admin92PageContent() {
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
         <div className="flex items-center gap-2 mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Admin</h1>
-          <div className="flex w-full rounded-lg border border-slate-200 p-1 overflow-x-auto sm:overflow-x-visible">
-            <button
-              type="button"
-              onClick={() => setActiveTab("webhooks")}
-              className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                activeTab === "webhooks"
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              Webhooks
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("contabilidad")}
-              className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                activeTab === "contabilidad"
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              Contabilidad
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("suscripciones")}
-              className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                activeTab === "suscripciones"
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              Suscripciones
-            </button>
-            <Link
-              href="/admin92/proyectos"
-              className="rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap text-slate-600 hover:bg-slate-100"
-            >
-              <FolderKanban className="w-4 h-4" />
-              Proyectos
-            </Link>
-          </div>
+          {isContabilidadPwa ? (
+            <div className="flex w-full flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 p-1 pl-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <FolderKanban className="h-5 w-5 shrink-0 text-[#84b9ed]" aria-hidden />
+                <span className="truncate text-sm font-semibold text-slate-900">Contabilidad</span>
+              </div>
+              <Link
+                href="/admin92"
+                className="shrink-0 rounded-md px-3 sm:px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
+              >
+                Panel completo
+              </Link>
+            </div>
+          ) : (
+            <div className="flex w-full rounded-lg border border-slate-200 p-1 overflow-x-auto sm:overflow-x-visible">
+              <button
+                type="button"
+                onClick={() => setActiveTab("webhooks")}
+                className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                  activeTab === "webhooks"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                Webhooks
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("contabilidad")}
+                className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                  activeTab === "contabilidad"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                Contabilidad
+              </button>
+              <Link
+                href="/admin92/contabilidad"
+                className="rounded-md px-2 sm:px-3 py-2 text-xs font-medium text-[#84b9ed] hover:bg-slate-100 whitespace-nowrap self-center"
+                title="Abrir en vista app (ideal para instalar acceso directo)"
+              >
+                App contabilidad
+              </Link>
+              <button
+                type="button"
+                onClick={() => setActiveTab("suscripciones")}
+                className={`rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                  activeTab === "suscripciones"
+                    ? "bg-slate-900 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Suscripciones
+              </button>
+              <Link
+                href="/admin92/proyectos"
+                className="rounded-md px-3 sm:px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 whitespace-nowrap text-slate-600 hover:bg-slate-100"
+              >
+                <FolderKanban className="w-4 h-4" />
+                Proyectos
+              </Link>
+            </div>
+          )}
         </div>
 
         {activeTab === "webhooks" && (
