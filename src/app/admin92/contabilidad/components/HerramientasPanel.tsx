@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { FileText } from "lucide-react";
 import type { HerramientaSection } from "@/app/lib/contabilidadHerramientasMongo";
 
 export type HerramientaNota = {
@@ -19,6 +20,7 @@ type Props = {
   /** Solo objetivos: mes YYYY-MM del calendario */
   monthKey?: string;
   monthLabel?: string;
+  wordOnlineUrl?: string;
 };
 
 function formatNotaDate(iso: string): string {
@@ -36,7 +38,14 @@ function formatNotaDate(iso: string): string {
   }
 }
 
-export default function HerramientasPanel({ section, title, hint, monthKey, monthLabel }: Props) {
+export default function HerramientasPanel({
+  section,
+  title,
+  hint,
+  monthKey,
+  monthLabel,
+  wordOnlineUrl,
+}: Props) {
   const [notas, setNotas] = useState<HerramientaNota[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -161,7 +170,20 @@ export default function HerramientasPanel({ section, title, hint, monthKey, mont
   return (
     <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          {wordOnlineUrl ? (
+            <a
+              href={wordOnlineUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-slate-400 hover:bg-slate-50 transition-colors"
+            >
+              <FileText className="h-4 w-4 shrink-0 text-[#84b9ed]" aria-hidden />
+              Word online
+            </a>
+          ) : null}
+        </div>
         {section === "objetivos" && monthLabel && (
           <p className="text-xs text-slate-500 mt-0.5">Mes: {monthLabel}</p>
         )}

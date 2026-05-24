@@ -1337,6 +1337,7 @@ function Admin92PageContent() {
                   section="mantenimientos"
                   title="Mantenimientos"
                   hint="Contratos, servicios y tareas de mantenimiento de clientes."
+                  wordOnlineUrl={WORD_ONLINE_URL || undefined}
                 />
               )}
               {contabilidadToolPanel === "buscar-clientes" && (
