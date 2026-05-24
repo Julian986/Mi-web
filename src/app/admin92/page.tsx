@@ -7,6 +7,7 @@ import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy, FileTex
 import { getRemindersToday, getRemindersWeekBefore, getStatsToday } from "@/app/lib/cobrosWorkflow";
 import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_PAGO } from "@/app/lib/cobrosMensajes";
 import MonthCalendar from "@/app/admin92/contabilidad/components/MonthCalendar";
+import HerramientasPanel from "@/app/admin92/contabilidad/components/HerramientasPanel";
 import { buildCalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
 import {
   formatMonthLabel,
@@ -136,6 +137,9 @@ function Admin92PageContent() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [contabilidadToolPanel, setContabilidadToolPanel] = useState<
+    null | "objetivos" | "mantenimientos" | "buscar-clientes"
+  >(null);
   const [pendingPaidCobro, setPendingPaidCobro] = useState<Cobro | null>(null);
   const [paidFechaIngreso, setPaidFechaIngreso] = useState("");
 
@@ -1288,6 +1292,59 @@ function Admin92PageContent() {
               )}
               {accError && (
                 <p className="mt-3 text-sm text-red-600">{accError}</p>
+              )}
+            </div>
+
+            {/* Herramientas del calendario */}
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">Herramientas</p>
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { id: "objetivos", label: "Objetivos" },
+                    { id: "mantenimientos", label: "Mantenimientos" },
+                    { id: "buscar-clientes", label: "Buscar clientes" },
+                  ] as const
+                ).map(({ id, label }) => {
+                  const active = contabilidadToolPanel === id;
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setContabilidadToolPanel((prev) => (prev === id ? null : id))}
+                      className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                        active
+                          ? "border-[#84b9ed] bg-[#84b9ed]/10 text-[#4a7fb8] ring-2 ring-[#84b9ed]/30"
+                          : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {contabilidadToolPanel === "objetivos" && (
+                <HerramientasPanel
+                  section="objetivos"
+                  title="Objetivos"
+                  monthKey={contabilidadMonth}
+                  monthLabel={formatMonthLabel(contabilidadMonth)}
+                  hint="Metas de ingreso, margen y cobranza del mes. Cada objetivo queda asociado al mes del calendario."
+                />
+              )}
+              {contabilidadToolPanel === "mantenimientos" && (
+                <HerramientasPanel
+                  section="mantenimientos"
+                  title="Mantenimientos"
+                  hint="Contratos, servicios y tareas de mantenimiento de clientes."
+                />
+              )}
+              {contabilidadToolPanel === "buscar-clientes" && (
+                <HerramientasPanel
+                  section="buscar-clientes"
+                  title="Buscar clientes"
+                  hint="Notas, criterios de búsqueda e ideas para el explorador de clientes."
+                />
               )}
             </div>
 
