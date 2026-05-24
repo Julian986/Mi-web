@@ -6,37 +6,17 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy, FileText } from "lucide-react";
 import { getRemindersToday, getRemindersWeekBefore, getStatsToday } from "@/app/lib/cobrosWorkflow";
 import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_PAGO } from "@/app/lib/cobrosMensajes";
-
-const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-];
-
-function getMonthKey(dateStr: string | Date): string {
-  const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
-}
-
-function formatMonthLabel(ym: string): string {
-  const [y, m] = ym.split("-");
-  return `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
-}
-
-/** Formatea YYYY-MM-DD como fecha local (evita bug de timezone) */
-function formatLocalDate(dateStr: string): string {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("es-AR");
-}
-
-/** Obtiene YYYY-MM para filtros (usa componentes locales si es YYYY-MM-DD) */
-function getMonthKeySafe(dateStr: string | Date): string {
-  if (typeof dateStr === "string" && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-    return dateStr.slice(0, 7);
-  }
-  return getMonthKey(dateStr);
-}
+import MonthCalendar from "@/app/admin92/contabilidad/components/MonthCalendar";
+import { buildCalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
+import {
+  formatMonthLabel,
+  formatLocalDate,
+  getMonthKey,
+  getMonthKeySafe,
+  getRecordDateStr,
+  shiftMonth,
+  todayYmd,
+} from "@/app/admin92/contabilidad/lib/utils";
 
 const SERVICIO_OPTIONS = ["", "App", "Tienda", "Web", "Mantenimiento", "Otro"] as const;
 
@@ -77,11 +57,14 @@ type Cobro = {
   dueDate: string; // YYYY-MM-DD
   paid: boolean;
   paidAt?: string;
+  /** Fecha real del cobro (ingreso contable) */
+  fechaCobro?: string;
   servicio?: string;
   origen?: "manual" | "suscripcion_mp";
   notes?: string;
   estadisticasEnviadas?: boolean;
   recordatorioEnviado?: boolean;
+  accountingRecordId?: string;
 };
 
 const typeLabels: Record<AccountingType, string> = {
@@ -148,11 +131,13 @@ function Admin92PageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<AccountingRecord | null>(null);
   const [showNewRecordForm, setShowNewRecordForm] = useState(false);
-  const [showRecordsList, setShowRecordsList] = useState(false);
-  const [filterMonth, setFilterMonth] = useState<string>(() => {
+  const [contabilidadMonth, setContabilidadMonth] = useState<string>(() => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // "YYYY-MM" mes actual
-  }); // "" = Todos, "YYYY-MM" = mes específico
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [pendingPaidCobro, setPendingPaidCobro] = useState<Cobro | null>(null);
+  const [paidFechaIngreso, setPaidFechaIngreso] = useState("");
 
   // Cuaderno de cobros
   const [cobros, setCobros] = useState<Cobro[]>([]);
@@ -181,10 +166,6 @@ function Admin92PageContent() {
   const [editCobroDueDate, setEditCobroDueDate] = useState("");
   const [editCobroUpdateFuture, setEditCobroUpdateFuture] = useState(false);
   const [cobroFilterClient, setCobroFilterClient] = useState("");
-  const [cobroFilterMonth, setCobroFilterMonth] = useState<string>(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; // "YYYY-MM" mes actual
-  });
   const [cobroFilterPaid, setCobroFilterPaid] = useState<"" | "paid" | "pending">("");
   const [cobroFilterOrigen, setCobroFilterOrigen] = useState<"" | "manual" | "suscripcion_mp">("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -312,6 +293,8 @@ function Admin92PageContent() {
           ...c,
           id: c.id || c._id || "",
           origen: c.origen === "suscripcion_mp" ? "suscripcion_mp" : "manual",
+          accountingRecordId: c.accountingRecordId,
+          fechaCobro: c.fechaCobro,
         })),
       );
     } catch (e: any) {
@@ -434,22 +417,97 @@ function Admin92PageContent() {
   };
 
   const filteredRecords = useMemo(() => {
-    if (!filterMonth) return records;
-    return records.filter((r) => getMonthKey(r.date) === filterMonth);
-  }, [records, filterMonth]);
+    return records.filter((r) => getMonthKey(r.date) === contabilidadMonth);
+  }, [records, contabilidadMonth]);
 
-  const monthOptions = useMemo(() => {
-    const START_MONTH = "2026-02"; // Empresa inicia en febrero 2026
-    const now = new Date();
-    const options: string[] = [];
-    for (let i = 0; i < 24; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const ym = getMonthKey(d);
-      if (ym < START_MONTH) break;
-      options.push(ym);
+  const cobrosPendientesMes = useMemo(
+    () => cobros.filter((c) => !c.paid && getMonthKeySafe(c.dueDate) === contabilidadMonth),
+    [cobros, contabilidadMonth],
+  );
+
+  const calendarMarkers = useMemo(
+    () => buildCalendarMarkers(filteredRecords, cobrosPendientesMes),
+    [filteredRecords, cobrosPendientesMes],
+  );
+
+  const dayRecords = useMemo(() => {
+    if (selectedDate) {
+      return filteredRecords.filter((r) => getRecordDateStr(r.date) === selectedDate);
     }
-    return ["", ...options];
-  }, []);
+    return filteredRecords;
+  }, [filteredRecords, selectedDate]);
+
+  const dayCuotasPendientes = useMemo(() => {
+    if (selectedDate) {
+      return cobros
+        .filter((c) => !c.paid && c.dueDate === selectedDate)
+        .sort((a, b) => a.clientName.localeCompare(b.clientName));
+    }
+    return cobrosPendientesMes;
+  }, [cobros, selectedDate, cobrosPendientesMes]);
+
+  const cuotaEsperadaLabel = (c: Cobro) =>
+    c.servicio ? `${c.clientName} (${c.servicio}) - Cuota` : `${c.clientName} - Cuota`;
+
+  const recordsById = useMemo(
+    () => new Map(records.filter((r) => r._id).map((r) => [r._id!, r])),
+    [records],
+  );
+
+  const cobranzaKpis = useMemo(() => {
+    const inMonth = cobros.filter((c) => getMonthKeySafe(c.dueDate) === contabilidadMonth);
+    const esperado = inMonth.reduce((sum, c) => sum + c.amount, 0);
+    const pendiente = inMonth.filter((c) => !c.paid).reduce((sum, c) => sum + c.amount, 0);
+    const cobrado = cobros
+      .filter((c) => {
+        if (!c.paid) return false;
+        if (c.accountingRecordId) {
+          const rec = recordsById.get(c.accountingRecordId);
+          if (rec) return getMonthKey(rec.date) === contabilidadMonth;
+        }
+        const fechaContable = c.fechaCobro || c.dueDate;
+        return getMonthKeySafe(fechaContable) === contabilidadMonth;
+      })
+      .reduce((sum, c) => sum + c.amount, 0);
+    return { esperado, cobrado, pendiente };
+  }, [cobros, contabilidadMonth, recordsById]);
+
+  /** Ganado vs restante del mes, según fecha contable de cobros y corte (hoy o día seleccionado). */
+  const cobranzaProgreso = useMemo(() => {
+    const inMonth = cobros.filter((c) => getMonthKeySafe(c.dueDate) === contabilidadMonth);
+    const esperadoTotal = inMonth.reduce((sum, c) => sum + c.amount, 0);
+    const hoy = todayYmd();
+    const mesActual = getMonthKey(hoy);
+
+    let asOfDate = hoy;
+    if (selectedDate && getMonthKeySafe(selectedDate) === contabilidadMonth) {
+      asOfDate = selectedDate;
+    } else if (contabilidadMonth < mesActual) {
+      const [y, m] = contabilidadMonth.split("-").map(Number);
+      asOfDate = `${y}-${String(m).padStart(2, "0")}-${String(new Date(y, m, 0).getDate()).padStart(2, "0")}`;
+    } else if (contabilidadMonth > mesActual) {
+      return { esperadoTotal, ganadoHasta: 0, esperadoRestante: esperadoTotal, asOfDate: null as string | null };
+    }
+
+    const ganadoHasta = cobros
+      .filter((c) => {
+        if (!c.paid) return false;
+        let fechaContable: string;
+        if (c.accountingRecordId) {
+          const rec = recordsById.get(c.accountingRecordId);
+          if (!rec) return false;
+          fechaContable = getRecordDateStr(rec.date);
+        } else {
+          fechaContable = c.fechaCobro || c.dueDate;
+        }
+        if (getMonthKeySafe(fechaContable) !== contabilidadMonth) return false;
+        return fechaContable <= asOfDate;
+      })
+      .reduce((sum, c) => sum + c.amount, 0);
+
+    const esperadoRestante = Math.max(0, esperadoTotal - ganadoHasta);
+    return { esperadoTotal, ganadoHasta, esperadoRestante, asOfDate };
+  }, [cobros, contabilidadMonth, recordsById, selectedDate]);
 
   // Meses para formulario de cuotas recurrentes (desde hace 12 meses hasta +24)
   const cobroMonthOptions = useMemo(() => {
@@ -472,14 +530,12 @@ function Admin92PageContent() {
     if (cobroFilterClient) {
       list = list.filter((c) => c.clientName === cobroFilterClient);
     }
-    if (cobroFilterMonth) {
-      list = list.filter((c) => getMonthKeySafe(c.dueDate) === cobroFilterMonth);
-    }
+    list = list.filter((c) => getMonthKeySafe(c.dueDate) === contabilidadMonth);
     if (cobroFilterPaid === "paid") list = list.filter((c) => c.paid);
     if (cobroFilterPaid === "pending") list = list.filter((c) => !c.paid);
     if (cobroFilterOrigen) list = list.filter((c) => c.origen === cobroFilterOrigen);
     return list.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-  }, [cobros, cobroFilterClient, cobroFilterMonth, cobroFilterPaid, cobroFilterOrigen]);
+  }, [cobros, cobroFilterClient, contabilidadMonth, cobroFilterPaid, cobroFilterOrigen]);
 
   const totalCobrosFiltrados = useMemo(
     () => filteredCobros.reduce((sum, c) => sum + c.amount, 0),
@@ -605,18 +661,45 @@ function Admin92PageContent() {
   };
 
   const handleTogglePaid = async (c: Cobro) => {
+    if (c.paid) {
+      try {
+        const res = await fetch(`/api/admin/cobros/${c.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ paid: false }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setCobroError(data?.error || "No se pudo actualizar.");
+          return;
+        }
+        fetchCobros();
+      } catch (e: any) {
+        setCobroError(e?.message || "Error al actualizar.");
+      }
+      return;
+    }
+    setPendingPaidCobro(c);
+    setPaidFechaIngreso(todayYmd());
+  };
+
+  const handleConfirmMarkPaid = async () => {
+    if (!pendingPaidCobro) return;
     try {
-      const res = await fetch(`/api/admin/cobros/${c.id}`, {
+      const res = await fetch(`/api/admin/cobros/${pendingPaidCobro.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ paid: !c.paid }),
+        body: JSON.stringify({ paid: true, fechaIngreso: paidFechaIngreso }),
       });
       const data = await res.json();
       if (!res.ok) {
         setCobroError(data?.error || "No se pudo actualizar.");
         return;
       }
+      setPendingPaidCobro(null);
+      setPaidFechaIngreso("");
       fetchCobros();
+      fetchRecords();
     } catch (e: any) {
       setCobroError(e?.message || "Error al actualizar.");
     }
@@ -1048,30 +1131,20 @@ function Admin92PageContent() {
 
         {activeTab === "contabilidad" && (
           <div className="space-y-8">
-            {/* Filtro por mes */}
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="text-sm font-medium text-slate-700">Ver por mes:</label>
-              <select
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[180px] cursor-pointer"
-              >
-                <option value="">Todos</option>
-                {monthOptions.filter(Boolean).map((ym) => (
-                  <option key={ym} value={ym}>
-                    {formatMonthLabel(ym)}
-                  </option>
-                ))}
-              </select>
-              {filterMonth && (
-                <span className="text-sm text-slate-500">
-                  Mostrando {filteredRecords.length} registro{filteredRecords.length !== 1 ? "s" : ""}
-                </span>
-              )}
+            {/* Mes activo (sincronizado con el calendario) */}
+            <div className="flex flex-wrap items-baseline gap-3">
+              <h2 className="text-xl font-semibold text-slate-900">
+                {formatMonthLabel(contabilidadMonth)}
+              </h2>
+              <span className="text-sm text-slate-500">
+                {filteredRecords.length} registro{filteredRecords.length !== 1 ? "s" : ""} · {filteredCobros.length} cuota{filteredCobros.length !== 1 ? "s" : ""}
+              </span>
             </div>
 
-            {/* Resumen */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Resumen contable */}
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">Real contable</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="rounded-xl border border-slate-200 bg-green-50/50 p-4">
                 <p className="text-xs font-medium text-slate-600 mb-1">Ingresos</p>
                 <p className="text-xl font-bold text-green-700">{formatCurrency(totalIngresos)}</p>
@@ -1089,6 +1162,26 @@ function Admin92PageContent() {
                 <p className={`text-xl font-bold ${resultado >= 0 ? "text-green-700" : "text-red-700"}`}>
                   {formatCurrency(resultado)}
                 </p>
+              </div>
+              </div>
+            </div>
+
+            {/* Cobranza del mes */}
+            <div>
+              <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">Cobranza del mes</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-xl border border-slate-200 bg-amber-50/40 p-4">
+                  <p className="text-xs font-medium text-slate-600 mb-1">Esperado</p>
+                  <p className="text-xl font-bold text-amber-800">{formatCurrency(cobranzaKpis.esperado)}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-green-50/40 p-4">
+                  <p className="text-xs font-medium text-slate-600 mb-1">Cobrado</p>
+                  <p className="text-xl font-bold text-green-700">{formatCurrency(cobranzaKpis.cobrado)}</p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-red-50/40 p-4">
+                  <p className="text-xs font-medium text-slate-600 mb-1">Pendiente</p>
+                  <p className="text-xl font-bold text-red-700">{formatCurrency(cobranzaKpis.pendiente)}</p>
+                </div>
               </div>
             </div>
 
@@ -1198,18 +1291,69 @@ function Admin92PageContent() {
               )}
             </div>
 
-            {/* Listado */}
+            {/* Calendario */}
+            <MonthCalendar
+              month={contabilidadMonth}
+              selectedDate={selectedDate}
+              markers={calendarMarkers}
+              onSelectDate={(date) => setSelectedDate((prev) => (prev === date ? null : date))}
+              onPrevMonth={() => {
+                setContabilidadMonth((m) => shiftMonth(m, -1));
+                setSelectedDate(null);
+              }}
+              onNextMonth={() => {
+                setContabilidadMonth((m) => shiftMonth(m, 1));
+                setSelectedDate(null);
+              }}
+            />
+
+            {/* Detalle del día / mes */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <h2 className="text-lg font-semibold text-slate-900">Registros</h2>
-                  <button
-                    type="button"
-                    onClick={() => setShowRecordsList((v) => !v)}
-                    className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                  >
-                    {showRecordsList ? "Ocultar lista" : "Ver lista"}
-                  </button>
+              <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-slate-900">
+                    {selectedDate
+                      ? `Movimientos del ${formatLocalDate(selectedDate)}`
+                      : `Registros de ${formatMonthLabel(contabilidadMonth)}`}
+                  </h2>
+                  {cobranzaProgreso.esperadoTotal > 0 && (
+                    <p className="mt-1.5 text-sm text-slate-600">
+                      {selectedDate ? (
+                        <>
+                          Al {formatLocalDate(selectedDate)}:{" "}
+                          <span className="font-medium text-green-700">
+                            Ganado {formatCurrency(cobranzaProgreso.ganadoHasta)}
+                          </span>
+                          {" · "}
+                          <span className="font-medium text-orange-700">
+                            Se espera {formatCurrency(cobranzaProgreso.esperadoRestante)}
+                          </span>
+                        </>
+                      ) : cobranzaProgreso.asOfDate ? (
+                        <>
+                          Ganado hasta el momento:{" "}
+                          <span className="font-medium text-green-700">
+                            {formatCurrency(cobranzaProgreso.ganadoHasta)}
+                          </span>
+                          {" · "}
+                          Se espera ganar:{" "}
+                          <span className="font-medium text-orange-700">
+                            {formatCurrency(cobranzaProgreso.esperadoRestante)}
+                          </span>
+                          <span className="text-slate-400">
+                            {" "}(total mes {formatCurrency(cobranzaProgreso.esperadoTotal)})
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          Se espera ganar:{" "}
+                          <span className="font-medium text-orange-700">
+                            {formatCurrency(cobranzaProgreso.esperadoRestante)}
+                          </span>
+                        </>
+                      )}
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -1221,21 +1365,93 @@ function Admin92PageContent() {
                 </button>
               </div>
 
-              {!showRecordsList ? null : (
-                accLoading && records.length === 0 ? (
-                  <p className="text-slate-600 py-8 text-center">Cargando...</p>
-                ) : records.length === 0 ? (
-                  <p className="text-slate-600 py-8 text-center">
-                    No hay registros. Agregá el primero con el formulario de arriba.
-                  </p>
-                ) : filteredRecords.length === 0 ? (
-                  <p className="text-slate-600 py-8 text-center">
-                    No hay registros para {formatMonthLabel(filterMonth)}. Cambiá el filtro o agregá registros.
-                  </p>
-                ) : (
-                  <>
-                    {/* Desktop: tabla tradicional */}
-                    <div className="hidden sm:block overflow-x-auto">
+              {accLoading && records.length === 0 && cobroLoading && cobros.length === 0 ? (
+                <p className="text-slate-600 py-8 text-center">Cargando...</p>
+              ) : dayRecords.length === 0 && dayCuotasPendientes.length === 0 ? (
+                <p className="text-slate-600 py-8 text-center">
+                  {selectedDate
+                    ? "No hay movimientos ni cuotas esperadas este día."
+                    : `No hay registros ni cuotas pendientes para ${formatMonthLabel(contabilidadMonth)}.`}
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  {dayCuotasPendientes.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-3">
+                        {selectedDate ? "Cuotas esperadas" : "Cuotas pendientes del mes"}
+                      </h3>
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-slate-200">
+                              <th className="text-left py-2 px-2 font-semibold text-slate-700">Vencimiento</th>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-700">Tipo</th>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-700">Descripción</th>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-700">Origen</th>
+                              <th className="text-right py-2 px-2 font-semibold text-slate-700">Monto</th>
+                              <th className="text-right py-2 px-2 font-semibold text-slate-700">Acción</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dayCuotasPendientes.map((c) => (
+                              <tr key={c.id} className="border-b border-orange-100 bg-orange-50/30 hover:bg-orange-50/50">
+                                <td className="py-2.5 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
+                                <td className="py-2.5 px-2">
+                                  <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800">
+                                    Cuota esperada
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-2 text-slate-900">{cuotaEsperadaLabel(c)}</td>
+                                <td className="py-2.5 px-2 text-slate-500">
+                                  {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
+                                </td>
+                                <td className="py-2.5 px-2 text-right font-medium text-orange-700">
+                                  {formatCurrency(c.amount)}
+                                </td>
+                                <td className="py-2.5 px-2 text-right">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleTogglePaid(c)}
+                                    className="rounded-lg border border-green-300 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-100 cursor-pointer"
+                                  >
+                                    Marcar pagada
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="sm:hidden space-y-2">
+                        {dayCuotasPendientes.map((c) => (
+                          <div key={c.id} className="rounded-xl border border-orange-200 bg-orange-50/40 p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800">
+                                Cuota esperada
+                              </span>
+                              <span className="text-sm font-semibold text-orange-700">{formatCurrency(c.amount)}</span>
+                            </div>
+                            <p className="mt-2 text-sm font-medium text-slate-900">{cuotaEsperadaLabel(c)}</p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              Vence {formatLocalDate(c.dueDate)} · {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleTogglePaid(c)}
+                              className="mt-2 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-800 hover:bg-green-100 cursor-pointer"
+                            >
+                              Marcar pagada
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {dayRecords.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-3">Registros contables</h3>
+                      <div className="hidden sm:block overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-slate-200">
@@ -1248,7 +1464,7 @@ function Admin92PageContent() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredRecords.map((r) => (
+                          {dayRecords.map((r) => (
                             <tr
                               key={r._id || r.createdAt}
                               className="border-b border-slate-100 hover:bg-slate-50/50"
@@ -1307,7 +1523,7 @@ function Admin92PageContent() {
 
                     {/* Mobile: cards */}
                     <div className="sm:hidden space-y-2">
-                      {filteredRecords.map((r) => (
+                      {dayRecords.map((r) => (
                         <div
                           key={r._id || r.createdAt}
                           className="rounded-xl border border-slate-200 bg-white p-3"
@@ -1373,15 +1589,16 @@ function Admin92PageContent() {
                         </div>
                       ))}
                     </div>
-                  </>
-                )
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
-            {/* Cuaderno de cobros */}
+            {/* Cuotas del mes */}
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-slate-900">Cuaderno de cobros</h2>
+                <h2 className="text-lg font-semibold text-slate-900">Cuotas del mes</h2>
                 <div className="flex items-center gap-3">
                   {WORD_ONLINE_URL ? (
                     <a
@@ -1840,18 +2057,6 @@ function Admin92PageContent() {
                       ))}
                     </select>
                     <select
-                      value={cobroFilterMonth}
-                      onChange={(e) => setCobroFilterMonth(e.target.value)}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[140px] cursor-pointer"
-                    >
-                      <option value="">Todos los meses</option>
-                      {cobroMonthOptions.map((ym) => (
-                        <option key={ym} value={ym}>
-                          {formatMonthLabel(ym)}
-                        </option>
-                      ))}
-                    </select>
-                    <select
                       value={cobroFilterPaid}
                       onChange={(e) => setCobroFilterPaid(e.target.value as "" | "paid" | "pending")}
                       className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent min-w-[120px] cursor-pointer"
@@ -1882,11 +2087,69 @@ function Admin92PageContent() {
                   <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                     <span className="font-medium">Total listado:</span>{" "}
                     <span className="font-semibold text-slate-900">{formatCurrency(totalCobrosFiltrados)}</span>
-                    {cobroFilterMonth && (
-                      <span className="text-slate-500">{" "}· Mes: {formatMonthLabel(cobroFilterMonth)}</span>
-                    )}
+                    <span className="text-slate-500">{" "}· Mes: {formatMonthLabel(contabilidadMonth)}</span>
                   </div>
                 </>
+              )}
+
+              {/* Confirmar pago con fecha del cobro */}
+              {pendingPaidCobro && (
+                <div className="mb-4 rounded-xl border border-green-200 bg-green-50/60 p-4">
+                  <p className="text-sm font-semibold text-slate-800 mb-1">
+                    Marcar pagada: {pendingPaidCobro.clientName} · {formatCurrency(pendingPaidCobro.amount)}
+                  </p>
+                  <p className="text-xs text-slate-600 mb-3">
+                    Vencía el {formatLocalDate(pendingPaidCobro.dueDate)}. El ingreso contable usa la{" "}
+                    <span className="font-medium">fecha de cobro</span>, no la de vencimiento.
+                  </p>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Vencimiento</label>
+                      <p className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-700">
+                        {formatLocalDate(pendingPaidCobro.dueDate)}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Fecha del cobro</label>
+                      <input
+                        type="date"
+                        value={paidFechaIngreso}
+                        onChange={(e) => setPaidFechaIngreso(e.target.value)}
+                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                      />
+                    </div>
+                    <div className="flex flex-wrap gap-2 pb-0.5">
+                      <button
+                        type="button"
+                        onClick={() => setPaidFechaIngreso(todayYmd())}
+                        className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      >
+                        Hoy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaidFechaIngreso(pendingPaidCobro.dueDate)}
+                        className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                      >
+                        Mismo día del vencimiento
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleConfirmMarkPaid}
+                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 cursor-pointer"
+                    >
+                      Confirmar pago
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPendingPaidCobro(null); setPaidFechaIngreso(""); }}
+                      className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
               )}
 
               {/* Tabla de cuotas - oculta en Acciones de hoy */}

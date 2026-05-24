@@ -9,12 +9,16 @@ export type CobroDoc = {
   amount: number;
   dueDate: string; // YYYY-MM-DD
   paid: boolean;
-  paidAt?: string; // YYYY-MM-DD
+  paidAt?: string; // YYYY-MM-DD — cuándo se marcó pagada en el panel
+  /** Fecha real del cobro (ingreso contable), YYYY-MM-DD */
+  fechaCobro?: string;
   servicio?: string;
   notes?: string;
   origen?: "manual" | "suscripcion_mp";
   estadisticasEnviadas?: boolean;
   recordatorioEnviado?: boolean;
+  /** ID del ingreso auto-generado al marcar pagado */
+  accountingRecordId?: string;
   createdAt: Date;
 };
 
@@ -56,6 +60,23 @@ export async function insertCobrosBulk(
   const toInsert = docs.map((d) => ({ ...d, createdAt: now }));
   const result = await col.insertMany(toInsert);
   return Object.values(result.insertedIds).map((id) => id.toString());
+}
+
+export async function getCobroById(id: string): Promise<CobroDoc | null> {
+  const { ObjectId } = await import("mongodb");
+  const client = await getMongoClient();
+  const db = client.db(getDbName());
+  const col = db.collection(COLLECTION);
+  const doc = await col.findOne({ _id: new ObjectId(id) }) as CobroDoc | null;
+  if (!doc) return null;
+  const docId = doc._id?.toString() ?? "";
+  return {
+    ...doc,
+    _id: docId,
+    id: docId,
+    origen: doc.origen === "suscripcion_mp" ? "suscripcion_mp" : "manual",
+    createdAt: doc.createdAt,
+  };
 }
 
 export async function listCobros(limit = 1000): Promise<CobroDoc[]> {

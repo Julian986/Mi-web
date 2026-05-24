@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  getCobroById,
   updateCobro,
   updateCobrosByClient,
   deleteCobro,
 } from "@/app/lib/cobrosMongo";
+import { insertAccountingRecord } from "@/app/lib/accountingMongo";
 
 export const runtime = "nodejs";
+
+function todayYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 /** PATCH: actualizar cobro (amount, servicio, paid, paidAt) o actualizar cuotas futuras */
 export async function PATCH(
@@ -24,6 +31,11 @@ export async function PATCH(
       return NextResponse.json({ error: "ID requerido" }, { status: 400 });
     }
 
+    const existing = await getCobroById(id);
+    if (!existing) {
+      return NextResponse.json({ error: "Cobro no encontrado" }, { status: 404 });
+    }
+
     const body = await req.json();
     const {
       amount,
@@ -32,6 +44,7 @@ export async function PATCH(
       paidAt,
       dueDate,
       dueDateFrom,
+      fechaIngreso,
       estadisticasEnviadas,
       recordatorioEnviado,
       updateFuture,
@@ -57,10 +70,9 @@ export async function PATCH(
     if (paid !== undefined) {
       updates.paid = Boolean(paid);
       if (paid) {
-        const d = new Date();
-        updates.paidAt = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        updates.paidAt = todayYmd();
       } else {
-        unsetFields.push("paidAt");
+        unsetFields.push("paidAt", "accountingRecordId", "fechaCobro");
       }
     }
     if (paidAt !== undefined && paidAt !== null) {
@@ -86,21 +98,44 @@ export async function PATCH(
       updates.origen = String(origen) === "suscripcion_mp" ? "suscripcion_mp" : "manual";
     }
 
-    // Si updateFuture: actualizar cuotas futuras pendientes del mismo cliente
     if (updateFuture && amount !== undefined && body.clientName) {
       const numAmount = Number(amount);
       if (!isNaN(numAmount) && numAmount > 0) {
         await updateCobrosByClient(
           String(body.clientName).trim(),
-          String(dueDateFrom || dueDate || ""),
+          String(dueDateFrom || dueDate || existing.dueDate || ""),
           { amount: numAmount }
         );
       }
     }
 
+  // Sync cuota pagada → ingreso contable
+    if (paid === true && !existing.accountingRecordId) {
+      const fechaStr =
+        fechaIngreso && /^\d{4}-\d{2}-\d{2}$/.test(String(fechaIngreso))
+          ? String(fechaIngreso)
+          : todayYmd();
+      updates.fechaCobro = fechaStr;
+      const clientName = existing.clientName;
+      const servicioLabel = existing.servicio || (updates.servicio as string | undefined);
+      const monto = (updates.amount as number | undefined) ?? existing.amount;
+      const description = servicioLabel
+        ? `${clientName} (${servicioLabel}) - Cuota`
+        : `${clientName} - Cuota`;
+
+      const insertedId = await insertAccountingRecord({
+        type: "ingreso",
+        amount: monto,
+        description,
+        category: servicioLabel || "Cuota cliente",
+        date: new Date(`${fechaStr}T12:00:00.000Z`),
+      });
+      updates.accountingRecordId = insertedId.toString();
+    }
+
     if (Object.keys(updates).length > 0 || unsetFields.length > 0) {
       const ok = await updateCobro(id, updates, unsetFields.length > 0 ? unsetFields : undefined);
-      return NextResponse.json({ ok });
+      return NextResponse.json({ ok, accountingRecordId: updates.accountingRecordId ?? existing.accountingRecordId });
     }
 
     return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });
