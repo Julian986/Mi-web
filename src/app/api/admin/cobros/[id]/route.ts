@@ -49,6 +49,7 @@ export async function PATCH(
       recordatorioEnviado,
       updateFuture,
       origen,
+      notes,
     } = body;
 
     const updates: Record<string, unknown> = {};
@@ -96,6 +97,14 @@ export async function PATCH(
     }
     if (origen !== undefined) {
       updates.origen = String(origen) === "suscripcion_mp" ? "suscripcion_mp" : "manual";
+    }
+    if (notes !== undefined) {
+      const notesStr = String(notes).trim();
+      if (notesStr) {
+        updates.notes = notesStr;
+      } else {
+        unsetFields.push("notes");
+      }
     }
 
     if (updateFuture && amount !== undefined && body.clientName) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy, FileText } from "lucide-react";
@@ -8,6 +8,7 @@ import { getRemindersToday, getRemindersWeekBefore, getStatsToday } from "@/app/
 import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_PAGO } from "@/app/lib/cobrosMensajes";
 import MonthCalendar from "@/app/admin92/contabilidad/components/MonthCalendar";
 import HerramientasPanel from "@/app/admin92/contabilidad/components/HerramientasPanel";
+import CuotaNotaEditor from "@/app/admin92/contabilidad/components/CuotaNotaEditor";
 import { buildCalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
 import {
   formatMonthLabel,
@@ -1452,30 +1453,41 @@ function Admin92PageContent() {
                           </thead>
                           <tbody>
                             {dayCuotasPendientes.map((c) => (
-                              <tr key={c.id} className="border-b border-orange-100 bg-orange-50/30 hover:bg-orange-50/50">
-                                <td className="py-2.5 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
-                                <td className="py-2.5 px-2">
-                                  <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800">
-                                    Cuota esperada
-                                  </span>
-                                </td>
-                                <td className="py-2.5 px-2 text-slate-900">{cuotaEsperadaLabel(c)}</td>
-                                <td className="py-2.5 px-2 text-slate-500">
-                                  {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
-                                </td>
-                                <td className="py-2.5 px-2 text-right font-medium text-orange-700">
-                                  {formatCurrency(c.amount)}
-                                </td>
-                                <td className="py-2.5 px-2 text-right">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleTogglePaid(c)}
-                                    className="rounded-lg border border-green-300 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-100 cursor-pointer"
-                                  >
-                                    Marcar pagada
-                                  </button>
-                                </td>
-                              </tr>
+                              <Fragment key={c.id}>
+                                <tr key={c.id} className="border-b border-orange-100 bg-orange-50/30 hover:bg-orange-50/50">
+                                  <td className="py-2.5 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
+                                  <td className="py-2.5 px-2">
+                                    <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800">
+                                      Cuota esperada
+                                    </span>
+                                  </td>
+                                  <td className="py-2.5 px-2 text-slate-900">{cuotaEsperadaLabel(c)}</td>
+                                  <td className="py-2.5 px-2 text-slate-500">
+                                    {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
+                                  </td>
+                                  <td className="py-2.5 px-2 text-right font-medium text-orange-700">
+                                    {formatCurrency(c.amount)}
+                                  </td>
+                                  <td className="py-2.5 px-2 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleTogglePaid(c)}
+                                      className="rounded-lg border border-green-300 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-100 cursor-pointer"
+                                    >
+                                      Marcar pagada
+                                    </button>
+                                  </td>
+                                </tr>
+                                <tr className="border-b border-orange-100 bg-orange-50/20">
+                                  <td colSpan={6} className="px-2 pb-2.5 pt-0">
+                                    <CuotaNotaEditor
+                                      cobroId={c.id}
+                                      notes={c.notes}
+                                      onSaved={fetchCobros}
+                                    />
+                                  </td>
+                                </tr>
+                              </Fragment>
                             ))}
                           </tbody>
                         </table>
@@ -1500,6 +1512,12 @@ function Admin92PageContent() {
                             >
                               Marcar pagada
                             </button>
+                            <CuotaNotaEditor
+                              cobroId={c.id}
+                              notes={c.notes}
+                              onSaved={fetchCobros}
+                              compact
+                            />
                           </div>
                         ))}
                       </div>
