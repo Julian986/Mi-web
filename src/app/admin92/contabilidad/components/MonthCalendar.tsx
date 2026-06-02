@@ -138,10 +138,22 @@ export default function MonthCalendar({
                       style={{ backgroundColor: MARKER_COLORS.inversion }}
                     />
                   )}
-                  {dayMarkers.esperado && (
+                  {dayMarkers.cuotaPagada && (
                     <span
                       className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: MARKER_COLORS.esperado }}
+                      style={{ backgroundColor: MARKER_COLORS.cuotaPagada }}
+                    />
+                  )}
+                  {dayMarkers.cuotaRecordada && (
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: MARKER_COLORS.cuotaRecordada }}
+                    />
+                  )}
+                  {dayMarkers.cuotaPendiente && (
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: MARKER_COLORS.cuotaPendiente }}
                     />
                   )}
                 </span>
@@ -165,8 +177,16 @@ export default function MonthCalendar({
           Inversión
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.esperado }} />
-          Cuota esperada
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.cuotaPendiente }} />
+          Cuota
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.cuotaRecordada }} />
+          Recordada
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.cuotaPagada }} />
+          Pagada
         </span>
       </div>
     </div>

@@ -42,5 +42,7 @@ export const MARKER_COLORS = {
   ingreso: "#84b9ed",
   gasto: "#ef4444",
   inversion: "#6366f1",
-  esperado: "#f97316",
+  cuotaPendiente: "#f97316",
+  cuotaRecordada: "#3b82f6",
+  cuotaPagada: "#22c55e",
 } as const;

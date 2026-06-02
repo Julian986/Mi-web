@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, Suspense, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy, FileText } from "lucide-react";
@@ -9,7 +9,13 @@ import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_P
 import MonthCalendar from "@/app/admin92/contabilidad/components/MonthCalendar";
 import HerramientasPanel from "@/app/admin92/contabilidad/components/HerramientasPanel";
 import CuotaNotaEditor from "@/app/admin92/contabilidad/components/CuotaNotaEditor";
+import ConfirmarPagoCobro from "@/app/admin92/contabilidad/components/ConfirmarPagoCobro";
 import { buildCalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
+import {
+  CUOTA_ESTADO_LABEL,
+  cuotaEstadoStyles,
+  getCuotaEstado,
+} from "@/app/admin92/contabilidad/lib/cuotaEstilos";
 import {
   formatMonthLabel,
   formatLocalDate,
@@ -143,6 +149,8 @@ function Admin92PageContent() {
   >(null);
   const [pendingPaidCobro, setPendingPaidCobro] = useState<Cobro | null>(null);
   const [paidFechaIngreso, setPaidFechaIngreso] = useState("");
+  const [confirmingPaid, setConfirmingPaid] = useState(false);
+  const confirmPagoRef = useRef<HTMLDivElement>(null);
 
   // Cuaderno de cobros
   const [cobros, setCobros] = useState<Cobro[]>([]);
@@ -425,14 +433,14 @@ function Admin92PageContent() {
     return records.filter((r) => getMonthKey(r.date) === contabilidadMonth);
   }, [records, contabilidadMonth]);
 
-  const cobrosPendientesMes = useMemo(
-    () => cobros.filter((c) => !c.paid && getMonthKeySafe(c.dueDate) === contabilidadMonth),
+  const cobrosEnMes = useMemo(
+    () => cobros.filter((c) => getMonthKeySafe(c.dueDate) === contabilidadMonth),
     [cobros, contabilidadMonth],
   );
 
   const calendarMarkers = useMemo(
-    () => buildCalendarMarkers(filteredRecords, cobrosPendientesMes),
-    [filteredRecords, cobrosPendientesMes],
+    () => buildCalendarMarkers(filteredRecords, cobrosEnMes),
+    [filteredRecords, cobrosEnMes],
   );
 
   const dayRecords = useMemo(() => {
@@ -442,14 +450,21 @@ function Admin92PageContent() {
     return filteredRecords;
   }, [filteredRecords, selectedDate]);
 
-  const dayCuotasPendientes = useMemo(() => {
-    if (selectedDate) {
-      return cobros
-        .filter((c) => !c.paid && c.dueDate === selectedDate)
-        .sort((a, b) => a.clientName.localeCompare(b.clientName));
-    }
-    return cobrosPendientesMes;
-  }, [cobros, selectedDate, cobrosPendientesMes]);
+  const dayCuotas = useMemo(() => {
+    const list = selectedDate
+      ? cobros.filter((c) => c.dueDate === selectedDate)
+      : cobrosEnMes;
+    const order: Record<ReturnType<typeof getCuotaEstado>, number> = {
+      pendiente: 0,
+      recordada: 1,
+      pagada: 2,
+    };
+    return [...list].sort((a, b) => {
+      const diff = order[getCuotaEstado(a)] - order[getCuotaEstado(b)];
+      if (diff !== 0) return diff;
+      return a.clientName.localeCompare(b.clientName);
+    });
+  }, [cobros, selectedDate, cobrosEnMes]);
 
   const cuotaEsperadaLabel = (c: Cobro) =>
     c.servicio ? `${c.clientName} (${c.servicio}) - Cuota` : `${c.clientName} - Cuota`;
@@ -690,6 +705,8 @@ function Admin92PageContent() {
 
   const handleConfirmMarkPaid = async () => {
     if (!pendingPaidCobro) return;
+    setConfirmingPaid(true);
+    setCobroError("");
     try {
       const res = await fetch(`/api/admin/cobros/${pendingPaidCobro.id}`, {
         method: "PATCH",
@@ -707,8 +724,16 @@ function Admin92PageContent() {
       fetchRecords();
     } catch (e: any) {
       setCobroError(e?.message || "Error al actualizar.");
+    } finally {
+      setConfirmingPaid(false);
     }
   };
+
+  useEffect(() => {
+    if (pendingPaidCobro && confirmPagoRef.current) {
+      confirmPagoRef.current.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }, [pendingPaidCobro]);
 
   const handleToggleEstadisticas = async (c: Cobro) => {
     try {
@@ -1424,20 +1449,40 @@ function Admin92PageContent() {
                 </button>
               </div>
 
+              {pendingPaidCobro && (
+                <div ref={confirmPagoRef}>
+                  <ConfirmarPagoCobro
+                    cobro={pendingPaidCobro}
+                    fechaCobro={paidFechaIngreso}
+                    onFechaCobroChange={setPaidFechaIngreso}
+                    onConfirm={handleConfirmMarkPaid}
+                    onCancel={() => {
+                      setPendingPaidCobro(null);
+                      setPaidFechaIngreso("");
+                    }}
+                    confirming={confirmingPaid}
+                    formatCurrency={formatCurrency}
+                  />
+                  {cobroError && (
+                    <p className="mt-2 text-sm text-red-600">{cobroError}</p>
+                  )}
+                </div>
+              )}
+
               {accLoading && records.length === 0 && cobroLoading && cobros.length === 0 ? (
                 <p className="text-slate-600 py-8 text-center">Cargando...</p>
-              ) : dayRecords.length === 0 && dayCuotasPendientes.length === 0 ? (
+              ) : dayRecords.length === 0 && dayCuotas.length === 0 ? (
                 <p className="text-slate-600 py-8 text-center">
                   {selectedDate
-                    ? "No hay movimientos ni cuotas esperadas este día."
-                    : `No hay registros ni cuotas pendientes para ${formatMonthLabel(contabilidadMonth)}.`}
+                    ? "No hay movimientos ni cuotas este día."
+                    : `No hay registros ni cuotas para ${formatMonthLabel(contabilidadMonth)}.`}
                 </p>
               ) : (
                 <div className="space-y-6">
-                  {dayCuotasPendientes.length > 0 && (
+                  {dayCuotas.length > 0 && (
                     <div>
                       <h3 className="text-sm font-semibold text-slate-800 mb-3">
-                        {selectedDate ? "Cuotas esperadas" : "Cuotas pendientes del mes"}
+                        {selectedDate ? "Cuotas del día" : "Cuotas del mes"}
                       </h3>
                       <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-sm">
@@ -1448,38 +1493,68 @@ function Admin92PageContent() {
                               <th className="text-left py-2 px-2 font-semibold text-slate-700">Descripción</th>
                               <th className="text-left py-2 px-2 font-semibold text-slate-700">Origen</th>
                               <th className="text-right py-2 px-2 font-semibold text-slate-700">Monto</th>
+                              <th className="text-center py-2 px-2 font-semibold text-slate-700">Recordatorio</th>
                               <th className="text-right py-2 px-2 font-semibold text-slate-700">Acción</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {dayCuotasPendientes.map((c) => (
+                            {dayCuotas.map((c) => {
+                              const estado = getCuotaEstado(c);
+                              const est = cuotaEstadoStyles[estado];
+                              return (
                               <Fragment key={c.id}>
-                                <tr key={c.id} className="border-b border-orange-100 bg-orange-50/30 hover:bg-orange-50/50">
+                                <tr className={`border-b ${est.row}`}>
                                   <td className="py-2.5 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
                                   <td className="py-2.5 px-2">
-                                    <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800">
-                                      Cuota esperada
+                                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${est.badge}`}>
+                                      {CUOTA_ESTADO_LABEL[estado]}
                                     </span>
                                   </td>
                                   <td className="py-2.5 px-2 text-slate-900">{cuotaEsperadaLabel(c)}</td>
                                   <td className="py-2.5 px-2 text-slate-500">
                                     {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
                                   </td>
-                                  <td className="py-2.5 px-2 text-right font-medium text-orange-700">
+                                  <td className={`py-2.5 px-2 text-right font-medium ${est.amount}`}>
                                     {formatCurrency(c.amount)}
+                                  </td>
+                                  <td className="py-2.5 px-2 text-center">
+                                    {!c.paid ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleRecordatorio(c)}
+                                        title={
+                                          c.recordatorioEnviado
+                                            ? "Quitar recordatorio enviado"
+                                            : "Marcar recordatorio enviado"
+                                        }
+                                        className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 transition-colors cursor-pointer ${
+                                          c.recordatorioEnviado
+                                            ? "border-blue-500 bg-blue-100 text-blue-700 hover:bg-blue-200"
+                                            : "border-slate-300 bg-white text-slate-400 hover:border-slate-400 hover:bg-slate-50"
+                                        }`}
+                                      >
+                                        {c.recordatorioEnviado ? <Check className="w-4 h-4" /> : null}
+                                      </button>
+                                    ) : (
+                                      <span className="text-slate-300">—</span>
+                                    )}
                                   </td>
                                   <td className="py-2.5 px-2 text-right">
                                     <button
                                       type="button"
                                       onClick={() => handleTogglePaid(c)}
-                                      className="rounded-lg border border-green-300 bg-green-50 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-100 cursor-pointer"
+                                      className={`rounded-lg border px-2.5 py-1 text-xs font-medium cursor-pointer ${
+                                        c.paid
+                                          ? "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                                          : "border-green-300 bg-green-50 text-green-800 hover:bg-green-100"
+                                      }`}
                                     >
-                                      Marcar pagada
+                                      {c.paid ? "Marcar pendiente" : "Marcar pagada"}
                                     </button>
                                   </td>
                                 </tr>
-                                <tr className="border-b border-orange-100 bg-orange-50/20">
-                                  <td colSpan={6} className="px-2 pb-2.5 pt-0">
+                                <tr className={`border-b ${est.rowSub}`}>
+                                  <td colSpan={7} className="px-2 pb-2.5 pt-0">
                                     <CuotaNotaEditor
                                       cobroId={c.id}
                                       notes={c.notes}
@@ -1488,30 +1563,59 @@ function Admin92PageContent() {
                                   </td>
                                 </tr>
                               </Fragment>
-                            ))}
+                            );
+                            })}
                           </tbody>
                         </table>
                       </div>
                       <div className="sm:hidden space-y-2">
-                        {dayCuotasPendientes.map((c) => (
-                          <div key={c.id} className="rounded-xl border border-orange-200 bg-orange-50/40 p-3">
+                        {dayCuotas.map((c) => {
+                          const estado = getCuotaEstado(c);
+                          const est = cuotaEstadoStyles[estado];
+                          return (
+                          <div key={c.id} className={`rounded-xl border p-3 ${est.card}`}>
                             <div className="flex items-start justify-between gap-2">
-                              <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800">
-                                Cuota esperada
+                              <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${est.badge}`}>
+                                {CUOTA_ESTADO_LABEL[estado]}
                               </span>
-                              <span className="text-sm font-semibold text-orange-700">{formatCurrency(c.amount)}</span>
+                              <span className={`text-sm font-semibold ${est.amount}`}>{formatCurrency(c.amount)}</span>
                             </div>
                             <p className="mt-2 text-sm font-medium text-slate-900">{cuotaEsperadaLabel(c)}</p>
                             <p className="text-xs text-slate-500 mt-1">
                               Vence {formatLocalDate(c.dueDate)} · {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
                             </p>
-                            <button
-                              type="button"
-                              onClick={() => handleTogglePaid(c)}
-                              className="mt-2 rounded-lg border border-green-300 bg-green-50 px-3 py-1.5 text-xs font-medium text-green-800 hover:bg-green-100 cursor-pointer"
-                            >
-                              Marcar pagada
-                            </button>
+                            <div className="mt-2 flex flex-wrap items-center gap-2">
+                              {!c.paid && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleRecordatorio(c)}
+                                  title={
+                                    c.recordatorioEnviado
+                                      ? "Quitar recordatorio enviado"
+                                      : "Marcar recordatorio enviado"
+                                  }
+                                  className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+                                    c.recordatorioEnviado
+                                      ? "border-blue-500 bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                      : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                                  }`}
+                                >
+                                  {c.recordatorioEnviado ? <Check className="w-3.5 h-3.5" /> : null}
+                                  {c.recordatorioEnviado ? "Recordado" : "Marcar recordado"}
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleTogglePaid(c)}
+                                className={`rounded-lg border px-3 py-1.5 text-xs font-medium cursor-pointer ${
+                                  c.paid
+                                    ? "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                                    : "border-green-300 bg-green-50 text-green-800 hover:bg-green-100"
+                                }`}
+                              >
+                                {c.paid ? "Marcar pendiente" : "Marcar pagada"}
+                              </button>
+                            </div>
                             <CuotaNotaEditor
                               cobroId={c.id}
                               notes={c.notes}
@@ -1519,7 +1623,8 @@ function Admin92PageContent() {
                               compact
                             />
                           </div>
-                        ))}
+                        );
+                        })}
                       </div>
                     </div>
                   )}
@@ -2168,66 +2273,6 @@ function Admin92PageContent() {
                 </>
               )}
 
-              {/* Confirmar pago con fecha del cobro */}
-              {pendingPaidCobro && (
-                <div className="mb-4 rounded-xl border border-green-200 bg-green-50/60 p-4">
-                  <p className="text-sm font-semibold text-slate-800 mb-1">
-                    Marcar pagada: {pendingPaidCobro.clientName} · {formatCurrency(pendingPaidCobro.amount)}
-                  </p>
-                  <p className="text-xs text-slate-600 mb-3">
-                    Vencía el {formatLocalDate(pendingPaidCobro.dueDate)}. El ingreso contable usa la{" "}
-                    <span className="font-medium">fecha de cobro</span>, no la de vencimiento.
-                  </p>
-                  <div className="flex flex-wrap items-end gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Vencimiento</label>
-                      <p className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-700">
-                        {formatLocalDate(pendingPaidCobro.dueDate)}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">Fecha del cobro</label>
-                      <input
-                        type="date"
-                        value={paidFechaIngreso}
-                        onChange={(e) => setPaidFechaIngreso(e.target.value)}
-                        className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
-                      />
-                    </div>
-                    <div className="flex flex-wrap gap-2 pb-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setPaidFechaIngreso(todayYmd())}
-                        className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                      >
-                        Hoy
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaidFechaIngreso(pendingPaidCobro.dueDate)}
-                        className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
-                      >
-                        Mismo día del vencimiento
-                      </button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleConfirmMarkPaid}
-                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-white hover:bg-green-700 cursor-pointer"
-                    >
-                      Confirmar pago
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setPendingPaidCobro(null); setPaidFechaIngreso(""); }}
-                      className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 cursor-pointer"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
-
               {/* Tabla de cuotas - oculta en Acciones de hoy */}
               {cobroFormMode !== "actions" && (
               <div className="overflow-x-auto">
@@ -2259,8 +2304,16 @@ function Admin92PageContent() {
                         </td>
                       </tr>
                     ) : (
-                      filteredCobros.map((c) => (
-                        <tr key={c.id} className={`border-b border-slate-100 hover:bg-slate-50/50 ${c.paid ? "bg-green-50/30" : ""}`}>
+                      filteredCobros.map((c) => {
+                        const estado = getCuotaEstado(c);
+                        const rowTint =
+                          estado === "pagada"
+                            ? "bg-green-50/30"
+                            : estado === "recordada"
+                              ? "bg-blue-50/30"
+                              : "";
+                        return (
+                        <tr key={c.id} className={`border-b border-slate-100 hover:bg-slate-50/50 ${rowTint}`}>
                           <td className="py-3 px-2 font-medium text-slate-900">{c.clientName}</td>
                           <td className="py-3 px-2 text-slate-600">{c.servicio || "—"}</td>
                           <td className="py-3 px-2">
@@ -2299,7 +2352,7 @@ function Admin92PageContent() {
                               }
                               className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 transition-colors cursor-pointer ${
                                 c.recordatorioEnviado
-                                  ? "border-amber-500 bg-amber-100 text-amber-700 hover:bg-amber-200"
+                                  ? "border-blue-500 bg-blue-100 text-blue-700 hover:bg-blue-200"
                                   : "border-slate-300 bg-white text-slate-400 hover:border-slate-400 hover:bg-slate-50"
                               }`}
                             >
@@ -2343,7 +2396,8 @@ function Admin92PageContent() {
                             </div>
                           </td>
                         </tr>
-                      ))
+                      );
+                      })
                     )}
                   </tbody>
                 </table>
