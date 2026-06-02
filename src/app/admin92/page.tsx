@@ -1,12 +1,12 @@
 "use client";
 
 import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy, FileText } from "lucide-react";
 import { getRemindersToday, getRemindersWeekBefore, getStatsToday } from "@/app/lib/cobrosWorkflow";
 import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_PAGO } from "@/app/lib/cobrosMensajes";
-import MonthCalendar from "@/app/admin92/contabilidad/components/MonthCalendar";
 import HerramientasPanel from "@/app/admin92/contabilidad/components/HerramientasPanel";
 import CuotaNotaEditor from "@/app/admin92/contabilidad/components/CuotaNotaEditor";
 import ConfirmarPagoCobro from "@/app/admin92/contabilidad/components/ConfirmarPagoCobro";
@@ -25,6 +25,16 @@ import {
   shiftMonth,
   todayYmd,
 } from "@/app/admin92/contabilidad/lib/utils";
+
+const MonthCalendar = dynamic(
+  () => import("@/app/admin92/contabilidad/components/MonthCalendar"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 min-h-[320px] animate-pulse" />
+    ),
+  },
+);
 
 const SERVICIO_OPTIONS = ["", "App", "Tienda", "Web", "Mantenimiento", "Otro"] as const;
 

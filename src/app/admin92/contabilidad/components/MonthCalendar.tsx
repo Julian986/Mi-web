@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatMonthLabel, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 import type { CalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
-import { MARKER_COLORS } from "@/app/admin92/contabilidad/types";
+import { CALENDAR_LEGEND, MARKER_COLORS } from "@/app/admin92/contabilidad/types";
 
 const WEEKDAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
@@ -63,12 +64,16 @@ export default function MonthCalendar({
   onPrevMonth,
   onNextMonth,
 }: Props) {
-  const today = todayYmd();
+  const [clientToday, setClientToday] = useState<string | null>(null);
+  useEffect(() => {
+    setClientToday(todayYmd());
+  }, []);
+
   const cells = getDaysInMonth(month);
-  const renderQuotaDots = (color: string, count: number) =>
+  const renderDots = (color: string, count: number, keyPrefix: string) =>
     Array.from({ length: count }).map((_, idx) => (
       <span
-        key={`${color}-${idx}`}
+        key={`${keyPrefix}-${idx}`}
         className="h-1.5 w-1.5 rounded-full"
         style={{ backgroundColor: color }}
       />
@@ -108,7 +113,7 @@ export default function MonthCalendar({
         {cells.map(({ date, inMonth }) => {
           const dayMarkers = markers[date];
           const isSelected = selectedDate === date;
-          const isToday = date === today;
+          const isToday = clientToday !== null && date === clientToday;
 
           return (
             <button
@@ -128,11 +133,10 @@ export default function MonthCalendar({
               <span>{parseInt(date.slice(8, 10), 10)}</span>
               {dayMarkers && (
                 <span className="mt-0.5 flex items-center gap-0.5">
-                  {dayMarkers.ingreso && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: MARKER_COLORS.ingreso }}
-                    />
+                  {renderDots(
+                    MARKER_COLORS.ingreso,
+                    (dayMarkers.ingreso ? 1 : 0) + dayMarkers.cuotaPagadaCount,
+                    "ingreso",
                   )}
                   {dayMarkers.gasto && (
                     <span
@@ -146,9 +150,8 @@ export default function MonthCalendar({
                       style={{ backgroundColor: MARKER_COLORS.inversion }}
                     />
                   )}
-                  {renderQuotaDots(MARKER_COLORS.cuotaPagada, dayMarkers.cuotaPagadaCount)}
-                  {renderQuotaDots(MARKER_COLORS.cuotaRecordada, dayMarkers.cuotaRecordadaCount)}
-                  {renderQuotaDots(MARKER_COLORS.cuotaPendiente, dayMarkers.cuotaPendienteCount)}
+                  {renderDots(MARKER_COLORS.cuotaRecordada, dayMarkers.cuotaRecordadaCount, "recordada")}
+                  {renderDots(MARKER_COLORS.cuotaPendiente, dayMarkers.cuotaPendienteCount, "pendiente")}
                 </span>
               )}
             </button>
@@ -157,30 +160,12 @@ export default function MonthCalendar({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-600">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.ingreso }} />
-          Ingreso
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.gasto }} />
-          Gasto
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.inversion }} />
-          Inversión
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.cuotaPendiente }} />
-          Cuota
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.cuotaRecordada }} />
-          Recordada
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: MARKER_COLORS.cuotaPagada }} />
-          Pagada
-        </span>
+        {CALENDAR_LEGEND.map(({ color, label }) => (
+          <span key={label} className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+            {label}
+          </span>
+        ))}
       </div>
     </div>
   );
