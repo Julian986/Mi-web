@@ -65,6 +65,14 @@ export default function MonthCalendar({
 }: Props) {
   const today = todayYmd();
   const cells = getDaysInMonth(month);
+  const renderQuotaDots = (color: string, count: number) =>
+    Array.from({ length: count }).map((_, idx) => (
+      <span
+        key={`${color}-${idx}`}
+        className="h-1.5 w-1.5 rounded-full"
+        style={{ backgroundColor: color }}
+      />
+    ));
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
@@ -138,24 +146,9 @@ export default function MonthCalendar({
                       style={{ backgroundColor: MARKER_COLORS.inversion }}
                     />
                   )}
-                  {dayMarkers.cuotaPagada && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: MARKER_COLORS.cuotaPagada }}
-                    />
-                  )}
-                  {dayMarkers.cuotaRecordada && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: MARKER_COLORS.cuotaRecordada }}
-                    />
-                  )}
-                  {dayMarkers.cuotaPendiente && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: MARKER_COLORS.cuotaPendiente }}
-                    />
-                  )}
+                  {renderQuotaDots(MARKER_COLORS.cuotaPagada, dayMarkers.cuotaPagadaCount)}
+                  {renderQuotaDots(MARKER_COLORS.cuotaRecordada, dayMarkers.cuotaRecordadaCount)}
+                  {renderQuotaDots(MARKER_COLORS.cuotaPendiente, dayMarkers.cuotaPendienteCount)}
                 </span>
               )}
             </button>
