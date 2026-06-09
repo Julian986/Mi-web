@@ -75,3 +75,10 @@ export function shiftMonth(ym: string, delta: number): string {
   const d = new Date(y, m - 1 + delta, 1);
   return getMonthKey(d);
 }
+
+/** Suma o resta días a YYYY-MM-DD (calendario local) */
+export function shiftDate(ymd: string, deltaDays: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const next = new Date(y, m - 1, d + deltaDays);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-${String(next.getDate()).padStart(2, "0")}`;
+}

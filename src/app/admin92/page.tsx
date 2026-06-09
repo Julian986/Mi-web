@@ -22,6 +22,7 @@ import {
   getMonthKey,
   getMonthKeySafe,
   getRecordDateStr,
+  shiftDate,
   shiftMonth,
   todayYmd,
 } from "@/app/admin92/contabilidad/lib/utils";
@@ -333,6 +334,49 @@ function Admin92PageContent() {
       fetchCobros();
     }
   }, [activeTab]);
+
+  /** Flechas del teclado cambian el día seleccionado (← → ±1 día, ↑ ↓ ±1 semana) */
+  useEffect(() => {
+    if (activeTab !== "contabilidad") return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      const dayDelta =
+        e.key === "ArrowLeft"
+          ? -1
+          : e.key === "ArrowRight"
+            ? 1
+            : e.key === "ArrowUp"
+              ? -7
+              : e.key === "ArrowDown"
+                ? 7
+                : null;
+      if (dayDelta === null) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      e.preventDefault();
+      const base =
+        selectedDate ??
+        (getMonthKeySafe(todayYmd()) === contabilidadMonth ? todayYmd() : `${contabilidadMonth}-01`);
+      const next = shiftDate(base, dayDelta);
+      const nextMonth = getMonthKeySafe(next);
+      if (nextMonth !== contabilidadMonth) {
+        setContabilidadMonth(nextMonth);
+      }
+      setSelectedDate(next);
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeTab, contabilidadMonth, selectedDate]);
 
   useEffect(() => {
     if (activeTab === "webhooks") fetchEvents();

@@ -133,23 +133,13 @@ export default function MonthCalendar({
               <span>{parseInt(date.slice(8, 10), 10)}</span>
               {dayMarkers && (
                 <span className="mt-0.5 flex items-center gap-0.5">
-                  {renderDots(
-                    MARKER_COLORS.ingreso,
-                    (dayMarkers.ingreso ? 1 : 0) + dayMarkers.cuotaPagadaCount,
-                    "ingreso",
-                  )}
-                  {dayMarkers.gasto && (
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: MARKER_COLORS.gasto }}
-                    />
-                  )}
                   {dayMarkers.inversion && (
                     <span
                       className="h-1.5 w-1.5 rounded-full"
                       style={{ backgroundColor: MARKER_COLORS.inversion }}
                     />
                   )}
+                  {renderDots(MARKER_COLORS.cuotaPagada, dayMarkers.cuotaPagadaCount, "pagada")}
                   {renderDots(MARKER_COLORS.cuotaRecordada, dayMarkers.cuotaRecordadaCount, "recordada")}
                   {renderDots(MARKER_COLORS.cuotaPendiente, dayMarkers.cuotaPendienteCount, "pendiente")}
                 </span>

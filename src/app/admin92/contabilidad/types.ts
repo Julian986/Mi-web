@@ -38,10 +38,8 @@ export const typeColors: Record<AccountingType, string> = {
   inversion: "bg-blue-100 text-blue-800",
 };
 
-/** Verde unificado: ingreso contable y cuota pagada en el calendario */
+/** Colores de puntitos del calendario (solo inversión + cuotas) */
 export const MARKER_COLORS = {
-  ingreso: "#16a34a",
-  gasto: "#ef4444",
   inversion: "#6366f1",
   cuotaPendiente: "#f97316",
   cuotaRecordada: "#3b82f6",
@@ -50,9 +48,8 @@ export const MARKER_COLORS = {
 
 /** Leyenda del calendario (texto fijo para evitar desajustes SSR/cliente) */
 export const CALENDAR_LEGEND = [
-  { color: MARKER_COLORS.ingreso, label: "Ingreso / Cuota pagada" },
-  { color: MARKER_COLORS.gasto, label: "Gasto" },
   { color: MARKER_COLORS.inversion, label: "Inversión" },
   { color: MARKER_COLORS.cuotaPendiente, label: "Cuota pendiente" },
   { color: MARKER_COLORS.cuotaRecordada, label: "Cuota recordada" },
+  { color: MARKER_COLORS.cuotaPagada, label: "Cuota pagada" },
 ] as const;
