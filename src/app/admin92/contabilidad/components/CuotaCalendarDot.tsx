@@ -22,9 +22,9 @@ export default function CuotaCalendarDot({ estado, border, size = "sm" }: Props)
   const hasStats = border === "stats" || border === "both";
   const hasBorder = border !== "none";
 
-  const outer = size === "sm" ? "h-[18px] w-[18px]" : "h-6 w-6";
-  const inner = size === "sm" ? "h-2 w-2" : "h-2.5 w-2.5";
-  const ringWidth = size === "sm" ? 2 : 2.5;
+  const outer = size === "sm" ? "h-[14px] w-[14px]" : "h-[18px] w-[18px]";
+  const inner = size === "sm" ? "h-1.5 w-1.5" : "h-2 w-2";
+  const ringWidth = size === "sm" ? 1.5 : 2;
 
   if (!hasBorder) {
     return (
@@ -62,7 +62,7 @@ export default function CuotaCalendarDot({ estado, border, size = "sm" }: Props)
       {hasStats && (
         <span
           className={`pointer-events-none absolute rounded-full border-dashed ${
-            hasCambio ? "-inset-1" : "inset-0"
+            hasCambio ? "-inset-0.5" : "inset-0"
           }`}
           style={{
             borderWidth: ringWidth,

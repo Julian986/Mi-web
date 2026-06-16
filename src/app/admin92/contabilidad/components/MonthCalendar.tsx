@@ -133,7 +133,7 @@ export default function MonthCalendar({
                 <span className="mt-0.5 flex max-w-full flex-wrap items-center justify-center gap-0.5 px-0.5">
                   {dayMarkers.inversion && (
                     <span
-                      className="h-1.5 w-1.5 shrink-0 rounded-full"
+                      className="h-1 w-1 shrink-0 rounded-full"
                       style={{ backgroundColor: MARKER_COLORS.inversion }}
                     />
                   )}
@@ -151,7 +151,7 @@ export default function MonthCalendar({
         <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
           {CALENDAR_LEGEND.map(({ color, label }) => (
             <span key={label} className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
               {label}
             </span>
           ))}
