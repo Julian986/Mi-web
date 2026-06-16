@@ -6,6 +6,12 @@ export type ProyectoStatus =
   | "en_produccion"
   | "archivado";
 
+export type SolicitudTask = {
+  id: string;
+  text: string;
+  done: boolean;
+};
+
 export type ProyectoDoc = {
   _id?: string;
   /** Alias conveniente del _id como string */
@@ -24,6 +30,12 @@ export type ProyectoDoc = {
    */
   prioridad?: number;
   notes?: string;
+  /** Si el cliente recibe envío mensual de estadísticas */
+  requiereEstadisticas?: boolean;
+  /** Cambio solicitado por el cliente aún sin cerrar */
+  cambioPendiente?: boolean;
+  /** Tareas concretas del cambio en curso */
+  solicitudTasks?: SolicitudTask[];
   createdAt: Date;
 };
 

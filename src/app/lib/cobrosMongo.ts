@@ -16,6 +16,8 @@ export type CobroDoc = {
   notes?: string;
   origen?: "manual" | "suscripcion_mp";
   estadisticasEnviadas?: boolean;
+  /** Fecha en que se enviaron las estadísticas, YYYY-MM-DD */
+  fechaEnvioEstadisticas?: string;
   recordatorioEnviado?: boolean;
   /** ID del ingreso auto-generado al marcar pagado */
   accountingRecordId?: string;

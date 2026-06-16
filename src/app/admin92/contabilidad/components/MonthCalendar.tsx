@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { formatMonthLabel, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 import type { CalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
-import { CALENDAR_LEGEND, MARKER_COLORS } from "@/app/admin92/contabilidad/types";
+import {
+  CALENDAR_BORDER_LEGEND,
+  CALENDAR_LEGEND,
+  MARKER_COLORS,
+} from "@/app/admin92/contabilidad/types";
+import CuotaCalendarDot from "@/app/admin92/contabilidad/components/CuotaCalendarDot";
 
 const WEEKDAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 
@@ -70,14 +75,6 @@ export default function MonthCalendar({
   }, []);
 
   const cells = getDaysInMonth(month);
-  const renderDots = (color: string, count: number, keyPrefix: string) =>
-    Array.from({ length: count }).map((_, idx) => (
-      <span
-        key={`${keyPrefix}-${idx}`}
-        className="h-1.5 w-1.5 rounded-full"
-        style={{ backgroundColor: color }}
-      />
-    ));
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-6">
@@ -114,6 +111,7 @@ export default function MonthCalendar({
           const dayMarkers = markers[date];
           const isSelected = selectedDate === date;
           const isToday = clientToday !== null && date === clientToday;
+          const hasCuotas = (dayMarkers?.cuotas.length ?? 0) > 0;
 
           return (
             <button
@@ -131,17 +129,17 @@ export default function MonthCalendar({
               }`}
             >
               <span>{parseInt(date.slice(8, 10), 10)}</span>
-              {dayMarkers && (
-                <span className="mt-0.5 flex items-center gap-0.5">
+              {dayMarkers && (dayMarkers.inversion || hasCuotas) && (
+                <span className="mt-0.5 flex max-w-full flex-wrap items-center justify-center gap-0.5 px-0.5">
                   {dayMarkers.inversion && (
                     <span
-                      className="h-1.5 w-1.5 rounded-full"
+                      className="h-1.5 w-1.5 shrink-0 rounded-full"
                       style={{ backgroundColor: MARKER_COLORS.inversion }}
                     />
                   )}
-                  {renderDots(MARKER_COLORS.cuotaPagada, dayMarkers.cuotaPagadaCount, "pagada")}
-                  {renderDots(MARKER_COLORS.cuotaRecordada, dayMarkers.cuotaRecordadaCount, "recordada")}
-                  {renderDots(MARKER_COLORS.cuotaPendiente, dayMarkers.cuotaPendienteCount, "pendiente")}
+                  {dayMarkers.cuotas.map((dot, idx) => (
+                    <CuotaCalendarDot key={idx} estado={dot.estado} border={dot.border} />
+                  ))}
                 </span>
               )}
             </button>
@@ -149,13 +147,27 @@ export default function MonthCalendar({
         })}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-600">
-        {CALENDAR_LEGEND.map(({ color, label }) => (
-          <span key={label} className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-            {label}
+      <div className="mt-4 space-y-2">
+        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+          {CALENDAR_LEGEND.map(({ color, label }) => (
+            <span key={label} className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+          {CALENDAR_BORDER_LEGEND.map(({ label }) => (
+            <span key={label} className="flex items-center gap-1.5">
+              <CuotaCalendarDot estado="pagada" border={label.includes("Cambio") ? "cambio" : "stats"} size="md" />
+              {label}
+            </span>
+          ))}
+          <span className="flex items-center gap-1.5 text-slate-400">
+            <CuotaCalendarDot estado="pagada" border="none" size="md" />
+            Sin borde = operación al día
           </span>
-        ))}
+        </div>
       </div>
     </div>
   );

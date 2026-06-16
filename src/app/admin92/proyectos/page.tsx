@@ -5,7 +5,8 @@ import Link from "next/link";
 import { closestCenter, DndContext, DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, FolderKanban, GripVertical, BarChart3, X, FileText } from "lucide-react";
+import { Pencil, Trash2, FolderKanban, GripVertical, BarChart3, X, FileText, Plus } from "lucide-react";
+import { newSolicitudTaskId, type SolicitudTask } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
 
 /**
  * Word Online (vínculo “Compartir → Copiar vínculo”):
@@ -40,6 +41,9 @@ type Proyecto = {
   /** Prioridad/orden manual (0 = más prioritario) */
   prioridad?: number;
   notes?: string;
+  requiereEstadisticas?: boolean;
+  cambioPendiente?: boolean;
+  solicitudTasks?: SolicitudTask[];
 };
 
 const TIPOS = ["App", "Tienda", "Web", "Mantenimiento", "Otro"] as const;
@@ -88,6 +92,8 @@ export default function ProyectosPage() {
   const [formUltimaSolicitud, setFormUltimaSolicitud] = useState(todayStr);
   const [formStatus, setFormStatus] = useState<ProyectoStatus>("en_desarrollo");
   const [formNotes, setFormNotes] = useState("");
+  const [formRequiereEstadisticas, setFormRequiereEstadisticas] = useState(false);
+  const [formCambioPendiente, setFormCambioPendiente] = useState(false);
 
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -99,6 +105,10 @@ export default function ProyectosPage() {
   const [editUltimaSolicitud, setEditUltimaSolicitud] = useState("");
   const [editStatus, setEditStatus] = useState<ProyectoStatus>("en_desarrollo");
   const [editNotes, setEditNotes] = useState("");
+  const [editRequiereEstadisticas, setEditRequiereEstadisticas] = useState(false);
+  const [editCambioPendiente, setEditCambioPendiente] = useState(false);
+  const [editTasks, setEditTasks] = useState<SolicitudTask[]>([]);
+  const [editNewTaskText, setEditNewTaskText] = useState("");
 
   // Filters
   const [filterStatus, setFilterStatus] = useState<ProyectoStatus | "">("");
@@ -296,6 +306,8 @@ export default function ProyectosPage() {
           ultimaSolicitud: formUltimaSolicitud,
           status: formStatus,
           notes: formNotes.trim() || undefined,
+          requiereEstadisticas: formRequiereEstadisticas,
+          cambioPendiente: formCambioPendiente,
         }),
       });
       const data = await res.json();
@@ -419,6 +431,10 @@ export default function ProyectosPage() {
     setEditUltimaSolicitud(p.ultimaSolicitud || "");
     setEditStatus(p.status);
     setEditNotes(p.notes || "");
+    setEditRequiereEstadisticas(Boolean(p.requiereEstadisticas));
+    setEditCambioPendiente(Boolean(p.cambioPendiente));
+    setEditTasks(p.solicitudTasks ?? []);
+    setEditNewTaskText("");
   };
 
   const handleCancelEdit = () => {
@@ -448,6 +464,9 @@ export default function ProyectosPage() {
           ultimaSolicitud: editUltimaSolicitud,
           status: editStatus,
           notes: editNotes.trim() || undefined,
+          requiereEstadisticas: editRequiereEstadisticas,
+          cambioPendiente: editCambioPendiente,
+          solicitudTasks: editTasks,
         }),
       });
       const data = await res.json();
@@ -647,6 +666,26 @@ export default function ProyectosPage() {
                     onChange={(e) => setFormUltimaActualizacion(e.target.value)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
                   />
+                </div>
+                <div className="sm:col-span-2 flex flex-wrap items-center gap-4">
+                  <label className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formRequiereEstadisticas}
+                      onChange={(e) => setFormRequiereEstadisticas(e.target.checked)}
+                      className="rounded border-slate-300 text-violet-600 cursor-pointer"
+                    />
+                    Requiere estadísticas
+                  </label>
+                  <label className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formCambioPendiente}
+                      onChange={(e) => setFormCambioPendiente(e.target.checked)}
+                      className="rounded border-slate-300 text-amber-600 cursor-pointer"
+                    />
+                    Cambio pendiente
+                  </label>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1">Notas</label>
@@ -894,6 +933,96 @@ export default function ProyectosPage() {
                                   onChange={(e) => setEditFechaInicio(e.target.value)}
                                   className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
                                 />
+                              </div>
+                              <div className="sm:col-span-4 flex flex-wrap items-center gap-4">
+                                <label className="inline-flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={editRequiereEstadisticas}
+                                    onChange={(e) => setEditRequiereEstadisticas(e.target.checked)}
+                                    className="rounded border-slate-300 text-violet-600 cursor-pointer"
+                                  />
+                                  Requiere estadísticas
+                                </label>
+                                <label className="inline-flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={editCambioPendiente}
+                                    onChange={(e) => setEditCambioPendiente(e.target.checked)}
+                                    className="rounded border-slate-300 text-amber-600 cursor-pointer"
+                                  />
+                                  Cambio pendiente
+                                </label>
+                              </div>
+                              <div className="sm:col-span-4">
+                                <p className="text-xs font-medium text-slate-600 mb-1.5">Tareas del cambio</p>
+                                <ul className="space-y-1 mb-2">
+                                  {editTasks.map((t) => (
+                                    <li key={t.id} className="flex items-center gap-2">
+                                      <input
+                                        type="checkbox"
+                                        checked={t.done}
+                                        onChange={() =>
+                                          setEditTasks((prev) =>
+                                            prev.map((x) =>
+                                              x.id === t.id ? { ...x, done: !x.done } : x,
+                                            ),
+                                          )
+                                        }
+                                        className="rounded border-slate-300 text-amber-600 cursor-pointer"
+                                      />
+                                      <span
+                                        className={`flex-1 text-xs ${t.done ? "text-slate-400 line-through" : "text-slate-800"}`}
+                                      >
+                                        {t.text}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() => setEditTasks((prev) => prev.filter((x) => x.id !== t.id))}
+                                        className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={editNewTaskText}
+                                    onChange={(e) => setEditNewTaskText(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        const text = editNewTaskText.trim();
+                                        if (!text) return;
+                                        setEditTasks((prev) => [
+                                          ...prev,
+                                          { id: newSolicitudTaskId(), text, done: false },
+                                        ]);
+                                        setEditNewTaskText("");
+                                      }
+                                    }}
+                                    placeholder="Nueva tarea…"
+                                    className="flex-1 rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const text = editNewTaskText.trim();
+                                      if (!text) return;
+                                      setEditTasks((prev) => [
+                                        ...prev,
+                                        { id: newSolicitudTaskId(), text, done: false },
+                                      ]);
+                                      setEditNewTaskText("");
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-300 px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer"
+                                  >
+                                    <Plus className="h-3.5 w-3.5" />
+                                    Agregar
+                                  </button>
+                                </div>
                               </div>
                               <div className="sm:col-span-4">
                                 <label className="block text-xs font-medium text-slate-600 mb-1">Notas</label>

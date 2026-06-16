@@ -119,6 +119,28 @@ export async function PATCH(
     if (body.notes !== undefined) {
       updates.notes = body.notes ? String(body.notes).trim() : undefined;
     }
+    if (body.requiereEstadisticas !== undefined) {
+      updates.requiereEstadisticas = Boolean(body.requiereEstadisticas);
+    }
+    if (body.cambioPendiente !== undefined) {
+      updates.cambioPendiente = Boolean(body.cambioPendiente);
+    }
+    if (body.solicitudTasks !== undefined) {
+      if (!Array.isArray(body.solicitudTasks)) {
+        return NextResponse.json(
+          { error: "solicitudTasks debe ser un array" },
+          { status: 400 }
+        );
+      }
+      const tasks = body.solicitudTasks
+        .map((t: { id?: string; text?: string; done?: boolean }) => ({
+          id: String(t.id || "").trim() || `t_${Date.now()}`,
+          text: String(t.text || "").trim(),
+          done: Boolean(t.done),
+        }))
+        .filter((t: { text: string }) => t.text.length > 0);
+      updates.solicitudTasks = tasks;
+    }
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });

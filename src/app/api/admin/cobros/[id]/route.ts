@@ -46,6 +46,7 @@ export async function PATCH(
       dueDateFrom,
       fechaIngreso,
       estadisticasEnviadas,
+      fechaEnvioEstadisticas,
       recordatorioEnviado,
       updateFuture,
       origen,
@@ -91,6 +92,23 @@ export async function PATCH(
     }
     if (estadisticasEnviadas !== undefined) {
       updates.estadisticasEnviadas = Boolean(estadisticasEnviadas);
+      if (estadisticasEnviadas) {
+        const fechaStr =
+          fechaEnvioEstadisticas &&
+          /^\d{4}-\d{2}-\d{2}$/.test(String(fechaEnvioEstadisticas))
+            ? String(fechaEnvioEstadisticas)
+            : todayYmd();
+        updates.fechaEnvioEstadisticas = fechaStr;
+      } else {
+        unsetFields.push("fechaEnvioEstadisticas");
+      }
+    } else if (
+      fechaEnvioEstadisticas !== undefined &&
+      fechaEnvioEstadisticas !== null &&
+      /^\d{4}-\d{2}-\d{2}$/.test(String(fechaEnvioEstadisticas)) &&
+      existing.estadisticasEnviadas
+    ) {
+      updates.fechaEnvioEstadisticas = String(fechaEnvioEstadisticas);
     }
     if (recordatorioEnviado !== undefined) {
       updates.recordatorioEnviado = Boolean(recordatorioEnviado);

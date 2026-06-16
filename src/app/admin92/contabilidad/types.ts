@@ -22,6 +22,7 @@ export type Cobro = {
   origen?: "manual" | "suscripcion_mp";
   notes?: string;
   estadisticasEnviadas?: boolean;
+  fechaEnvioEstadisticas?: string;
   recordatorioEnviado?: boolean;
   accountingRecordId?: string;
 };
@@ -46,10 +47,22 @@ export const MARKER_COLORS = {
   cuotaPagada: "#16a34a",
 } as const;
 
+export const BORDER_COLORS = {
+  /** Ámbar más oscuro — borde punteado (cambio) */
+  cambio: "#c2410c",
+  /** Violeta más intenso — borde punteado (stats) */
+  stats: "#6d28d9",
+} as const;
+
 /** Leyenda del calendario (texto fijo para evitar desajustes SSR/cliente) */
 export const CALENDAR_LEGEND = [
   { color: MARKER_COLORS.inversion, label: "Inversión" },
   { color: MARKER_COLORS.cuotaPendiente, label: "Cuota pendiente" },
   { color: MARKER_COLORS.cuotaRecordada, label: "Cuota recordada" },
   { color: MARKER_COLORS.cuotaPagada, label: "Cuota pagada" },
+] as const;
+
+export const CALENDAR_BORDER_LEGEND = [
+  { color: BORDER_COLORS.cambio, label: "Cambio pendiente", style: "dashed" as const },
+  { color: BORDER_COLORS.stats, label: "Estadísticas pendientes", style: "dashed" as const },
 ] as const;

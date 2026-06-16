@@ -44,7 +44,20 @@ export async function POST(req: NextRequest) {
       );
     }
     const body = await req.json();
-    const { name, clientName, status, type, fechaInicio, ultimaActualizacion, ultimaSolicitud, prioridad, notes } = body;
+    const {
+      name,
+      clientName,
+      status,
+      type,
+      fechaInicio,
+      ultimaActualizacion,
+      ultimaSolicitud,
+      prioridad,
+      notes,
+      requiereEstadisticas,
+      cambioPendiente,
+      solicitudTasks,
+    } = body;
 
     const nameStr = String(name || "").trim();
     if (!nameStr) {
@@ -127,6 +140,21 @@ export async function POST(req: NextRequest) {
 
     if (prioridadVal !== undefined) {
       doc.prioridad = prioridadVal;
+    }
+    if (requiereEstadisticas !== undefined) {
+      doc.requiereEstadisticas = Boolean(requiereEstadisticas);
+    }
+    if (cambioPendiente !== undefined) {
+      doc.cambioPendiente = Boolean(cambioPendiente);
+    }
+    if (Array.isArray(solicitudTasks)) {
+      doc.solicitudTasks = solicitudTasks
+        .map((t: { id?: string; text?: string; done?: boolean }) => ({
+          id: String(t.id || "").trim() || `t_${Date.now()}`,
+          text: String(t.text || "").trim(),
+          done: Boolean(t.done),
+        }))
+        .filter((t: { text: string }) => t.text.length > 0);
     }
 
     const id = await insertProyecto(doc);

@@ -5,12 +5,17 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Pencil, Trash2, Check, BarChart3, Calendar, FolderKanban, Copy, FileText } from "lucide-react";
-import { getRemindersToday, getRemindersWeekBefore, getStatsToday } from "@/app/lib/cobrosWorkflow";
+import { getRemindersToday, getRemindersWeekBefore, getStatsOverdue, getStatsToday } from "@/app/lib/cobrosWorkflow";
 import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_PAGO } from "@/app/lib/cobrosMensajes";
 import HerramientasPanel from "@/app/admin92/contabilidad/components/HerramientasPanel";
 import CuotaNotaEditor from "@/app/admin92/contabilidad/components/CuotaNotaEditor";
+import CuotaOperativaPanel from "@/app/admin92/contabilidad/components/CuotaOperativaPanel";
 import ConfirmarPagoCobro from "@/app/admin92/contabilidad/components/ConfirmarPagoCobro";
 import { buildCalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
+import {
+  buildProyectoByClientMap,
+  getProyectoForClient,
+} from "@/app/admin92/contabilidad/lib/cuotaOperativa";
 import {
   CUOTA_ESTADO_LABEL,
   cuotaEstadoStyles,
@@ -82,8 +87,19 @@ type Cobro = {
   origen?: "manual" | "suscripcion_mp";
   notes?: string;
   estadisticasEnviadas?: boolean;
+  fechaEnvioEstadisticas?: string;
   recordatorioEnviado?: boolean;
   accountingRecordId?: string;
+};
+
+type ProyectoContabilidad = {
+  id: string;
+  clientName: string;
+  status?: string;
+  requiereEstadisticas?: boolean;
+  cambioPendiente?: boolean;
+  solicitudTasks?: { id: string; text: string; done: boolean }[];
+  ultimaSolicitud?: string;
 };
 
 const typeLabels: Record<AccountingType, string> = {
@@ -193,6 +209,12 @@ function Admin92PageContent() {
   const [cobroFilterPaid, setCobroFilterPaid] = useState<"" | "paid" | "pending">("");
   const [cobroFilterOrigen, setCobroFilterOrigen] = useState<"" | "manual" | "suscripcion_mp">("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [pendingStatsCobro, setPendingStatsCobro] = useState<Cobro | null>(null);
+  const [statsFechaEnvio, setStatsFechaEnvio] = useState("");
+  const [confirmingStats, setConfirmingStats] = useState(false);
+
+  // Proyectos (vinculados a cuotas por clientName)
+  const [proyectos, setProyectos] = useState<ProyectoContabilidad[]>([]);
 
   // Suscripciones (GA4 Property ID)
   const [subscriptions, setSubscriptions] = useState<SubscriptionAdmin[]>([]);
@@ -319,6 +341,7 @@ function Admin92PageContent() {
           origen: c.origen === "suscripcion_mp" ? "suscripcion_mp" : "manual",
           accountingRecordId: c.accountingRecordId,
           fechaCobro: c.fechaCobro,
+          fechaEnvioEstadisticas: c.fechaEnvioEstadisticas,
         })),
       );
     } catch (e: any) {
@@ -328,10 +351,33 @@ function Admin92PageContent() {
     }
   };
 
+  const fetchProyectos = async () => {
+    try {
+      const res = await fetch("/api/admin/proyectos", { method: "GET" });
+      const data = await res.json();
+      if (!res.ok) return;
+      const list = Array.isArray(data?.proyectos) ? data.proyectos : [];
+      setProyectos(
+        list.map((p: ProyectoContabilidad & { _id?: string }) => ({
+          id: p.id || p._id || "",
+          clientName: p.clientName,
+          status: p.status,
+          requiereEstadisticas: p.requiereEstadisticas,
+          cambioPendiente: p.cambioPendiente,
+          solicitudTasks: p.solicitudTasks,
+          ultimaSolicitud: p.ultimaSolicitud,
+        })),
+      );
+    } catch {
+      /* silencioso */
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "contabilidad") {
       fetchRecords();
       fetchCobros();
+      fetchProyectos();
     }
   }, [activeTab]);
 
@@ -492,9 +538,22 @@ function Admin92PageContent() {
     [cobros, contabilidadMonth],
   );
 
+  const proyectoByClient = useMemo(
+    () => buildProyectoByClientMap(proyectos),
+    [proyectos],
+  );
+
+  const requiereStatsByClient = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const p of proyectoByClient.values()) {
+      map.set(p.clientName.trim().toLowerCase(), Boolean(p.requiereEstadisticas));
+    }
+    return map;
+  }, [proyectoByClient]);
+
   const calendarMarkers = useMemo(
-    () => buildCalendarMarkers(filteredRecords, cobrosEnMes),
-    [filteredRecords, cobrosEnMes],
+    () => buildCalendarMarkers(filteredRecords, cobrosEnMes, proyectos, todayYmd()),
+    [filteredRecords, cobrosEnMes, proyectos],
   );
 
   const dayRecords = useMemo(() => {
@@ -631,8 +690,12 @@ function Admin92PageContent() {
     [cobros]
   );
   const statsToday = useMemo(
-    () => getStatsToday(cobros),
-    [cobros]
+    () => getStatsToday(cobros, undefined, requiereStatsByClient),
+    [cobros, requiereStatsByClient],
+  );
+  const statsOverdue = useMemo(
+    () => getStatsOverdue(cobros, undefined, requiereStatsByClient),
+    [cobros, requiereStatsByClient],
   );
 
   const handleAddSingleCobro = async (e: React.FormEvent) => {
@@ -790,20 +853,53 @@ function Admin92PageContent() {
   }, [pendingPaidCobro]);
 
   const handleToggleEstadisticas = async (c: Cobro) => {
+    if (c.estadisticasEnviadas) {
+      try {
+        const res = await fetch(`/api/admin/cobros/${c.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ estadisticasEnviadas: false }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setCobroError(data?.error || "No se pudo actualizar.");
+          return;
+        }
+        fetchCobros();
+      } catch (e: any) {
+        setCobroError(e?.message || "Error al actualizar.");
+      }
+      return;
+    }
+    setPendingStatsCobro(c);
+    setStatsFechaEnvio(todayYmd());
+  };
+
+  const handleConfirmStatsEnviadas = async () => {
+    if (!pendingStatsCobro) return;
+    setConfirmingStats(true);
+    setCobroError("");
     try {
-      const res = await fetch(`/api/admin/cobros/${c.id}`, {
+      const res = await fetch(`/api/admin/cobros/${pendingStatsCobro.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estadisticasEnviadas: !c.estadisticasEnviadas }),
+        body: JSON.stringify({
+          estadisticasEnviadas: true,
+          fechaEnvioEstadisticas: statsFechaEnvio,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         setCobroError(data?.error || "No se pudo actualizar.");
         return;
       }
+      setPendingStatsCobro(null);
+      setStatsFechaEnvio("");
       fetchCobros();
     } catch (e: any) {
       setCobroError(e?.message || "Error al actualizar.");
+    } finally {
+      setConfirmingStats(false);
     }
   };
 
@@ -1495,7 +1591,11 @@ function Admin92PageContent() {
                 </div>
                 <button
                   type="button"
-                  onClick={fetchRecords}
+                  onClick={() => {
+                    fetchRecords();
+                    fetchCobros();
+                    fetchProyectos();
+                  }}
                   disabled={accLoading}
                   className="text-sm font-medium text-[#84b9ed] hover:text-[#6ba3d9] disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
@@ -1520,6 +1620,44 @@ function Admin92PageContent() {
                   {cobroError && (
                     <p className="mt-2 text-sm text-red-600">{cobroError}</p>
                   )}
+                </div>
+              )}
+
+              {pendingStatsCobro && (
+                <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50/50 p-4">
+                  <h3 className="text-sm font-semibold text-violet-900 mb-2">
+                    Marcar estadísticas enviadas — {pendingStatsCobro.clientName}
+                  </h3>
+                  <label className="block text-xs text-slate-700 mb-2">
+                    Fecha de envío
+                    <input
+                      type="date"
+                      value={statsFechaEnvio}
+                      onChange={(e) => setStatsFechaEnvio(e.target.value)}
+                      className="mt-1 block rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    />
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={confirmingStats}
+                      onClick={handleConfirmStatsEnviadas}
+                      className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 cursor-pointer disabled:opacity-50"
+                    >
+                      {confirmingStats ? "Guardando…" : "Confirmar"}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={confirmingStats}
+                      onClick={() => {
+                        setPendingStatsCobro(null);
+                        setStatsFechaEnvio("");
+                      }}
+                      className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-600 hover:bg-white cursor-pointer"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1608,7 +1746,13 @@ function Admin92PageContent() {
                                   </td>
                                 </tr>
                                 <tr className={`border-b ${est.rowSub}`}>
-                                  <td colSpan={7} className="px-2 pb-2.5 pt-0">
+                                  <td colSpan={7} className="px-2 pb-2.5 pt-0 space-y-2">
+                                    <CuotaOperativaPanel
+                                      cobro={c}
+                                      proyecto={getProyectoForClient(c.clientName, proyectoByClient)}
+                                      onCobroUpdated={fetchCobros}
+                                      onProyectoUpdated={fetchProyectos}
+                                    />
                                     <CuotaNotaEditor
                                       cobroId={c.id}
                                       notes={c.notes}
@@ -1670,6 +1814,13 @@ function Admin92PageContent() {
                                 {c.paid ? "Marcar pendiente" : "Marcar pagada"}
                               </button>
                             </div>
+                            <CuotaOperativaPanel
+                              cobro={c}
+                              proyecto={getProyectoForClient(c.clientName, proyectoByClient)}
+                              onCobroUpdated={fetchCobros}
+                              onProyectoUpdated={fetchProyectos}
+                              compact
+                            />
                             <CuotaNotaEditor
                               cobroId={c.id}
                               notes={c.notes}
@@ -1896,9 +2047,9 @@ function Admin92PageContent() {
                 >
                   <Calendar className="w-4 h-4" />
                   Acciones de hoy
-                  {(remindersToday.length + remindersWeekBefore.length + statsToday.length) > 0 && (
+                  {(remindersToday.length + remindersWeekBefore.length + statsToday.length + statsOverdue.length) > 0 && (
                     <span className={`ml-0.5 rounded-full px-1.5 py-0.5 text-xs ${cobroFormMode === "actions" ? "bg-white/20" : "bg-amber-100 text-amber-800"}`}>
-                      {remindersToday.length + remindersWeekBefore.length + statsToday.length}
+                      {remindersToday.length + remindersWeekBefore.length + statsToday.length + statsOverdue.length}
                     </span>
                   )}
                 </button>
@@ -1988,39 +2139,61 @@ function Admin92PageContent() {
                         </>
                       )}
                     </div>
-                    <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
-                      <h3 className="text-sm font-semibold text-blue-900 mb-2">Estadísticas (día +5, pagados)</h3>
-                      <p className="text-xs text-blue-800/80 mb-3">Enviar imágenes por WhatsApp</p>
+                    <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-4">
+                      <h3 className="text-sm font-semibold text-violet-900 mb-2">Estadísticas (cobro + 5 días)</h3>
+                      <p className="text-xs text-violet-800/80 mb-3">Solo clientes con &quot;Requiere estadísticas&quot; en su proyecto</p>
                       <div className="mb-3">
                         <div className="flex items-center justify-between gap-2 mb-1">
-                          <span className="text-xs font-medium text-blue-900">Mensaje guardado</span>
+                          <span className="text-xs font-medium text-violet-900">Mensaje guardado</span>
                           <button
                             type="button"
                             onClick={() => handleCopy(MENSAJE_ESTADISTICAS, "estadisticas")}
-                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium bg-blue-200 text-blue-900 hover:bg-blue-300 cursor-pointer"
+                            className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium bg-violet-200 text-violet-900 hover:bg-violet-300 cursor-pointer"
                           >
                             <Copy className="w-3 h-3" />
                             {copiedId === "estadisticas" ? "Copiado" : "Copiar"}
                           </button>
                         </div>
-                        <pre className="whitespace-pre-wrap rounded-lg bg-white/60 p-3 text-slate-800 text-xs border border-blue-200/50">
+                        <pre className="whitespace-pre-wrap rounded-lg bg-white/60 p-3 text-slate-800 text-xs border border-violet-200/50">
                           {MENSAJE_ESTADISTICAS}
                         </pre>
                       </div>
-                      {statsToday.length === 0 ? (
-                        <p className="text-sm text-blue-700/70">Nada para hoy</p>
+                      {statsToday.length === 0 && statsOverdue.length === 0 ? (
+                        <p className="text-sm text-violet-700/70">Nada pendiente</p>
                       ) : (
-                        <ul className="space-y-2">
-                          {statsToday.map((c) => (
-                            <li key={c.id} className="text-sm text-slate-800 flex flex-wrap gap-x-2 gap-y-0.5">
-                              <span className="font-medium">{c.clientName}</span>
-                              <span className="text-slate-600">·</span>
-                              <span>{c.servicio || "—"}</span>
-                              <span className="text-slate-600">·</span>
-                              <span>{formatLocalDate(c.dueDate)}</span>
-                            </li>
-                          ))}
-                        </ul>
+                        <>
+                          {statsToday.length > 0 && (
+                            <>
+                              <h4 className="text-xs font-semibold text-violet-800 mb-2">Objetivo hoy</h4>
+                              <ul className="space-y-2 mb-4">
+                                {statsToday.map((c) => (
+                                  <li key={c.id} className="text-sm text-slate-800 flex flex-wrap gap-x-2 gap-y-0.5">
+                                    <span className="font-medium">{c.clientName}</span>
+                                    <span className="text-slate-600">·</span>
+                                    <span>{c.servicio || "—"}</span>
+                                    <span className="text-slate-600">·</span>
+                                    <span>Vence {formatLocalDate(c.dueDate)}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+                          {statsOverdue.length > 0 && (
+                            <>
+                              <h4 className="text-xs font-semibold text-violet-900 mb-2">Atrasadas</h4>
+                              <ul className="space-y-2">
+                                {statsOverdue.map((c) => (
+                                  <li key={c.id} className="text-sm text-slate-800 flex flex-wrap gap-x-2 gap-y-0.5">
+                                    <span className="font-medium">{c.clientName}</span>
+                                    <span className="text-slate-600">·</span>
+                                    <span>{c.servicio || "—"}</span>
+                                    <span className="text-violet-700 font-medium">· pendiente</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -2417,7 +2590,11 @@ function Admin92PageContent() {
                             <button
                               type="button"
                               onClick={() => handleToggleEstadisticas(c)}
-                              title={c.estadisticasEnviadas ? "Marcar como no enviadas" : "Marcar estadísticas enviadas"}
+                              title={
+                                c.estadisticasEnviadas
+                                  ? `Enviadas el ${c.fechaEnvioEstadisticas ? formatLocalDate(c.fechaEnvioEstadisticas) : "—"}`
+                                  : "Marcar estadísticas enviadas"
+                              }
                               className={`inline-flex items-center justify-center w-8 h-8 rounded-lg border-2 transition-colors cursor-pointer ${
                                 c.estadisticasEnviadas
                                   ? "border-blue-500 bg-blue-100 text-blue-700 hover:bg-blue-200"
