@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
 import {
   getCuotaOperativaBorder,
   getStatsObjectiveDate,
+  getTaskSortDate,
   hasCambioPendiente,
   hasStatsPendientes,
   newSolicitudTaskId,
+  sortSolicitudTasksByFecha,
   type ProyectoOperativo,
   type SolicitudTask,
 } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
@@ -50,8 +52,26 @@ export default function CuotaOperativaPanel({
   const [statsFecha, setStatsFecha] = useState(todayYmd());
   const [tasks, setTasks] = useState<SolicitudTask[]>(cobro.solicitudTasks ?? []);
   const [newTaskText, setNewTaskText] = useState("");
+  const [newTaskDate, setNewTaskDate] = useState(todayYmd());
+  const [taskPendingDelete, setTaskPendingDelete] = useState<SolicitudTask | null>(null);
+  const editingTaskDateRef = useRef<string | null>(null);
+  const tasksRef = useRef(tasks);
+  tasksRef.current = tasks;
+
+  const taskDisplayDate = (t: SolicitudTask) => getTaskSortDate(t, cobro.dueDate);
+
+  const tasksSorted = useMemo(
+    () => sortSolicitudTasksByFecha(tasks, cobro.dueDate),
+    [tasks, cobro.dueDate],
+  );
+
+  const savedTaskDate = (taskId: string) => {
+    const saved = cobro.solicitudTasks?.find((t) => t.id === taskId);
+    return saved ? getTaskSortDate(saved, cobro.dueDate) : "";
+  };
 
   useEffect(() => {
+    if (editingTaskDateRef.current) return;
     setTasks(cobro.solicitudTasks ?? []);
   }, [cobro.id, cobro.solicitudTasks]);
 
@@ -169,8 +189,12 @@ export default function CuotaOperativaPanel({
   };
 
   const saveTasks = async (nextTasks: SolicitudTask[]) => {
-    setTasks(nextTasks);
-    await patchCobro({ solicitudTasks: nextTasks, cambioPendiente: true });
+    const normalized = nextTasks.map((t) => ({
+      ...t,
+      createdAt: getTaskSortDate(t, cobro.dueDate),
+    }));
+    setTasks(normalized);
+    await patchCobro({ solicitudTasks: normalized, cambioPendiente: true });
   };
 
   const handleToggleTask = async (taskId: string) => {
@@ -180,14 +204,46 @@ export default function CuotaOperativaPanel({
 
   const handleRemoveTask = async (taskId: string) => {
     const next = tasks.filter((t) => t.id !== taskId);
+    setTaskPendingDelete(null);
+    await saveTasks(next);
+  };
+
+  const requestRemoveTask = (task: SolicitudTask) => {
+    setTaskPendingDelete(task);
+  };
+
+  const handleTaskDateLocalChange = (taskId: string, createdAt: string) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, createdAt } : t)),
+    );
+  };
+
+  const commitTaskDate = async (taskId: string, createdAt: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(createdAt)) {
+      setTasks(cobro.solicitudTasks ?? []);
+      return;
+    }
+    if (savedTaskDate(taskId) === createdAt) return;
+    const next = tasksRef.current.map((t) =>
+      t.id === taskId ? { ...t, createdAt } : t,
+    );
     await saveTasks(next);
   };
 
   const handleAddTask = async () => {
     const text = newTaskText.trim();
     if (!text) return;
-    const next = [...tasks, { id: newSolicitudTaskId(), text, done: false }];
+    const next = [
+      ...tasks,
+      {
+        id: newSolicitudTaskId(),
+        text,
+        done: false,
+        createdAt: /^\d{4}-\d{2}-\d{2}$/.test(newTaskDate) ? newTaskDate : todayYmd(),
+      },
+    ];
     setNewTaskText("");
+    setNewTaskDate(todayYmd());
     await saveTasks(next);
   };
 
@@ -332,26 +388,47 @@ export default function CuotaOperativaPanel({
       {(cambioPendiente || tasks.length > 0) && (
         <div className="border-t border-slate-100 pt-2">
           <p className="text-xs font-medium text-slate-700 mb-1.5">Tareas del cambio</p>
-          <ul className="space-y-1">
-            {tasks.map((t) => (
-              <li key={t.id} className="flex items-center gap-2">
+          <ul className="space-y-1.5">
+            {tasksSorted.map((t) => (
+              <li key={t.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
                 <input
                   type="checkbox"
                   checked={t.done}
                   disabled={saving}
                   onChange={() => handleToggleTask(t.id)}
-                  className="rounded border-slate-300 text-amber-600 cursor-pointer"
+                  className="rounded border-slate-300 text-amber-600 cursor-pointer shrink-0"
                 />
                 <span
-                  className={`flex-1 text-xs ${t.done ? "text-slate-400 line-through" : "text-slate-800"}`}
+                  className={`min-w-0 flex-1 text-xs ${t.done ? "text-slate-400 line-through" : "text-slate-800"}`}
                 >
                   {t.text}
                 </span>
+                <input
+                  type="date"
+                  value={taskDisplayDate(t)}
+                  disabled={saving}
+                  onFocus={() => {
+                    editingTaskDateRef.current = t.id;
+                  }}
+                  onChange={(e) => handleTaskDateLocalChange(t.id, e.target.value)}
+                  onBlur={(e) => {
+                    editingTaskDateRef.current = null;
+                    void commitTaskDate(t.id, e.target.value);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.currentTarget.blur();
+                    }
+                  }}
+                  title="Fecha de la tarea"
+                  className="shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-700 cursor-pointer disabled:opacity-50"
+                />
                 <button
                   type="button"
                   disabled={saving}
-                  onClick={() => handleRemoveTask(t.id)}
-                  className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+                  onClick={() => requestRemoveTask(t)}
+                  className="shrink-0 p-1 text-slate-400 hover:text-red-600 cursor-pointer"
                   aria-label="Eliminar tarea"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -359,7 +436,7 @@ export default function CuotaOperativaPanel({
               </li>
             ))}
           </ul>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             <input
               type="text"
               value={newTaskText}
@@ -372,7 +449,15 @@ export default function CuotaOperativaPanel({
               }}
               placeholder="Nueva tarea…"
               disabled={saving}
-              className="flex-1 rounded border border-slate-300 px-2 py-1 text-xs"
+              className="min-w-[120px] flex-1 rounded border border-slate-300 px-2 py-1 text-xs"
+            />
+            <input
+              type="date"
+              value={newTaskDate}
+              disabled={saving}
+              onChange={(e) => setNewTaskDate(e.target.value)}
+              title="Fecha de la nueva tarea"
+              className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 cursor-pointer disabled:opacity-50"
             />
             <button
               type="button"
@@ -389,6 +474,50 @@ export default function CuotaOperativaPanel({
 
       {error && <p className="text-xs text-red-600">{error}</p>}
       {saving && <p className="text-xs text-slate-400">Guardando…</p>}
+
+      {taskPendingDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-delete-task-title"
+          onClick={() => !saving && setTaskPendingDelete(null)}
+        >
+          <div
+            className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-5 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3
+              id="confirm-delete-task-title"
+              className="text-sm font-semibold text-slate-900 mb-2"
+            >
+              ¿Eliminar esta tarea?
+            </h3>
+            <p className="text-sm text-slate-700 mb-1 line-clamp-3">{taskPendingDelete.text}</p>
+            <p className="text-xs text-slate-500 mb-4">
+              Fecha: {formatLocalDate(taskDisplayDate(taskPendingDelete))}
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setTaskPendingDelete(null)}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void handleRemoveTask(taskPendingDelete.id)}
+                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-red-700 cursor-pointer disabled:opacity-50"
+              >
+                {saving ? "Eliminando…" : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

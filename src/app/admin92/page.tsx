@@ -13,6 +13,7 @@ import CuotaOperativaPanel from "@/app/admin92/contabilidad/components/CuotaOper
 import CambiosPendientesSidebar from "@/app/admin92/contabilidad/components/CambiosPendientesSidebar";
 import ConfirmarPagoCobro from "@/app/admin92/contabilidad/components/ConfirmarPagoCobro";
 import {
+  buildTareasCambioDelMes,
   getMesesConCambiosAtrasados,
   type CambiosSortMode,
 } from "@/app/admin92/contabilidad/lib/cambiosPendientes";
@@ -584,6 +585,17 @@ function Admin92PageContent() {
           border: getCuotaOperativaBorder(c, p, today),
         };
       });
+  }, [cobrosEnMes, proyectoByClient]);
+
+  const tareasCambioMes = useMemo(() => {
+    const today = todayYmd();
+    return buildTareasCambioDelMes(cobrosEnMes, (c) => {
+      const p = getProyectoForClient(c.clientName, proyectoByClient);
+      return {
+        estado: getCuotaEstado(c),
+        border: getCuotaOperativaBorder(c, p, today),
+      };
+    });
   }, [cobrosEnMes, proyectoByClient]);
 
   const mesesConCambiosAtrasados = useMemo(
@@ -1652,6 +1664,7 @@ function Admin92PageContent() {
               <CambiosPendientesSidebar
                 className="hidden lg:block"
                 cuotas={cuotasConCambioPendiente}
+                tareas={tareasCambioMes}
                 mesesAtrasados={mesesConCambiosAtrasados}
                 onGoToMesAtrasado={handleGoToMesCambiosAtrasados}
                 labelFor={(c) =>
@@ -1669,6 +1682,7 @@ function Admin92PageContent() {
             <CambiosPendientesSidebar
               collapsible
               cuotas={cuotasConCambioPendiente}
+              tareas={tareasCambioMes}
               mesesAtrasados={mesesConCambiosAtrasados}
               onGoToMesAtrasado={handleGoToMesCambiosAtrasados}
               labelFor={(c) =>

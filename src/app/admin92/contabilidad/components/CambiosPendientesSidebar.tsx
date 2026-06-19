@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import {
   sortCuotasCambiosPendientes,
+  type CambioTaskListItem,
   type CambiosSortMode,
   type CuotaCambioItem,
   type MesCambiosAtrasados,
@@ -13,6 +14,7 @@ import CuotaCalendarDot from "@/app/admin92/contabilidad/components/CuotaCalenda
 
 type Props = {
   cuotas: CuotaCambioItem[];
+  tareas?: CambioTaskListItem[];
   mesesAtrasados?: MesCambiosAtrasados[];
   onGoToMesAtrasado?: (monthKey: string) => void;
   labelFor: (c: CuotaCambioItem) => string;
@@ -104,6 +106,7 @@ function PrioridadInput({ cobroId, prioridad, onPrioridadChange }: PrioridadInpu
 
 export default function CambiosPendientesSidebar({
   cuotas,
+  tareas = [],
   mesesAtrasados = [],
   onGoToMesAtrasado,
   labelFor,
@@ -119,6 +122,10 @@ export default function CambiosPendientesSidebar({
   const [mesesAtrasadosOpen, setMesesAtrasadosOpen] = useState(false);
   const sorted = sortCuotasCambiosPendientes(cuotas, sortMode);
   const atrasadosCount = mesesAtrasados.reduce((sum, m) => sum + m.count, 0);
+  const listCount = sortMode === "tareas" ? tareas.length : cuotas.length;
+
+  const taskClientLabel = (t: CambioTaskListItem) =>
+    t.servicio ? `${t.clientName} (${t.servicio})` : t.clientName;
 
   useEffect(() => {
     if (mesesAtrasados.length === 0) setMesesAtrasadosOpen(false);
@@ -129,7 +136,7 @@ export default function CambiosPendientesSidebar({
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Cambios pendientes
-          <span className="ml-1.5 font-normal normal-case text-slate-400">({cuotas.length})</span>
+          <span className="ml-1.5 font-normal normal-case text-slate-400">({listCount})</span>
         </p>
         <div className="flex rounded-lg border border-slate-200 p-0.5 text-xs">
           <button
@@ -150,10 +157,67 @@ export default function CambiosPendientesSidebar({
           >
             Prioridad
           </button>
+          <button
+            type="button"
+            onClick={() => onSortModeChange("tareas")}
+            className={`rounded-md px-2 py-1 font-medium cursor-pointer ${
+              sortMode === "tareas" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            Tareas
+          </button>
         </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {sortMode === "tareas" ? (
+        tareas.length === 0 ? (
+          <p className="text-sm text-slate-500 py-4 text-center">
+            Ninguna tarea de cambio en este mes.
+          </p>
+        ) : (
+          <ul className="space-y-1.5 max-h-[min(420px,50vh)] overflow-y-auto pr-0.5">
+            {tareas.map((t) => {
+              const isSelected = selectedCobroId === t.cobroId;
+              return (
+                <li key={t.taskId}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onSelectCuota({
+                        id: t.cobroId,
+                        clientName: t.clientName,
+                        dueDate: t.dueDate,
+                        servicio: t.servicio,
+                        estado: t.estado,
+                        border: t.border,
+                      })
+                    }
+                    className={`flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#84b9ed]/50 ${
+                      isSelected
+                        ? "border-amber-400 bg-amber-50 ring-2 ring-amber-300/60"
+                        : "border-slate-200 bg-white hover:border-amber-200 hover:bg-amber-50/40"
+                    }`}
+                  >
+                    <CuotaCalendarDot estado={t.estado} border={t.border} size="md" />
+                    <span className="min-w-0 flex-1">
+                      <p
+                        className={`text-sm font-medium text-slate-900 ${
+                          t.done ? "line-through text-slate-500" : ""
+                        }`}
+                      >
+                        {t.text}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5 truncate">
+                        {taskClientLabel(t)} · {formatLocalDate(t.fecha)}
+                      </p>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )
+      ) : sorted.length === 0 ? (
         <p className="text-sm text-slate-500 py-4 text-center">
           Ninguna cuota del mes con cambio pendiente.
         </p>
@@ -233,7 +297,7 @@ export default function CambiosPendientesSidebar({
         </div>
       )}
 
-      {sorted.length > 0 && (
+      {sorted.length > 0 && sortMode === "prioridad" && (
         <p className="mt-2 text-[10px] text-slate-400">
           Prioridad: número menor = más urgente (solo al ordenar por Prioridad).
         </p>

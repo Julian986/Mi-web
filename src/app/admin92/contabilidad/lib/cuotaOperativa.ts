@@ -5,6 +5,8 @@ export type SolicitudTask = {
   id: string;
   text: string;
   done: boolean;
+  /** Fecha de creación YYYY-MM-DD (orden en cola de tareas) */
+  createdAt?: string;
 };
 
 export type ProyectoOperativo = {
@@ -108,4 +110,33 @@ export function getCuotaOperativaBorder(
 
 export function newSolicitudTaskId(): string {
   return `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Fecha para ordenar tareas (creación, id legacy o vencimiento de cuota) */
+export function getTaskSortDate(task: SolicitudTask, cuotaDueDate: string): string {
+  if (task.createdAt && /^\d{4}-\d{2}-\d{2}$/.test(task.createdAt)) {
+    return task.createdAt;
+  }
+  const m = /^t_(\d+)_/.exec(task.id);
+  if (m) {
+    const d = new Date(Number(m[1]));
+    if (!Number.isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+  }
+  return cuotaDueDate;
+}
+
+export function sortSolicitudTasksByFecha(
+  tasks: SolicitudTask[],
+  cuotaDueDate: string,
+): SolicitudTask[] {
+  return [...tasks].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
+    const byFecha = getTaskSortDate(a, cuotaDueDate).localeCompare(
+      getTaskSortDate(b, cuotaDueDate),
+    );
+    if (byFecha !== 0) return byFecha;
+    return a.text.localeCompare(b.text);
+  });
 }

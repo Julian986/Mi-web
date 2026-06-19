@@ -26,7 +26,7 @@ export type CobroDoc = {
   /** Cambio pendiente de esta cuota (ciclo mensual) */
   cambioPendiente?: boolean;
   /** Tareas del cambio asociadas a esta cuota */
-  solicitudTasks?: { id: string; text: string; done: boolean }[];
+  solicitudTasks?: { id: string; text: string; done: boolean; createdAt?: string }[];
   createdAt: Date;
 };
 

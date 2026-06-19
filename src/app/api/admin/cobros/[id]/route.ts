@@ -152,11 +152,18 @@ export async function PATCH(
         );
       }
       const tasks = solicitudTasks
-        .map((t: { id?: string; text?: string; done?: boolean }) => ({
-          id: String(t.id || "").trim() || `t_${Date.now()}`,
-          text: String(t.text || "").trim(),
-          done: Boolean(t.done),
-        }))
+        .map((t: { id?: string; text?: string; done?: boolean; createdAt?: string }) => {
+          const created =
+            t.createdAt && /^\d{4}-\d{2}-\d{2}$/.test(String(t.createdAt))
+              ? String(t.createdAt)
+              : undefined;
+          return {
+            id: String(t.id || "").trim() || `t_${Date.now()}`,
+            text: String(t.text || "").trim(),
+            done: Boolean(t.done),
+            ...(created ? { createdAt: created } : {}),
+          };
+        })
         .filter((t: { text: string }) => t.text.length > 0);
       updates.solicitudTasks = tasks;
     }
