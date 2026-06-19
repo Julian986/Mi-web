@@ -25,6 +25,8 @@ export type Cobro = {
   fechaEnvioEstadisticas?: string;
   recordatorioEnviado?: boolean;
   accountingRecordId?: string;
+  /** Prioridad manual en cola de cambios (0 = más urgente) */
+  prioridad?: number;
 };
 
 export const typeLabels: Record<AccountingType, string> = {
@@ -59,7 +61,7 @@ export const CALENDAR_LEGEND = [
   { color: MARKER_COLORS.inversion, label: "Inversión" },
   { color: MARKER_COLORS.cuotaPendiente, label: "Cuota pendiente" },
   { color: MARKER_COLORS.cuotaRecordada, label: "Cuota recordada" },
-  { color: MARKER_COLORS.cuotaPagada, label: "Cuota pagada" },
+  { color: MARKER_COLORS.cuotaPagada, label: "Cuota pagada · operación al día" },
 ] as const;
 
 export const CALENDAR_BORDER_LEGEND = [

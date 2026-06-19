@@ -21,6 +21,12 @@ export type CobroDoc = {
   recordatorioEnviado?: boolean;
   /** ID del ingreso auto-generado al marcar pagado */
   accountingRecordId?: string;
+  /** Prioridad manual para cola de cambios (0 = más urgente) */
+  prioridad?: number;
+  /** Cambio pendiente de esta cuota (ciclo mensual) */
+  cambioPendiente?: boolean;
+  /** Tareas del cambio asociadas a esta cuota */
+  solicitudTasks?: { id: string; text: string; done: boolean }[];
   createdAt: Date;
 };
 

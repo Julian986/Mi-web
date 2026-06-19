@@ -16,6 +16,27 @@ type Props = {
   size?: "sm" | "md";
 };
 
+/** Solo borde punteado (leyenda del calendario, sin relleno) */
+export function CalendarLegendBorder({
+  border,
+  size = "md",
+}: {
+  border: "cambio" | "stats";
+  size?: "sm" | "md";
+}) {
+  const outer = size === "sm" ? "h-[14px] w-[14px]" : "h-[18px] w-[18px]";
+  const ringWidth = size === "sm" ? 1.5 : 2;
+  const color = border === "cambio" ? BORDER_COLORS.cambio : BORDER_COLORS.stats;
+
+  return (
+    <span
+      className={`${outer} shrink-0 rounded-full border-dashed bg-transparent`}
+      style={{ borderWidth: ringWidth, borderColor: color }}
+      aria-hidden
+    />
+  );
+}
+
 export default function CuotaCalendarDot({ estado, border, size = "sm" }: Props) {
   const fill = ESTADO_COLOR[estado];
   const hasCambio = border === "cambio" || border === "both";

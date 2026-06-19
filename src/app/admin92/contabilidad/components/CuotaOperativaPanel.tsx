@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
 import {
@@ -26,6 +25,8 @@ type CobroOperativo = {
   estadisticasEnviadas?: boolean;
   fechaEnvioEstadisticas?: string;
   servicio?: string;
+  cambioPendiente?: boolean;
+  solicitudTasks?: SolicitudTask[];
 };
 
 type Props = {
@@ -47,17 +48,17 @@ export default function CuotaOperativaPanel({
   const [error, setError] = useState("");
   const [pendingStats, setPendingStats] = useState(false);
   const [statsFecha, setStatsFecha] = useState(todayYmd());
-  const [tasks, setTasks] = useState<SolicitudTask[]>(proyecto?.solicitudTasks ?? []);
+  const [tasks, setTasks] = useState<SolicitudTask[]>(cobro.solicitudTasks ?? []);
   const [newTaskText, setNewTaskText] = useState("");
 
   useEffect(() => {
-    setTasks(proyecto?.solicitudTasks ?? []);
-  }, [proyecto?.id, proyecto?.solicitudTasks]);
+    setTasks(cobro.solicitudTasks ?? []);
+  }, [cobro.id, cobro.solicitudTasks]);
 
   const today = todayYmd();
   const objetivoStats = getStatsObjectiveDate(cobro);
   const statsPendientes = hasStatsPendientes(cobro, proyecto, today);
-  const cambioPendiente = hasCambioPendiente(proyecto);
+  const cambioPendiente = hasCambioPendiente(cobro);
   const requiereStats = Boolean(proyecto?.requiereEstadisticas);
   const border = getCuotaOperativaBorder(cobro, proyecto, today);
   const estado = getCuotaEstado(cobro);
@@ -145,7 +146,7 @@ export default function CuotaOperativaPanel({
   };
 
   const handleToggleCambioPendiente = async () => {
-    await updateProyectoField({ cambioPendiente: !cambioPendiente });
+    await patchCobro({ cambioPendiente: !cambioPendiente });
   };
 
   const handleStatsClick = async () => {
@@ -169,10 +170,7 @@ export default function CuotaOperativaPanel({
 
   const saveTasks = async (nextTasks: SolicitudTask[]) => {
     setTasks(nextTasks);
-    let id = proyecto?.id;
-    if (!id) id = (await ensureProyecto()) ?? undefined;
-    if (!id) return;
-    await patchProyecto(id, { solicitudTasks: nextTasks, cambioPendiente: true });
+    await patchCobro({ solicitudTasks: nextTasks, cambioPendiente: true });
   };
 
   const handleToggleTask = async (taskId: string) => {
@@ -209,16 +207,12 @@ export default function CuotaOperativaPanel({
         </div>
       </div>
 
-      {!proyecto && (
+      {/* {!proyecto && (
         <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
           Sin proyecto para <strong>{cobro.clientName}</strong>. Al marcar un checkbox se crea
-          automáticamente, o{" "}
-          <Link href="/admin92/proyectos" className="underline font-medium">
-            creá uno en Proyectos
-          </Link>
-          .
+          automáticamente, o creá uno en Proyectos.
         </p>
-      )}
+      )} */}
 
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <label className="inline-flex items-center gap-2 text-sm text-slate-800 cursor-pointer select-none">

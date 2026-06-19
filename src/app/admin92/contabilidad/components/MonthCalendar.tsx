@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { formatMonthLabel, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 import type { CalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
 import {
@@ -9,9 +9,21 @@ import {
   CALENDAR_LEGEND,
   MARKER_COLORS,
 } from "@/app/admin92/contabilidad/types";
-import CuotaCalendarDot from "@/app/admin92/contabilidad/components/CuotaCalendarDot";
+import CuotaCalendarDot, {
+  CalendarLegendBorder,
+} from "@/app/admin92/contabilidad/components/CuotaCalendarDot";
 
 const WEEKDAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
+const LEGEND_VISIBLE_KEY = "glomun-calendario-leyenda";
+
+function readLegendVisible(): boolean {
+  try {
+    const v = localStorage.getItem(LEGEND_VISIBLE_KEY);
+    return v === "1";
+  } catch {
+    return false;
+  }
+}
 
 type Props = {
   month: string;
@@ -70,9 +82,24 @@ export default function MonthCalendar({
   onNextMonth,
 }: Props) {
   const [clientToday, setClientToday] = useState<string | null>(null);
+  const [showLegend, setShowLegend] = useState(false);
+
   useEffect(() => {
     setClientToday(todayYmd());
+    setShowLegend(readLegendVisible());
   }, []);
+
+  const toggleLegend = () => {
+    setShowLegend((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(LEGEND_VISIBLE_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   const cells = getDaysInMonth(month);
 
@@ -147,27 +174,44 @@ export default function MonthCalendar({
         })}
       </div>
 
-      <div className="mt-4 space-y-2">
-        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
-          {CALENDAR_LEGEND.map(({ color, label }) => (
-            <span key={label} className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-              {label}
-            </span>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
-          {CALENDAR_BORDER_LEGEND.map(({ label }) => (
-            <span key={label} className="flex items-center gap-1.5">
-              <CuotaCalendarDot estado="pagada" border={label.includes("Cambio") ? "cambio" : "stats"} size="md" />
-              {label}
-            </span>
-          ))}
-          <span className="flex items-center gap-1.5 text-slate-400">
-            <CuotaCalendarDot estado="pagada" border="none" size="md" />
-            Sin borde = operación al día
-          </span>
-        </div>
+      <div className={`mt-4 flex items-start gap-2 ${showLegend ? "justify-between" : "justify-end"}`}>
+        {showLegend && (
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+              {CALENDAR_LEGEND.map(({ color, label }) => (
+                <span key={label} className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+                  {label}
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+              {CALENDAR_BORDER_LEGEND.map(({ label }) => (
+                <span key={label} className="flex items-center gap-1.5">
+                  <CalendarLegendBorder
+                    border={label.includes("Cambio") ? "cambio" : "stats"}
+                    size="md"
+                  />
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={toggleLegend}
+          aria-label={showLegend ? "Ocultar referencias del calendario" : "Mostrar referencias del calendario"}
+          aria-pressed={showLegend}
+          title={showLegend ? "Ocultar referencias" : "Mostrar referencias"}
+          className={`shrink-0 rounded-lg border p-2 transition-colors cursor-pointer ${
+            showLegend
+              ? "border-[#84b9ed]/40 bg-[#84b9ed]/10 text-[#4a7fb8] hover:bg-[#84b9ed]/20"
+              : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+          }`}
+        >
+          <Settings className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );

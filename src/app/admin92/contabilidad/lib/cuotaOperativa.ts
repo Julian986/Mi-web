@@ -66,10 +66,8 @@ export function getStatsObjectiveDate(cobro: {
   return shiftDate(base, STATS_OFFSET_DAYS);
 }
 
-export function hasCambioPendiente(
-  proyecto: ProyectoOperativo | null | undefined,
-): boolean {
-  return Boolean(proyecto?.cambioPendiente);
+export function hasCambioPendiente(cobro: { cambioPendiente?: boolean }): boolean {
+  return Boolean(cobro.cambioPendiente);
 }
 
 export function hasStatsPendientes(
@@ -95,11 +93,12 @@ export function getCuotaOperativaBorder(
     fechaCobro?: string;
     dueDate: string;
     estadisticasEnviadas?: boolean;
+    cambioPendiente?: boolean;
   },
   proyecto: ProyectoOperativo | null | undefined,
   today: string,
 ): CuotaOperativaBorder {
-  const cambio = hasCambioPendiente(proyecto);
+  const cambio = hasCambioPendiente(cobro);
   const stats = hasStatsPendientes(cobro, proyecto, today);
   if (cambio && stats) return "both";
   if (cambio) return "cambio";

@@ -51,6 +51,9 @@ export async function PATCH(
       updateFuture,
       origen,
       notes,
+      prioridad,
+      cambioPendiente,
+      solicitudTasks,
     } = body;
 
     const updates: Record<string, unknown> = {};
@@ -123,6 +126,39 @@ export async function PATCH(
       } else {
         unsetFields.push("notes");
       }
+    }
+    if (prioridad !== undefined) {
+      if (prioridad === null || prioridad === "") {
+        unsetFields.push("prioridad");
+      } else {
+        const prioridadVal = Number(prioridad);
+        if (!Number.isFinite(prioridadVal) || !Number.isInteger(prioridadVal) || prioridadVal < 0) {
+          return NextResponse.json(
+            { error: "La prioridad debe ser un entero >= 0" },
+            { status: 400 }
+          );
+        }
+        updates.prioridad = prioridadVal;
+      }
+    }
+    if (cambioPendiente !== undefined) {
+      updates.cambioPendiente = Boolean(cambioPendiente);
+    }
+    if (solicitudTasks !== undefined) {
+      if (!Array.isArray(solicitudTasks)) {
+        return NextResponse.json(
+          { error: "solicitudTasks debe ser un array" },
+          { status: 400 }
+        );
+      }
+      const tasks = solicitudTasks
+        .map((t: { id?: string; text?: string; done?: boolean }) => ({
+          id: String(t.id || "").trim() || `t_${Date.now()}`,
+          text: String(t.text || "").trim(),
+          done: Boolean(t.done),
+        }))
+        .filter((t: { text: string }) => t.text.length > 0);
+      updates.solicitudTasks = tasks;
     }
 
     if (updateFuture && amount !== undefined && body.clientName) {

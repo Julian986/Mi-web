@@ -10,10 +10,16 @@ import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_P
 import HerramientasPanel from "@/app/admin92/contabilidad/components/HerramientasPanel";
 import CuotaNotaEditor from "@/app/admin92/contabilidad/components/CuotaNotaEditor";
 import CuotaOperativaPanel from "@/app/admin92/contabilidad/components/CuotaOperativaPanel";
+import CambiosPendientesSidebar from "@/app/admin92/contabilidad/components/CambiosPendientesSidebar";
 import ConfirmarPagoCobro from "@/app/admin92/contabilidad/components/ConfirmarPagoCobro";
+import {
+  getMesesConCambiosAtrasados,
+  type CambiosSortMode,
+} from "@/app/admin92/contabilidad/lib/cambiosPendientes";
 import { buildCalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
 import {
   buildProyectoByClientMap,
+  getCuotaOperativaBorder,
   getProyectoForClient,
 } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
 import {
@@ -90,6 +96,11 @@ type Cobro = {
   fechaEnvioEstadisticas?: string;
   recordatorioEnviado?: boolean;
   accountingRecordId?: string;
+  /** Prioridad manual en cola de cambios (0 = más urgente) */
+  prioridad?: number;
+  /** Cambio pendiente de esta cuota (ciclo mensual) */
+  cambioPendiente?: boolean;
+  solicitudTasks?: { id: string; text: string; done: boolean }[];
 };
 
 type ProyectoContabilidad = {
@@ -171,6 +182,9 @@ function Admin92PageContent() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  /** Cuota enfocada desde el panel de cambios (scroll + resaltado) */
+  const [focusedCobroId, setFocusedCobroId] = useState<string | null>(null);
+  const [cambiosSortMode, setCambiosSortMode] = useState<CambiosSortMode>("fecha");
   const [contabilidadToolPanel, setContabilidadToolPanel] = useState<
     null | "objetivos" | "mantenimientos" | "buscar-clientes"
   >(null);
@@ -342,6 +356,9 @@ function Admin92PageContent() {
           accountingRecordId: c.accountingRecordId,
           fechaCobro: c.fechaCobro,
           fechaEnvioEstadisticas: c.fechaEnvioEstadisticas,
+          prioridad: c.prioridad,
+          cambioPendiente: c.cambioPendiente,
+          solicitudTasks: c.solicitudTasks,
         })),
       );
     } catch (e: any) {
@@ -551,6 +568,29 @@ function Admin92PageContent() {
     return map;
   }, [proyectoByClient]);
 
+  const cuotasConCambioPendiente = useMemo(() => {
+    const today = todayYmd();
+    return cobrosEnMes
+      .filter((c) => Boolean(c.cambioPendiente))
+      .map((c) => {
+        const p = getProyectoForClient(c.clientName, proyectoByClient);
+        return {
+          id: c.id,
+          clientName: c.clientName,
+          dueDate: c.dueDate,
+          servicio: c.servicio,
+          prioridad: c.prioridad,
+          estado: getCuotaEstado(c),
+          border: getCuotaOperativaBorder(c, p, today),
+        };
+      });
+  }, [cobrosEnMes, proyectoByClient]);
+
+  const mesesConCambiosAtrasados = useMemo(
+    () => getMesesConCambiosAtrasados(cobros, contabilidadMonth),
+    [cobros, contabilidadMonth],
+  );
+
   const calendarMarkers = useMemo(
     () => buildCalendarMarkers(filteredRecords, cobrosEnMes, proyectos, todayYmd()),
     [filteredRecords, cobrosEnMes, proyectos],
@@ -564,9 +604,9 @@ function Admin92PageContent() {
   }, [filteredRecords, selectedDate]);
 
   const dayCuotas = useMemo(() => {
-    const list = selectedDate
-      ? cobros.filter((c) => c.dueDate === selectedDate)
-      : cobrosEnMes;
+    // Cuotas del mes no se listan en "Registros de …"; solo al elegir un día en el calendario.
+    if (!selectedDate) return [];
+    const list = cobros.filter((c) => c.dueDate === selectedDate);
     const order: Record<ReturnType<typeof getCuotaEstado>, number> = {
       pendiente: 0,
       recordada: 1,
@@ -577,7 +617,7 @@ function Admin92PageContent() {
       if (diff !== 0) return diff;
       return a.clientName.localeCompare(b.clientName);
     });
-  }, [cobros, selectedDate, cobrosEnMes]);
+  }, [cobros, selectedDate]);
 
   const cuotaEsperadaLabel = (c: Cobro) =>
     c.servicio ? `${c.clientName} (${c.servicio}) - Cuota` : `${c.clientName} - Cuota`;
@@ -902,6 +942,69 @@ function Admin92PageContent() {
       setConfirmingStats(false);
     }
   };
+
+  const handleSelectCuotaFromSidebar = (c: { id: string; dueDate: string }) => {
+    setSelectedDate(c.dueDate);
+    setFocusedCobroId(c.id);
+  };
+
+  const handleGoToMesCambiosAtrasados = (monthKey: string) => {
+    setContabilidadMonth(monthKey);
+    setSelectedDate(null);
+    setFocusedCobroId(null);
+  };
+
+  const handleCobroPrioridadChange = async (cobroId: string, prioridad: number | undefined) => {
+    setCobros((prev) =>
+      prev.map((c) => {
+        if (c.id !== cobroId) return c;
+        const next = { ...c };
+        if (prioridad === undefined) delete next.prioridad;
+        else next.prioridad = prioridad;
+        return next;
+      }),
+    );
+    try {
+      const res = await fetch(`/api/admin/cobros/${cobroId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prioridad: prioridad ?? null }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo actualizar la prioridad.");
+        fetchCobros();
+        return;
+      }
+    } catch (e: unknown) {
+      setCobroError(e instanceof Error ? e.message : "Error al actualizar.");
+      fetchCobros();
+    }
+  };
+
+  useEffect(() => {
+    if (!focusedCobroId || !selectedDate) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(`cuota-row-${focusedCobroId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [focusedCobroId, selectedDate, dayCuotas]);
+
+  useEffect(() => {
+    if (!focusedCobroId) return;
+    const onPointerDown = (e: MouseEvent) => {
+      const el = e.target as Element | null;
+      if (!el) return;
+      if (el.closest("[data-cambios-sidebar]")) return;
+      if (el.closest(`[data-cuota-block="${focusedCobroId}"]`)) return;
+      setFocusedCobroId(null);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [focusedCobroId]);
 
   const handleToggleRecordatorio = async (c: Cobro) => {
     try {
@@ -1358,9 +1461,9 @@ function Admin92PageContent() {
                   <p className="text-xs font-medium text-slate-600 mb-1">Cobrado</p>
                   <p className="text-xl font-bold text-green-700">{formatCurrency(cobranzaKpis.cobrado)}</p>
                 </div>
-                <div className="rounded-xl border border-slate-200 bg-red-50/40 p-4">
+                <div className="rounded-xl border border-slate-200 bg-orange-50/40 p-4">
                   <p className="text-xs font-medium text-slate-600 mb-1">Pendiente</p>
-                  <p className="text-xl font-bold text-red-700">{formatCurrency(cobranzaKpis.pendiente)}</p>
+                  <p className="text-xl font-bold text-orange-700">{formatCurrency(cobranzaKpis.pendiente)}</p>
                 </div>
               </div>
             </div>
@@ -1525,20 +1628,59 @@ function Admin92PageContent() {
               )}
             </div>
 
-            {/* Calendario */}
-            <MonthCalendar
-              month={contabilidadMonth}
-              selectedDate={selectedDate}
-              markers={calendarMarkers}
-              onSelectDate={(date) => setSelectedDate((prev) => (prev === date ? null : date))}
-              onPrevMonth={() => {
-                setContabilidadMonth((m) => shiftMonth(m, -1));
-                setSelectedDate(null);
-              }}
-              onNextMonth={() => {
-                setContabilidadMonth((m) => shiftMonth(m, 1));
-                setSelectedDate(null);
-              }}
+            {/* Calendario + cola de cambios */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_minmax(260px,300px)] gap-4 items-start">
+              <MonthCalendar
+                month={contabilidadMonth}
+                selectedDate={selectedDate}
+                markers={calendarMarkers}
+                onSelectDate={(date) => {
+                  setFocusedCobroId(null);
+                  setSelectedDate((prev) => (prev === date ? null : date));
+                }}
+                onPrevMonth={() => {
+                  setContabilidadMonth((m) => shiftMonth(m, -1));
+                  setSelectedDate(null);
+                  setFocusedCobroId(null);
+                }}
+                onNextMonth={() => {
+                  setContabilidadMonth((m) => shiftMonth(m, 1));
+                  setSelectedDate(null);
+                  setFocusedCobroId(null);
+                }}
+              />
+              <CambiosPendientesSidebar
+                className="hidden lg:block"
+                cuotas={cuotasConCambioPendiente}
+                mesesAtrasados={mesesConCambiosAtrasados}
+                onGoToMesAtrasado={handleGoToMesCambiosAtrasados}
+                labelFor={(c) =>
+                  c.servicio
+                    ? `${c.clientName} (${c.servicio}) - Cuota`
+                    : `${c.clientName} - Cuota`
+                }
+                selectedCobroId={focusedCobroId}
+                sortMode={cambiosSortMode}
+                onSortModeChange={setCambiosSortMode}
+                onSelectCuota={handleSelectCuotaFromSidebar}
+                onPrioridadChange={handleCobroPrioridadChange}
+              />
+            </div>
+            <CambiosPendientesSidebar
+              collapsible
+              cuotas={cuotasConCambioPendiente}
+              mesesAtrasados={mesesConCambiosAtrasados}
+              onGoToMesAtrasado={handleGoToMesCambiosAtrasados}
+              labelFor={(c) =>
+                c.servicio
+                  ? `${c.clientName} (${c.servicio}) - Cuota`
+                  : `${c.clientName} - Cuota`
+              }
+              selectedCobroId={focusedCobroId}
+              sortMode={cambiosSortMode}
+              onSortModeChange={setCambiosSortMode}
+              onSelectCuota={handleSelectCuotaFromSidebar}
+              onPrioridadChange={handleCobroPrioridadChange}
             />
 
             {/* Detalle del día / mes */}
@@ -1667,15 +1809,14 @@ function Admin92PageContent() {
                 <p className="text-slate-600 py-8 text-center">
                   {selectedDate
                     ? "No hay movimientos ni cuotas este día."
-                    : `No hay registros ni cuotas para ${formatMonthLabel(contabilidadMonth)}.`}
+                    : `No hay registros para ${formatMonthLabel(contabilidadMonth)}.`}
                 </p>
               ) : (
                 <div className="space-y-6">
-                  {dayCuotas.length > 0 && (
+                  {/* Cuotas del mes ocultas; solo detalle del día al clic en el calendario */}
+                  {selectedDate && dayCuotas.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-slate-800 mb-3">
-                        {selectedDate ? "Cuotas del día" : "Cuotas del mes"}
-                      </h3>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-3">Cuotas del día</h3>
                       <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
@@ -1693,9 +1834,16 @@ function Admin92PageContent() {
                             {dayCuotas.map((c) => {
                               const estado = getCuotaEstado(c);
                               const est = cuotaEstadoStyles[estado];
+                              const isFocused = focusedCobroId === c.id;
                               return (
                               <Fragment key={c.id}>
-                                <tr className={`border-b ${est.row}`}>
+                                <tr
+                                  id={`cuota-row-${c.id}`}
+                                  data-cuota-block={c.id}
+                                  className={`border-b ${est.row} ${
+                                    isFocused ? "ring-2 ring-amber-400 ring-inset bg-amber-50/50" : ""
+                                  }`}
+                                >
                                   <td className="py-2.5 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
                                   <td className="py-2.5 px-2">
                                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${est.badge}`}>
@@ -1745,7 +1893,12 @@ function Admin92PageContent() {
                                     </button>
                                   </td>
                                 </tr>
-                                <tr className={`border-b ${est.rowSub}`}>
+                                <tr
+                                  data-cuota-block={c.id}
+                                  className={`border-b ${est.rowSub} ${
+                                    isFocused ? "bg-amber-50/30" : ""
+                                  }`}
+                                >
                                   <td colSpan={7} className="px-2 pb-2.5 pt-0 space-y-2">
                                     <CuotaOperativaPanel
                                       cobro={c}
@@ -1770,8 +1923,16 @@ function Admin92PageContent() {
                         {dayCuotas.map((c) => {
                           const estado = getCuotaEstado(c);
                           const est = cuotaEstadoStyles[estado];
+                          const isFocused = focusedCobroId === c.id;
                           return (
-                          <div key={c.id} className={`rounded-xl border p-3 ${est.card}`}>
+                          <div
+                            key={c.id}
+                            id={`cuota-row-${c.id}`}
+                            data-cuota-block={c.id}
+                            className={`rounded-xl border p-3 ${est.card} ${
+                              isFocused ? "ring-2 ring-amber-400 border-amber-300" : ""
+                            }`}
+                          >
                             <div className="flex items-start justify-between gap-2">
                               <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${est.badge}`}>
                                 {CUOTA_ESTADO_LABEL[estado]}
