@@ -185,7 +185,7 @@ function Admin92PageContent() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   /** Cuota enfocada desde el panel de cambios (scroll + resaltado) */
   const [focusedCobroId, setFocusedCobroId] = useState<string | null>(null);
-  const [cambiosSortMode, setCambiosSortMode] = useState<CambiosSortMode>("fecha");
+  const [cambiosSortMode, setCambiosSortMode] = useState<CambiosSortMode>("tareas");
   const [contabilidadToolPanel, setContabilidadToolPanel] = useState<
     null | "objetivos" | "mantenimientos" | "buscar-clientes"
   >(null);
