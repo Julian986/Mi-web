@@ -634,6 +634,13 @@ function Admin92PageContent() {
   const cuotaEsperadaLabel = (c: Cobro) =>
     c.servicio ? `${c.clientName} (${c.servicio}) - Cuota` : `${c.clientName} - Cuota`;
 
+  const cuotaFechaCobroDisplay = (c: Cobro) => {
+    if (!c.paid) return null;
+    const fecha = c.fechaCobro || c.paidAt;
+    if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return null;
+    return formatLocalDate(fecha);
+  };
+
   const recordsById = useMemo(
     () => new Map(records.filter((r) => r._id).map((r) => [r._id!, r])),
     [records],
@@ -1864,6 +1871,7 @@ function Admin92PageContent() {
                           <thead>
                             <tr className="border-b border-slate-200">
                               <th className="text-left py-2 px-2 font-semibold text-slate-700">Vencimiento</th>
+                              <th className="text-left py-2 px-2 font-semibold text-slate-700">Cobro</th>
                               <th className="text-left py-2 px-2 font-semibold text-slate-700">Tipo</th>
                               <th className="text-left py-2 px-2 font-semibold text-slate-700">Descripción</th>
                               <th className="text-left py-2 px-2 font-semibold text-slate-700">Origen</th>
@@ -1877,6 +1885,7 @@ function Admin92PageContent() {
                               const estado = getCuotaEstado(c);
                               const est = cuotaEstadoStyles[estado];
                               const isFocused = focusedCobroId === c.id;
+                              const fechaCobro = cuotaFechaCobroDisplay(c);
                               return (
                               <Fragment key={c.id}>
                                 <tr
@@ -1887,6 +1896,13 @@ function Admin92PageContent() {
                                   }`}
                                 >
                                   <td className="py-2.5 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
+                                  <td className="py-2.5 px-2 text-slate-600">
+                                    {fechaCobro ? (
+                                      <span className="font-medium text-green-700">{fechaCobro}</span>
+                                    ) : (
+                                      <span className="text-slate-300">—</span>
+                                    )}
+                                  </td>
                                   <td className="py-2.5 px-2">
                                     <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${est.badge}`}>
                                       {CUOTA_ESTADO_LABEL[estado]}
@@ -1941,7 +1957,7 @@ function Admin92PageContent() {
                                     isFocused ? "bg-amber-50/30" : ""
                                   }`}
                                 >
-                                  <td colSpan={7} className="px-2 pb-2.5 pt-0 space-y-2">
+                                  <td colSpan={8} className="px-2 pb-2.5 pt-0 space-y-2">
                                     <CuotaOperativaPanel
                                       cobro={c}
                                       proyecto={getProyectoForClient(c.clientName, proyectoByClient)}
@@ -1983,7 +1999,12 @@ function Admin92PageContent() {
                             </div>
                             <p className="mt-2 text-sm font-medium text-slate-900">{cuotaEsperadaLabel(c)}</p>
                             <p className="text-xs text-slate-500 mt-1">
-                              Vence {formatLocalDate(c.dueDate)} · {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
+                              Vence {formatLocalDate(c.dueDate)}
+                              {cuotaFechaCobroDisplay(c)
+                                ? ` · Cobró ${cuotaFechaCobroDisplay(c)}`
+                                : ""}
+                              {" · "}
+                              {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
                             </p>
                             <div className="mt-2 flex flex-wrap items-center gap-2">
                               {!c.paid && (
