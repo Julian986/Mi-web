@@ -152,7 +152,14 @@ export async function PATCH(
         );
       }
       const tasks = solicitudTasks
-        .map((t: { id?: string; text?: string; done?: boolean; createdAt?: string }) => {
+        .map(
+          (t: {
+            id?: string;
+            text?: string;
+            done?: boolean;
+            createdAt?: string;
+            fueraColaActiva?: boolean;
+          }) => {
           const created =
             t.createdAt && /^\d{4}-\d{2}-\d{2}$/.test(String(t.createdAt))
               ? String(t.createdAt)
@@ -162,8 +169,10 @@ export async function PATCH(
             text: String(t.text || "").trim(),
             done: Boolean(t.done),
             ...(created ? { createdAt: created } : {}),
+            ...(t.fueraColaActiva ? { fueraColaActiva: true } : {}),
           };
-        })
+        },
+        )
         .filter((t: { text: string }) => t.text.length > 0);
       updates.solicitudTasks = tasks;
     }

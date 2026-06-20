@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronUp, ListMinus } from "lucide-react";
 import {
   sortCuotasCambiosPendientes,
   type CambioTaskListItem,
@@ -23,6 +23,7 @@ type Props = {
   onSortModeChange: (mode: CambiosSortMode) => void;
   onSelectCuota: (c: CuotaCambioItem) => void;
   onPrioridadChange: (cobroId: string, prioridad: number | undefined) => void;
+  onDismissTaskFromColaActiva?: (cobroId: string, taskId: string) => void;
   /** En mobile: panel colapsable */
   collapsible?: boolean;
   className?: string;
@@ -115,6 +116,7 @@ export default function CambiosPendientesSidebar({
   onSortModeChange,
   onSelectCuota,
   onPrioridadChange,
+  onDismissTaskFromColaActiva,
   collapsible = false,
   className = "",
 }: Props) {
@@ -172,7 +174,7 @@ export default function CambiosPendientesSidebar({
       {sortMode === "tareas" ? (
         tareas.length === 0 ? (
           <p className="text-sm text-slate-500 py-4 text-center">
-            Ninguna tarea de cambio en este mes.
+            Ninguna tarea en cola activa este mes.
           </p>
         ) : (
           <ul className="space-y-1.5 max-h-[min(420px,50vh)] overflow-y-auto pr-0.5">
@@ -180,38 +182,53 @@ export default function CambiosPendientesSidebar({
               const isSelected = selectedCobroId === t.cobroId;
               return (
                 <li key={t.taskId}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onSelectCuota({
-                        id: t.cobroId,
-                        clientName: t.clientName,
-                        dueDate: t.dueDate,
-                        servicio: t.servicio,
-                        estado: t.estado,
-                        border: t.border,
-                      })
-                    }
-                    className={`flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-[#84b9ed]/50 ${
+                  <div
+                    className={`flex w-full items-start gap-1 rounded-lg border px-2 py-2 transition-colors ${
                       isSelected
                         ? "border-amber-400 bg-amber-50 ring-2 ring-amber-300/60"
                         : "border-slate-200 bg-white hover:border-amber-200 hover:bg-amber-50/40"
                     }`}
                   >
-                    <CuotaCalendarDot estado={t.estado} border={t.border} size="md" />
-                    <span className="min-w-0 flex-1">
-                      <p
-                        className={`text-sm font-medium text-slate-900 ${
-                          t.done ? "line-through text-slate-500" : ""
-                        }`}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onSelectCuota({
+                          id: t.cobroId,
+                          clientName: t.clientName,
+                          dueDate: t.dueDate,
+                          servicio: t.servicio,
+                          estado: t.estado,
+                          border: t.border,
+                        })
+                      }
+                      className="min-w-0 flex-1 flex items-start gap-2 text-left cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#84b9ed]/50"
+                    >
+                      <CuotaCalendarDot estado={t.estado} border={t.border} size="md" />
+                      <span className="min-w-0 flex-1">
+                        <p
+                          className={`text-sm font-medium text-slate-900 ${
+                            t.done ? "line-through text-slate-500" : ""
+                          }`}
+                        >
+                          {t.text}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-0.5 truncate">
+                          {taskClientLabel(t)} · {formatLocalDate(t.fecha)}
+                        </p>
+                      </span>
+                    </button>
+                    {onDismissTaskFromColaActiva && (
+                      <button
+                        type="button"
+                        onClick={() => onDismissTaskFromColaActiva(t.cobroId, t.taskId)}
+                        title="Quitar de cola activa (queda en Cola operativa)"
+                        aria-label="Quitar de cola activa"
+                        className="shrink-0 rounded-md p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
                       >
-                        {t.text}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-0.5 truncate">
-                        {taskClientLabel(t)} · {formatLocalDate(t.fecha)}
-                      </p>
-                    </span>
-                  </button>
+                        <ListMinus className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
                 </li>
               );
             })}

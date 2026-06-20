@@ -192,6 +192,7 @@ export default function CuotaOperativaPanel({
     const normalized = nextTasks.map((t) => ({
       ...t,
       createdAt: getTaskSortDate(t, cobro.dueDate),
+      ...(t.fueraColaActiva ? { fueraColaActiva: true } : {}),
     }));
     setTasks(normalized);
     await patchCobro({ solicitudTasks: normalized, cambioPendiente: true });
@@ -210,6 +211,13 @@ export default function CuotaOperativaPanel({
 
   const requestRemoveTask = (task: SolicitudTask) => {
     setTaskPendingDelete(task);
+  };
+
+  const handleRestoreTaskToColaActiva = async (taskId: string) => {
+    const next = tasks.map((t) =>
+      t.id === taskId ? { ...t, fueraColaActiva: false } : t,
+    );
+    await saveTasks(next);
   };
 
   const handleTaskDateLocalChange = (taskId: string, createdAt: string) => {
@@ -390,7 +398,12 @@ export default function CuotaOperativaPanel({
           <p className="text-xs font-medium text-slate-700 mb-1.5">Tareas del cambio</p>
           <ul className="space-y-1.5">
             {tasksSorted.map((t) => (
-              <li key={t.id} className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <li
+                key={t.id}
+                className={`flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md px-1 -mx-1 ${
+                  t.fueraColaActiva ? "bg-slate-50/80" : ""
+                }`}
+              >
                 <input
                   type="checkbox"
                   checked={t.done}
@@ -399,9 +412,16 @@ export default function CuotaOperativaPanel({
                   className="rounded border-slate-300 text-amber-600 cursor-pointer shrink-0"
                 />
                 <span
-                  className={`min-w-0 flex-1 text-xs ${t.done ? "text-slate-400 line-through" : "text-slate-800"}`}
+                  className={`min-w-0 flex-1 text-xs ${
+                    t.done ? "text-slate-400 line-through" : "text-slate-800"
+                  } ${t.fueraColaActiva ? "text-slate-500" : ""}`}
                 >
                   {t.text}
+                  {t.fueraColaActiva && (
+                    <span className="ml-1.5 text-[10px] font-normal text-slate-400 not-italic">
+                      · solo historial
+                    </span>
+                  )}
                 </span>
                 <input
                   type="date"
@@ -424,6 +444,17 @@ export default function CuotaOperativaPanel({
                   title="Fecha de la tarea"
                   className="shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-700 cursor-pointer disabled:opacity-50"
                 />
+                {t.fueraColaActiva ? (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => void handleRestoreTaskToColaActiva(t.id)}
+                    title="Volver a mostrar en Cambios pendientes"
+                    className="shrink-0 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-slate-600 hover:bg-slate-50 cursor-pointer disabled:opacity-50"
+                  >
+                    Subir
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   disabled={saving}
@@ -494,8 +525,11 @@ export default function CuotaOperativaPanel({
               ¿Eliminar esta tarea?
             </h3>
             <p className="text-sm text-slate-700 mb-1 line-clamp-3">{taskPendingDelete.text}</p>
-            <p className="text-xs text-slate-500 mb-4">
+            <p className="text-xs text-slate-500 mb-1">
               Fecha: {formatLocalDate(taskDisplayDate(taskPendingDelete))}
+            </p>
+            <p className="text-xs text-slate-500 mb-4">
+              Se elimina de Cola operativa y del historial de la cuota.
             </p>
             <div className="flex justify-end gap-2">
               <button

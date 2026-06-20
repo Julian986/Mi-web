@@ -57,6 +57,7 @@ export function buildTareasCambioDelMes(
     if (tasks.length === 0) continue;
     const { estado, border } = metaFor(c);
     for (const t of tasks) {
+      if (t.fueraColaActiva) continue;
       items.push({
         taskId: t.id,
         text: t.text,
@@ -76,6 +77,7 @@ export function buildTareasCambioDelMes(
 
 export function sortTareasCambioPorFecha(items: CambioTaskListItem[]): CambioTaskListItem[] {
   return [...items].sort((a, b) => {
+    if (a.done !== b.done) return a.done ? 1 : -1;
     const byFecha = a.fecha.localeCompare(b.fecha);
     if (byFecha !== 0) return byFecha;
     const byCuota = a.dueDate.localeCompare(b.dueDate);

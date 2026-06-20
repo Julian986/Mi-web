@@ -966,6 +966,32 @@ function Admin92PageContent() {
     setFocusedCobroId(null);
   };
 
+  const handleDismissTaskFromColaActiva = async (cobroId: string, taskId: string) => {
+    const cobro = cobros.find((c) => c.id === cobroId);
+    if (!cobro) return;
+    const nextTasks = (cobro.solicitudTasks ?? []).map((t) =>
+      t.id === taskId ? { ...t, fueraColaActiva: true } : t,
+    );
+    setCobros((prev) =>
+      prev.map((c) => (c.id === cobroId ? { ...c, solicitudTasks: nextTasks } : c)),
+    );
+    try {
+      const res = await fetch(`/api/admin/cobros/${cobroId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ solicitudTasks: nextTasks }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo quitar la tarea de la cola activa.");
+        fetchCobros();
+      }
+    } catch (e: unknown) {
+      setCobroError(e instanceof Error ? e.message : "Error al actualizar.");
+      fetchCobros();
+    }
+  };
+
   const handleCobroPrioridadChange = async (cobroId: string, prioridad: number | undefined) => {
     setCobros((prev) =>
       prev.map((c) => {
@@ -1677,6 +1703,7 @@ function Admin92PageContent() {
                 onSortModeChange={setCambiosSortMode}
                 onSelectCuota={handleSelectCuotaFromSidebar}
                 onPrioridadChange={handleCobroPrioridadChange}
+                onDismissTaskFromColaActiva={handleDismissTaskFromColaActiva}
               />
             </div>
             <CambiosPendientesSidebar
@@ -1695,6 +1722,7 @@ function Admin92PageContent() {
               onSortModeChange={setCambiosSortMode}
               onSelectCuota={handleSelectCuotaFromSidebar}
               onPrioridadChange={handleCobroPrioridadChange}
+              onDismissTaskFromColaActiva={handleDismissTaskFromColaActiva}
             />
 
             {/* Detalle del día / mes */}

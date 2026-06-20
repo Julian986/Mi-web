@@ -7,6 +7,8 @@ export type SolicitudTask = {
   done: boolean;
   /** Fecha de creación YYYY-MM-DD (orden en cola de tareas) */
   createdAt?: string;
+  /** Oculta en Cambios pendientes (Tareas); sigue visible en Cola operativa */
+  fueraColaActiva?: boolean;
 };
 
 export type ProyectoOperativo = {
