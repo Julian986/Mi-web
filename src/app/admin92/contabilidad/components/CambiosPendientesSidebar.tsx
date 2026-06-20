@@ -213,7 +213,10 @@ export default function CambiosPendientesSidebar({
                           {t.text}
                         </p>
                         <p className="text-xs text-slate-500 mt-0.5 truncate">
-                          {taskClientLabel(t)} · {formatLocalDate(t.fecha)}
+                          {taskClientLabel(t)}
+                          {t.done && t.fechaRealizada
+                            ? ` · Ped. ${formatLocalDate(t.fecha)} · Real. ${formatLocalDate(t.fechaRealizada)}`
+                            : ` · Ped. ${formatLocalDate(t.fecha)}`}
                         </p>
                       </span>
                     </button>

@@ -159,17 +159,24 @@ export async function PATCH(
             done?: boolean;
             createdAt?: string;
             fueraColaActiva?: boolean;
+            fechaRealizada?: string;
           }) => {
           const created =
             t.createdAt && /^\d{4}-\d{2}-\d{2}$/.test(String(t.createdAt))
               ? String(t.createdAt)
               : undefined;
+          const realizada =
+            t.fechaRealizada && /^\d{4}-\d{2}-\d{2}$/.test(String(t.fechaRealizada))
+              ? String(t.fechaRealizada)
+              : undefined;
+          const done = Boolean(t.done);
           return {
             id: String(t.id || "").trim() || `t_${Date.now()}`,
             text: String(t.text || "").trim(),
-            done: Boolean(t.done),
+            done,
             ...(created ? { createdAt: created } : {}),
             ...(t.fueraColaActiva ? { fueraColaActiva: true } : {}),
+            ...(done && realizada ? { fechaRealizada: realizada } : {}),
           };
         },
         )

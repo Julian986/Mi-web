@@ -9,6 +9,8 @@ export type SolicitudTask = {
   createdAt?: string;
   /** Oculta en Cambios pendientes (Tareas); sigue visible en Cola operativa */
   fueraColaActiva?: boolean;
+  /** Fecha en que se completó la tarea, YYYY-MM-DD */
+  fechaRealizada?: string;
 };
 
 export type ProyectoOperativo = {
@@ -129,16 +131,48 @@ export function getTaskSortDate(task: SolicitudTask, cuotaDueDate: string): stri
   return cuotaDueDate;
 }
 
+export function getTaskFechaRealizada(task: SolicitudTask): string | null {
+  if (task.fechaRealizada && /^\d{4}-\d{2}-\d{2}$/.test(task.fechaRealizada)) {
+    return task.fechaRealizada;
+  }
+  return null;
+}
+
+export function normalizeSolicitudTask(
+  task: SolicitudTask,
+  cuotaDueDate: string,
+): SolicitudTask {
+  const normalized: SolicitudTask = {
+    id: task.id,
+    text: task.text,
+    done: task.done,
+    createdAt: getTaskSortDate(task, cuotaDueDate),
+  };
+  if (task.fueraColaActiva) normalized.fueraColaActiva = true;
+  if (task.done) {
+    const fr = getTaskFechaRealizada(task);
+    if (fr) normalized.fechaRealizada = fr;
+  }
+  return normalized;
+}
+
 export function sortSolicitudTasksByFecha(
   tasks: SolicitudTask[],
   cuotaDueDate: string,
 ): SolicitudTask[] {
   return [...tasks].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
-    const byFecha = getTaskSortDate(a, cuotaDueDate).localeCompare(
-      getTaskSortDate(b, cuotaDueDate),
-    );
-    if (byFecha !== 0) return byFecha;
+    if (a.done && b.done) {
+      const fa = getTaskFechaRealizada(a) ?? getTaskSortDate(a, cuotaDueDate);
+      const fb = getTaskFechaRealizada(b) ?? getTaskSortDate(b, cuotaDueDate);
+      const byRealizada = fa.localeCompare(fb);
+      if (byRealizada !== 0) return byRealizada;
+    } else {
+      const byFecha = getTaskSortDate(a, cuotaDueDate).localeCompare(
+        getTaskSortDate(b, cuotaDueDate),
+      );
+      if (byFecha !== 0) return byFecha;
+    }
     return a.text.localeCompare(b.text);
   });
 }

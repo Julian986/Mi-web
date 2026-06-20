@@ -5,10 +5,12 @@ import { Check, Plus, Trash2 } from "lucide-react";
 import {
   getCuotaOperativaBorder,
   getStatsObjectiveDate,
+  getTaskFechaRealizada,
   getTaskSortDate,
   hasCambioPendiente,
   hasStatsPendientes,
   newSolicitudTaskId,
+  normalizeSolicitudTask,
   sortSolicitudTasksByFecha,
   type ProyectoOperativo,
   type SolicitudTask,
@@ -54,11 +56,20 @@ export default function CuotaOperativaPanel({
   const [newTaskText, setNewTaskText] = useState("");
   const [newTaskDate, setNewTaskDate] = useState(todayYmd());
   const [taskPendingDelete, setTaskPendingDelete] = useState<SolicitudTask | null>(null);
+  const [pendingTaskComplete, setPendingTaskComplete] = useState<{
+    taskId: string;
+    text: string;
+    fecha: string;
+  } | null>(null);
   const editingTaskDateRef = useRef<string | null>(null);
+  const editingCompletedDateRef = useRef<string | null>(null);
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
 
   const taskDisplayDate = (t: SolicitudTask) => getTaskSortDate(t, cobro.dueDate);
+
+  const taskDisplayFechaRealizada = (t: SolicitudTask) =>
+    getTaskFechaRealizada(t) ?? todayYmd();
 
   const tasksSorted = useMemo(
     () => sortSolicitudTasksByFecha(tasks, cobro.dueDate),
@@ -70,8 +81,13 @@ export default function CuotaOperativaPanel({
     return saved ? getTaskSortDate(saved, cobro.dueDate) : "";
   };
 
+  const savedTaskFechaRealizada = (taskId: string) => {
+    const saved = cobro.solicitudTasks?.find((t) => t.id === taskId);
+    return saved ? getTaskFechaRealizada(saved) : null;
+  };
+
   useEffect(() => {
-    if (editingTaskDateRef.current) return;
+    if (editingTaskDateRef.current || editingCompletedDateRef.current) return;
     setTasks(cobro.solicitudTasks ?? []);
   }, [cobro.id, cobro.solicitudTasks]);
 
@@ -189,17 +205,40 @@ export default function CuotaOperativaPanel({
   };
 
   const saveTasks = async (nextTasks: SolicitudTask[]) => {
-    const normalized = nextTasks.map((t) => ({
-      ...t,
-      createdAt: getTaskSortDate(t, cobro.dueDate),
-      ...(t.fueraColaActiva ? { fueraColaActiva: true } : {}),
-    }));
+    const normalized = nextTasks.map((t) => normalizeSolicitudTask(t, cobro.dueDate));
     setTasks(normalized);
     await patchCobro({ solicitudTasks: normalized, cambioPendiente: true });
   };
 
   const handleToggleTask = async (taskId: string) => {
-    const next = tasks.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t));
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    if (task.done) {
+      const next = tasks.map((t) =>
+        t.id === taskId ? { ...t, done: false, fechaRealizada: undefined } : t,
+      );
+      setPendingTaskComplete(null);
+      await saveTasks(next);
+      return;
+    }
+    setPendingTaskComplete({
+      taskId,
+      text: task.text,
+      fecha: todayYmd(),
+    });
+  };
+
+  const handleConfirmTaskComplete = async () => {
+    if (!pendingTaskComplete) return;
+    const fecha = /^\d{4}-\d{2}-\d{2}$/.test(pendingTaskComplete.fecha)
+      ? pendingTaskComplete.fecha
+      : todayYmd();
+    const next = tasks.map((t) =>
+      t.id === pendingTaskComplete.taskId
+        ? { ...t, done: true, fechaRealizada: fecha }
+        : t,
+    );
+    setPendingTaskComplete(null);
     await saveTasks(next);
   };
 
@@ -234,6 +273,24 @@ export default function CuotaOperativaPanel({
     if (savedTaskDate(taskId) === createdAt) return;
     const next = tasksRef.current.map((t) =>
       t.id === taskId ? { ...t, createdAt } : t,
+    );
+    await saveTasks(next);
+  };
+
+  const handleTaskFechaRealizadaLocalChange = (taskId: string, fechaRealizada: string) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, fechaRealizada } : t)),
+    );
+  };
+
+  const commitTaskFechaRealizada = async (taskId: string, fechaRealizada: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaRealizada)) {
+      setTasks(cobro.solicitudTasks ?? []);
+      return;
+    }
+    if (savedTaskFechaRealizada(taskId) === fechaRealizada) return;
+    const next = tasksRef.current.map((t) =>
+      t.id === taskId ? { ...t, fechaRealizada } : t,
     );
     await saveTasks(next);
   };
@@ -423,27 +480,60 @@ export default function CuotaOperativaPanel({
                     </span>
                   )}
                 </span>
-                <input
-                  type="date"
-                  value={taskDisplayDate(t)}
-                  disabled={saving}
-                  onFocus={() => {
-                    editingTaskDateRef.current = t.id;
-                  }}
-                  onChange={(e) => handleTaskDateLocalChange(t.id, e.target.value)}
-                  onBlur={(e) => {
-                    editingTaskDateRef.current = null;
-                    void commitTaskDate(t.id, e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      e.currentTarget.blur();
-                    }
-                  }}
-                  title="Fecha de la tarea"
-                  className="shrink-0 rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-700 cursor-pointer disabled:opacity-50"
-                />
+                <span className="flex shrink-0 items-center gap-1">
+                  <span className="text-[10px] text-slate-400 w-7 text-right">Ped.</span>
+                  <input
+                    type="date"
+                    value={taskDisplayDate(t)}
+                    disabled={saving}
+                    onFocus={() => {
+                      editingTaskDateRef.current = t.id;
+                    }}
+                    onChange={(e) => handleTaskDateLocalChange(t.id, e.target.value)}
+                    onBlur={(e) => {
+                      editingTaskDateRef.current = null;
+                      void commitTaskDate(t.id, e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    title="Fecha pedido"
+                    aria-label="Fecha pedido"
+                    className="rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-700 cursor-pointer disabled:opacity-50"
+                  />
+                </span>
+                {t.done ? (
+                  <span className="flex shrink-0 items-center gap-1">
+                    <span className="text-[10px] text-slate-400 w-7 text-right">Real.</span>
+                    <input
+                      type="date"
+                      value={taskDisplayFechaRealizada(t)}
+                      disabled={saving}
+                      onFocus={() => {
+                        editingCompletedDateRef.current = t.id;
+                      }}
+                      onChange={(e) =>
+                        handleTaskFechaRealizadaLocalChange(t.id, e.target.value)
+                      }
+                      onBlur={(e) => {
+                        editingCompletedDateRef.current = null;
+                        void commitTaskFechaRealizada(t.id, e.target.value);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      title="Fecha realizada"
+                      aria-label="Fecha realizada"
+                      className="rounded border border-green-200 bg-green-50/50 px-1.5 py-0.5 text-[11px] text-green-800 cursor-pointer disabled:opacity-50"
+                    />
+                  </span>
+                ) : null}
                 {t.fueraColaActiva ? (
                   <button
                     type="button"
@@ -467,6 +557,45 @@ export default function CuotaOperativaPanel({
               </li>
             ))}
           </ul>
+
+          {pendingTaskComplete && (
+            <div className="mt-2 flex flex-wrap items-end gap-2 rounded-md border border-amber-200 bg-amber-50/60 p-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium text-amber-900 mb-1">Marcar tarea realizada</p>
+                <p className="text-xs text-slate-700 line-clamp-2">{pendingTaskComplete.text}</p>
+              </div>
+              <label className="text-xs text-slate-700">
+                Fecha realizada
+                <input
+                  type="date"
+                  value={pendingTaskComplete.fecha}
+                  onChange={(e) =>
+                    setPendingTaskComplete((prev) =>
+                      prev ? { ...prev, fecha: e.target.value } : prev,
+                    )
+                  }
+                  className="mt-1 block rounded border border-slate-300 px-2 py-1 text-xs"
+                />
+              </label>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => void handleConfirmTaskComplete()}
+                className="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 cursor-pointer disabled:opacity-50"
+              >
+                Confirmar
+              </button>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => setPendingTaskComplete(null)}
+                className="rounded-md border border-slate-300 px-3 py-1.5 text-xs text-slate-600 hover:bg-white cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
           <div className="mt-2 flex flex-wrap gap-2">
             <input
               type="text"
@@ -487,7 +616,7 @@ export default function CuotaOperativaPanel({
               value={newTaskDate}
               disabled={saving}
               onChange={(e) => setNewTaskDate(e.target.value)}
-              title="Fecha de la nueva tarea"
+              title="Fecha pedido de la nueva tarea"
               className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 cursor-pointer disabled:opacity-50"
             />
             <button
@@ -526,7 +655,7 @@ export default function CuotaOperativaPanel({
             </h3>
             <p className="text-sm text-slate-700 mb-1 line-clamp-3">{taskPendingDelete.text}</p>
             <p className="text-xs text-slate-500 mb-1">
-              Fecha: {formatLocalDate(taskDisplayDate(taskPendingDelete))}
+              Pedido: {formatLocalDate(taskDisplayDate(taskPendingDelete))}
             </p>
             <p className="text-xs text-slate-500 mb-4">
               Se elimina de Cola operativa y del historial de la cuota.

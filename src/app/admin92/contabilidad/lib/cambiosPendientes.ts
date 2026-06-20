@@ -1,6 +1,6 @@
 import type { CuotaEstado } from "@/app/admin92/contabilidad/lib/cuotaEstilos";
 import type { CuotaOperativaBorder } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
-import { getTaskSortDate, type SolicitudTask } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
+import { getTaskFechaRealizada, getTaskSortDate, type SolicitudTask } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
 import { getMonthKeySafe } from "@/app/admin92/contabilidad/lib/utils";
 
 export type CambiosSortMode = "fecha" | "prioridad" | "tareas";
@@ -20,6 +20,7 @@ export type CambioTaskListItem = {
   text: string;
   done: boolean;
   fecha: string;
+  fechaRealizada?: string;
   cobroId: string;
   clientName: string;
   dueDate: string;
@@ -63,6 +64,7 @@ export function buildTareasCambioDelMes(
         text: t.text,
         done: t.done,
         fecha: getTaskSortDate(t, c.dueDate),
+        fechaRealizada: getTaskFechaRealizada(t) ?? undefined,
         cobroId: c.id,
         clientName: c.clientName,
         dueDate: c.dueDate,
@@ -78,8 +80,15 @@ export function buildTareasCambioDelMes(
 export function sortTareasCambioPorFecha(items: CambioTaskListItem[]): CambioTaskListItem[] {
   return [...items].sort((a, b) => {
     if (a.done !== b.done) return a.done ? 1 : -1;
-    const byFecha = a.fecha.localeCompare(b.fecha);
-    if (byFecha !== 0) return byFecha;
+    if (a.done && b.done) {
+      const fa = a.fechaRealizada ?? a.fecha;
+      const fb = b.fechaRealizada ?? b.fecha;
+      const byRealizada = fa.localeCompare(fb);
+      if (byRealizada !== 0) return byRealizada;
+    } else {
+      const byFecha = a.fecha.localeCompare(b.fecha);
+      if (byFecha !== 0) return byFecha;
+    }
     const byCuota = a.dueDate.localeCompare(b.dueDate);
     if (byCuota !== 0) return byCuota;
     return a.text.localeCompare(b.text);
