@@ -63,6 +63,7 @@ export default function CuotaOperativaPanel({
   } | null>(null);
   const editingTaskDateRef = useRef<string | null>(null);
   const editingCompletedDateRef = useRef<string | null>(null);
+  const editingTaskTextRef = useRef<string | null>(null);
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
 
@@ -86,8 +87,17 @@ export default function CuotaOperativaPanel({
     return saved ? getTaskFechaRealizada(saved) : null;
   };
 
+  const savedTaskText = (taskId: string) =>
+    cobro.solicitudTasks?.find((t) => t.id === taskId)?.text ?? "";
+
   useEffect(() => {
-    if (editingTaskDateRef.current || editingCompletedDateRef.current) return;
+    if (
+      editingTaskDateRef.current ||
+      editingCompletedDateRef.current ||
+      editingTaskTextRef.current
+    ) {
+      return;
+    }
     setTasks(cobro.solicitudTasks ?? []);
   }, [cobro.id, cobro.solicitudTasks]);
 
@@ -263,6 +273,23 @@ export default function CuotaOperativaPanel({
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, createdAt } : t)),
     );
+  };
+
+  const handleTaskTextLocalChange = (taskId: string, text: string) => {
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, text } : t)));
+  };
+
+  const commitTaskText = async (taskId: string, text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setTasks(cobro.solicitudTasks ?? []);
+      return;
+    }
+    if (savedTaskText(taskId) === trimmed) return;
+    const next = tasksRef.current.map((t) =>
+      t.id === taskId ? { ...t, text: trimmed } : t,
+    );
+    await saveTasks(next);
   };
 
   const commitTaskDate = async (taskId: string, createdAt: string) => {
@@ -468,14 +495,33 @@ export default function CuotaOperativaPanel({
                   onChange={() => handleToggleTask(t.id)}
                   className="rounded border-slate-300 text-amber-600 cursor-pointer shrink-0"
                 />
-                <span
-                  className={`min-w-0 flex-1 text-xs ${
-                    t.done ? "text-slate-400 line-through" : "text-slate-800"
-                  } ${t.fueraColaActiva ? "text-slate-500" : ""}`}
-                >
-                  {t.text}
+                <span className="min-w-0 flex-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                  <input
+                    type="text"
+                    value={t.text}
+                    disabled={saving}
+                    onFocus={() => {
+                      editingTaskTextRef.current = t.id;
+                    }}
+                    onChange={(e) => handleTaskTextLocalChange(t.id, e.target.value)}
+                    onBlur={(e) => {
+                      editingTaskTextRef.current = null;
+                      void commitTaskText(t.id, e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    title="Texto de la tarea"
+                    aria-label="Texto de la tarea"
+                    className={`min-w-[120px] flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-xs outline-none focus:border-slate-300 focus:bg-white disabled:opacity-50 ${
+                      t.done ? "text-slate-400 line-through" : "text-slate-800"
+                    } ${t.fueraColaActiva ? "text-slate-500" : ""}`}
+                  />
                   {t.fueraColaActiva && (
-                    <span className="ml-1.5 text-[10px] font-normal text-slate-400 not-italic">
+                    <span className="text-[10px] font-normal text-slate-400 shrink-0">
                       · solo historial
                     </span>
                   )}
