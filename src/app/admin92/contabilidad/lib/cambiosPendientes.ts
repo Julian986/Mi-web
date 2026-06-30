@@ -3,7 +3,7 @@ import type { CuotaOperativaBorder } from "@/app/admin92/contabilidad/lib/cuotaO
 import { getTaskFechaRealizada, getTaskSortDate, type SolicitudTask } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
 import { getMonthKeySafe } from "@/app/admin92/contabilidad/lib/utils";
 
-export type CambiosSortMode = "fecha" | "prioridad" | "tareas";
+export type CambiosSortMode = "fecha" | "prioridad" | "tareas" | "saas";
 
 export type CuotaCambioItem = {
   id: string;

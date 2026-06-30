@@ -11,6 +11,7 @@ import {
 } from "@/app/admin92/contabilidad/lib/cambiosPendientes";
 import { formatLocalDate, formatMonthLabel } from "@/app/admin92/contabilidad/lib/utils";
 import CuotaCalendarDot from "@/app/admin92/contabilidad/components/CuotaCalendarDot";
+import SaasTareasPanel from "@/app/admin92/contabilidad/components/SaasTareasPanel";
 
 type Props = {
   cuotas: CuotaCambioItem[];
@@ -122,9 +123,16 @@ export default function CambiosPendientesSidebar({
 }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mesesAtrasadosOpen, setMesesAtrasadosOpen] = useState(false);
+  const [saasPendingCount, setSaasPendingCount] = useState(0);
   const sorted = sortCuotasCambiosPendientes(cuotas, sortMode);
   const atrasadosCount = mesesAtrasados.reduce((sum, m) => sum + m.count, 0);
-  const listCount = sortMode === "tareas" ? tareas.length : cuotas.length;
+  const listCount =
+    sortMode === "saas"
+      ? saasPendingCount
+      : sortMode === "tareas"
+        ? tareas.length
+        : cuotas.length;
+  const panelTitle = sortMode === "saas" ? "SaaS" : "Cambios pendientes";
 
   const taskClientLabel = (t: CambioTaskListItem) =>
     t.servicio ? `${t.clientName} (${t.servicio})` : t.clientName;
@@ -137,10 +145,10 @@ export default function CambiosPendientesSidebar({
     <>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Cambios pendientes
+          {panelTitle}
           <span className="ml-1.5 font-normal normal-case text-slate-400">({listCount})</span>
         </p>
-        <div className="flex rounded-lg border border-slate-200 p-0.5 text-xs">
+        <div className="flex flex-wrap rounded-lg border border-slate-200 p-0.5 text-xs">
           <button
             type="button"
             onClick={() => onSortModeChange("fecha")}
@@ -168,10 +176,21 @@ export default function CambiosPendientesSidebar({
           >
             Tareas
           </button>
+          <button
+            type="button"
+            onClick={() => onSortModeChange("saas")}
+            className={`rounded-md px-2 py-1 font-medium cursor-pointer ${
+              sortMode === "saas" ? "bg-indigo-600 text-white" : "text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            SaaS
+          </button>
         </div>
       </div>
 
-      {sortMode === "tareas" ? (
+      {sortMode === "saas" ? (
+        <SaasTareasPanel onCountChange={setSaasPendingCount} />
+      ) : sortMode === "tareas" ? (
         tareas.length === 0 ? (
           <p className="text-sm text-slate-500 py-4 text-center">
             Ninguna tarea en cola activa este mes.
@@ -279,7 +298,7 @@ export default function CambiosPendientesSidebar({
         </ul>
       )}
 
-      {atrasadosCount > 0 && onGoToMesAtrasado && (
+      {sortMode !== "saas" && atrasadosCount > 0 && onGoToMesAtrasado && (
         <div className="mt-3">
           <button
             type="button"
@@ -317,7 +336,7 @@ export default function CambiosPendientesSidebar({
         </div>
       )}
 
-      {sorted.length > 0 && sortMode === "prioridad" && (
+      {sortMode !== "saas" && sorted.length > 0 && sortMode === "prioridad" && (
         <p className="mt-2 text-[10px] text-slate-400">
           Prioridad: número menor = más urgente (solo al ordenar por Prioridad).
         </p>
@@ -337,16 +356,26 @@ export default function CambiosPendientesSidebar({
           className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left cursor-pointer"
         >
           <span className="text-sm font-semibold text-slate-900">
-            Cambios pendientes
-            {cuotas.length > 0 && (
-              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                {cuotas.length}
-              </span>
-            )}
-            {atrasadosCount > 0 && (
-              <span className="ml-1.5 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-800">
-                +{atrasadosCount} atr.
-              </span>
+            {sortMode === "saas" ? "SaaS" : "Cambios pendientes"}
+            {sortMode === "saas" ? (
+              saasPendingCount > 0 && (
+                <span className="ml-2 rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">
+                  {saasPendingCount}
+                </span>
+              )
+            ) : (
+              <>
+                {cuotas.length > 0 && (
+                  <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    {cuotas.length}
+                  </span>
+                )}
+                {atrasadosCount > 0 && (
+                  <span className="ml-1.5 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    +{atrasadosCount} atr.
+                  </span>
+                )}
+              </>
             )}
           </span>
           {mobileOpen ? (
