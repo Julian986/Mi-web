@@ -5,7 +5,7 @@ import {
   updateCobrosByClient,
   deleteCobro,
 } from "@/app/lib/cobrosMongo";
-import { insertAccountingRecord } from "@/app/lib/accountingMongo";
+import { insertAccountingRecord, updateAccountingRecord } from "@/app/lib/accountingMongo";
 
 export const runtime = "nodejs";
 
@@ -74,9 +74,7 @@ export async function PATCH(
     }
     if (paid !== undefined) {
       updates.paid = Boolean(paid);
-      if (paid) {
-        updates.paidAt = todayYmd();
-      } else {
+      if (!paid) {
         unsetFields.push("paidAt", "accountingRecordId", "fechaCobro");
       }
     }
@@ -202,6 +200,7 @@ export async function PATCH(
           ? String(fechaIngreso)
           : todayYmd();
       updates.fechaCobro = fechaStr;
+      updates.paidAt = fechaStr;
       const clientName = existing.clientName;
       const servicioLabel = existing.servicio || (updates.servicio as string | undefined);
       const monto = (updates.amount as number | undefined) ?? existing.amount;
@@ -217,6 +216,40 @@ export async function PATCH(
         date: new Date(`${fechaStr}T12:00:00.000Z`),
       });
       updates.accountingRecordId = insertedId.toString();
+    }
+
+    // Corregir fecha de cobro en cuota ya pagada
+    if (
+      fechaIngreso !== undefined &&
+      fechaIngreso !== null &&
+      paid === undefined &&
+      existing.paid
+    ) {
+      const fechaStr = /^\d{4}-\d{2}-\d{2}$/.test(String(fechaIngreso))
+        ? String(fechaIngreso)
+        : null;
+      if (!fechaStr) {
+        return NextResponse.json(
+          { error: "La fecha de cobro debe tener formato YYYY-MM-DD" },
+          { status: 400 },
+        );
+      }
+      updates.fechaCobro = fechaStr;
+      updates.paidAt = fechaStr;
+      if (existing.accountingRecordId) {
+        await updateAccountingRecord(existing.accountingRecordId, {
+          date: new Date(`${fechaStr}T12:00:00.000Z`),
+        });
+      }
+    }
+
+    if (paid === true && existing.accountingRecordId) {
+      const fechaStr =
+        fechaIngreso && /^\d{4}-\d{2}-\d{2}$/.test(String(fechaIngreso))
+          ? String(fechaIngreso)
+          : todayYmd();
+      updates.fechaCobro = fechaStr;
+      updates.paidAt = fechaStr;
     }
 
     if (Object.keys(updates).length > 0 || unsetFields.length > 0) {

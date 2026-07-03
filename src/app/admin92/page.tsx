@@ -634,11 +634,10 @@ function Admin92PageContent() {
   const cuotaEsperadaLabel = (c: Cobro) =>
     c.servicio ? `${c.clientName} (${c.servicio}) - Cuota` : `${c.clientName} - Cuota`;
 
-  const cuotaFechaCobroDisplay = (c: Cobro) => {
-    if (!c.paid) return null;
+  const cuotaFechaCobroYmd = (c: Cobro) => {
+    if (!c.paid) return "";
     const fecha = c.fechaCobro || c.paidAt;
-    if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return null;
-    return formatLocalDate(fecha);
+    return fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha : todayYmd();
   };
 
   const recordsById = useMemo(
@@ -902,6 +901,28 @@ function Admin92PageContent() {
       setCobroError(e?.message || "Error al actualizar.");
     } finally {
       setConfirmingPaid(false);
+    }
+  };
+
+  const handleFechaCobroChange = async (c: Cobro, fecha: string) => {
+    if (!c.paid || !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return;
+    if (cuotaFechaCobroYmd(c) === fecha) return;
+    setCobroError("");
+    try {
+      const res = await fetch(`/api/admin/cobros/${c.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fechaIngreso: fecha }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setCobroError(data?.error || "No se pudo actualizar la fecha de cobro.");
+        return;
+      }
+      fetchCobros();
+      fetchRecords();
+    } catch (e: any) {
+      setCobroError(e?.message || "Error al actualizar la fecha de cobro.");
     }
   };
 
@@ -1885,7 +1906,6 @@ function Admin92PageContent() {
                               const estado = getCuotaEstado(c);
                               const est = cuotaEstadoStyles[estado];
                               const isFocused = focusedCobroId === c.id;
-                              const fechaCobro = cuotaFechaCobroDisplay(c);
                               return (
                               <Fragment key={c.id}>
                                 <tr
@@ -1897,8 +1917,15 @@ function Admin92PageContent() {
                                 >
                                   <td className="py-2.5 px-2 text-slate-600">{formatLocalDate(c.dueDate)}</td>
                                   <td className="py-2.5 px-2 text-slate-600">
-                                    {fechaCobro ? (
-                                      <span className="font-medium text-green-700">{fechaCobro}</span>
+                                    {c.paid ? (
+                                      <input
+                                        type="date"
+                                        value={cuotaFechaCobroYmd(c)}
+                                        onChange={(e) => void handleFechaCobroChange(c, e.target.value)}
+                                        title="Fecha de cobro"
+                                        aria-label="Fecha de cobro"
+                                        className="rounded border border-green-200 bg-green-50/50 px-1.5 py-0.5 text-xs text-green-800 cursor-pointer"
+                                      />
                                     ) : (
                                       <span className="text-slate-300">—</span>
                                     )}
@@ -2000,9 +2027,19 @@ function Admin92PageContent() {
                             <p className="mt-2 text-sm font-medium text-slate-900">{cuotaEsperadaLabel(c)}</p>
                             <p className="text-xs text-slate-500 mt-1">
                               Vence {formatLocalDate(c.dueDate)}
-                              {cuotaFechaCobroDisplay(c)
-                                ? ` · Cobró ${cuotaFechaCobroDisplay(c)}`
-                                : ""}
+                              {c.paid && (
+                                <>
+                                  {" · Cobró "}
+                                  <input
+                                    type="date"
+                                    value={cuotaFechaCobroYmd(c)}
+                                    onChange={(e) => void handleFechaCobroChange(c, e.target.value)}
+                                    title="Fecha de cobro"
+                                    aria-label="Fecha de cobro"
+                                    className="rounded border border-green-200 bg-green-50/50 px-1 py-0.5 text-[11px] text-green-800 cursor-pointer align-middle"
+                                  />
+                                </>
+                              )}
                               {" · "}
                               {c.origen === "suscripcion_mp" ? "Suscripción MP" : "Manual"}
                             </p>
