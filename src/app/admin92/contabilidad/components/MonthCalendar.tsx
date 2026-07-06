@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import { formatMonthLabel, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 import type { CalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
 import {
@@ -12,6 +12,7 @@ import {
 import CuotaCalendarDot, {
   CalendarLegendBorder,
 } from "@/app/admin92/contabilidad/components/CuotaCalendarDot";
+import Desarrollos50Panel from "@/app/admin92/contabilidad/components/Desarrollos50Panel";
 
 const WEEKDAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 const LEGEND_VISIBLE_KEY = "glomun-calendario-leyenda";
@@ -29,6 +30,8 @@ type Props = {
   month: string;
   selectedDate: string | null;
   markers: CalendarMarkers;
+  cuotasDelMes?: number;
+  onDesarrollosAccountingChange?: () => void;
   onSelectDate: (date: string) => void;
   onPrevMonth: () => void;
   onNextMonth: () => void;
@@ -77,17 +80,41 @@ export default function MonthCalendar({
   month,
   selectedDate,
   markers,
+  cuotasDelMes = 0,
+  onDesarrollosAccountingChange,
   onSelectDate,
   onPrevMonth,
   onNextMonth,
 }: Props) {
   const [clientToday, setClientToday] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(false);
+  const [desarrollosOpen, setDesarrollosOpen] = useState(false);
+  const [desarrollosCount, setDesarrollosCount] = useState(0);
 
   useEffect(() => {
     setClientToday(todayYmd());
     setShowLegend(readLegendVisible());
   }, []);
+
+  const refreshDesarrollosCount = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/desarrollos-50");
+      const data = await res.json();
+      if (!res.ok) return;
+      setDesarrollosCount(Array.isArray(data.desarrollos) ? data.desarrollos.length : 0);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshDesarrollosCount();
+  }, [refreshDesarrollosCount]);
+
+  const handleDesarrollosAccountingChange = useCallback(() => {
+    void refreshDesarrollosCount();
+    onDesarrollosAccountingChange?.();
+  }, [refreshDesarrollosCount, onDesarrollosAccountingChange]);
 
   const toggleLegend = () => {
     setShowLegend((prev) => {
@@ -174,44 +201,73 @@ export default function MonthCalendar({
         })}
       </div>
 
-      <div className={`mt-4 flex items-start gap-2 ${showLegend ? "justify-between" : "justify-end"}`}>
-        {showLegend && (
-          <div className="min-w-0 flex-1 space-y-2">
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
-              {CALENDAR_LEGEND.map(({ color, label }) => (
-                <span key={label} className="flex items-center gap-1.5">
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
-                  {label}
-                </span>
-              ))}
+      <div className="mt-4 space-y-2">
+        <div className={`flex items-start gap-2 ${showLegend ? "justify-between" : "justify-end"}`}>
+          {showLegend && (
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+                {CALENDAR_LEGEND.map(({ color, label }) => (
+                  <span key={label} className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: color }} />
+                    {label}
+                  </span>
+                ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+                {CALENDAR_BORDER_LEGEND.map(({ label }) => (
+                  <span key={label} className="flex items-center gap-1.5">
+                    <CalendarLegendBorder
+                      border={label.includes("Cambio") ? "cambio" : "stats"}
+                      size="md"
+                    />
+                    {label}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
-              {CALENDAR_BORDER_LEGEND.map(({ label }) => (
-                <span key={label} className="flex items-center gap-1.5">
-                  <CalendarLegendBorder
-                    border={label.includes("Cambio") ? "cambio" : "stats"}
-                    size="md"
-                  />
-                  {label}
-                </span>
-              ))}
+          )}
+          <div className="flex shrink-0 items-start gap-2">
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="text-xs font-medium text-slate-600">
+                {cuotasDelMes} cuota{cuotasDelMes === 1 ? "" : "s"}
+              </span>
+              <button
+                type="button"
+                onClick={() => setDesarrollosOpen((v) => !v)}
+                aria-expanded={desarrollosOpen}
+                className="inline-flex items-center gap-1 text-xs font-medium text-sky-800 hover:text-sky-900 cursor-pointer"
+              >
+                {desarrollosCount} desarrollo{desarrollosCount === 1 ? "" : "s"} 50%
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${desarrollosOpen ? "rotate-180" : ""}`}
+                />
+              </button>
             </div>
+            <button
+              type="button"
+              onClick={toggleLegend}
+              aria-label={showLegend ? "Ocultar referencias del calendario" : "Mostrar referencias del calendario"}
+              aria-pressed={showLegend}
+              title={showLegend ? "Ocultar referencias" : "Mostrar referencias"}
+              className={`rounded-lg border p-2 transition-colors cursor-pointer ${
+                showLegend
+                  ? "border-[#84b9ed]/40 bg-[#84b9ed]/10 text-[#4a7fb8] hover:bg-[#84b9ed]/20"
+                  : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+              }`}
+            >
+              <Settings className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {desarrollosOpen && (
+          <div className="rounded-lg border border-sky-200 bg-sky-50/50 p-2.5">
+            <Desarrollos50Panel
+              onCountChange={setDesarrollosCount}
+              onAccountingChange={handleDesarrollosAccountingChange}
+            />
           </div>
         )}
-        <button
-          type="button"
-          onClick={toggleLegend}
-          aria-label={showLegend ? "Ocultar referencias del calendario" : "Mostrar referencias del calendario"}
-          aria-pressed={showLegend}
-          title={showLegend ? "Ocultar referencias" : "Mostrar referencias"}
-          className={`shrink-0 rounded-lg border p-2 transition-colors cursor-pointer ${
-            showLegend
-              ? "border-[#84b9ed]/40 bg-[#84b9ed]/10 text-[#4a7fb8] hover:bg-[#84b9ed]/20"
-              : "border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-          }`}
-        >
-          <Settings className="h-4 w-4" />
-        </button>
       </div>
     </div>
   );

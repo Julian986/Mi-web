@@ -7,7 +7,7 @@ import {
 
 export const runtime = "nodejs";
 
-const STATUSES = ["en_desarrollo", "en_revision", "en_produccion", "archivado"] as const;
+const STATUSES = ["en_desarrollo", "en_revision", "desarrollo_50", "en_produccion", "archivado"] as const;
 const TIPOS = ["App", "Tienda", "Web", "Mantenimiento", "Otro"];
 
 function isValidDate(s: string): boolean {
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       fechaInicio,
       ultimaActualizacion,
       ultimaSolicitud,
+      fechaCobro50,
       prioridad,
       notes,
       requiereEstadisticas,
@@ -111,6 +112,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const fechaCobro50Str = String(fechaCobro50 || "").trim();
+    if (fechaCobro50Str && !isValidDate(fechaCobro50Str)) {
+      return NextResponse.json(
+        { error: "La fecha de cobro 50% es inválida (formato YYYY-MM-DD)" },
+        { status: 400 },
+      );
+    }
+
     const prioridadVal = prioridad === undefined ? undefined : Number(prioridad);
     if (prioridadVal !== undefined) {
       if (!Number.isFinite(prioridadVal) || !Number.isInteger(prioridadVal) || prioridadVal < 0) {
@@ -136,6 +145,10 @@ export async function POST(req: NextRequest) {
 
     if (ultimaSolicitudStr) {
       doc.ultimaSolicitud = ultimaSolicitudStr;
+    }
+
+    if (fechaCobro50Str) {
+      doc.fechaCobro50 = fechaCobro50Str;
     }
 
     if (prioridadVal !== undefined) {

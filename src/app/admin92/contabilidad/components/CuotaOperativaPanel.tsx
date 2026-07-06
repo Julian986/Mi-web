@@ -404,7 +404,7 @@ export default function CuotaOperativaPanel({
           {cobro.paid ? (
             <>
               <span className="text-slate-600">
-                Objetivo:{" "}
+                Enviar antes de:{" "}
                 <strong>{objetivoStats ? formatLocalDate(objetivoStats) : "—"}</strong>
               </span>
               {cobro.estadisticasEnviadas && cobro.fechaEnvioEstadisticas ? (
@@ -413,9 +413,7 @@ export default function CuotaOperativaPanel({
                 </span>
               ) : statsPendientes ? (
                 <span className="font-medium text-violet-700">Pendientes (borde activo)</span>
-              ) : (
-                <span className="text-slate-500">Aún no llega el objetivo</span>
-              )}
+              ) : null}
               <button
                 type="button"
                 disabled={saving}
@@ -441,7 +439,7 @@ export default function CuotaOperativaPanel({
             </>
           ) : (
             <span className="text-slate-500">
-              El borde violeta aparece cuando la cuota está pagada y pasó el objetivo (cobro + 5).
+              El borde violeta aparece al marcar la cuota como pagada.
             </span>
           )}
         </div>

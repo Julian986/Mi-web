@@ -7,7 +7,7 @@ import {
 
 export const runtime = "nodejs";
 
-const STATUSES = ["en_desarrollo", "en_revision", "en_produccion", "archivado"] as const;
+const STATUSES = ["en_desarrollo", "en_revision", "desarrollo_50", "en_produccion", "archivado"] as const;
 const TIPOS = ["App", "Tienda", "Web", "Mantenimiento", "Otro"];
 
 function isValidDate(s: string): boolean {
@@ -85,6 +85,16 @@ export async function PATCH(
         );
       }
       updates.fechaInicio = String(body.fechaInicio).trim();
+    }
+    if (body.fechaCobro50 !== undefined) {
+      const value = String(body.fechaCobro50 || "").trim();
+      if (value && !isValidDate(value)) {
+        return NextResponse.json(
+          { error: "Fecha de cobro 50% inválida (formato YYYY-MM-DD)" },
+          { status: 400 },
+        );
+      }
+      updates.fechaCobro50 = value || undefined;
     }
     if (body.ultimaActualizacion !== undefined) {
       const value = String(body.ultimaActualizacion || "").trim();

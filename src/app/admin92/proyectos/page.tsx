@@ -25,6 +25,7 @@ const WORD_ONLINE_BTN_CLASS =
 type ProyectoStatus =
   | "en_desarrollo"
   | "en_revision"
+  | "desarrollo_50"
   | "en_produccion"
   | "archivado";
 
@@ -35,6 +36,7 @@ type Proyecto = {
   status: ProyectoStatus;
   type: string;
   fechaInicio: string;
+  fechaCobro50?: string;
   ultimaActualizacion?: string;
   /** Última solicitud puntual del cliente (ej. pedido de cambio) */
   ultimaSolicitud?: string;
@@ -51,6 +53,7 @@ const TIPOS = ["App", "Tienda", "Web", "Mantenimiento", "Otro"] as const;
 const STATUS_LABELS: Record<ProyectoStatus, string> = {
   en_desarrollo: "En desarrollo",
   en_revision: "En revisión",
+  desarrollo_50: "Desarrollo 50%",
   en_produccion: "En producción",
   archivado: "Archivado",
 };
@@ -58,6 +61,7 @@ const STATUS_LABELS: Record<ProyectoStatus, string> = {
 const STATUS_COLORS: Record<ProyectoStatus, string> = {
   en_desarrollo: "bg-amber-100 text-amber-800",
   en_revision: "bg-blue-100 text-blue-800",
+  desarrollo_50: "bg-sky-100 text-sky-800",
   en_produccion: "bg-green-100 text-green-800",
   archivado: "bg-slate-100 text-slate-600",
 };
@@ -88,6 +92,7 @@ export default function ProyectosPage() {
   const [formClient, setFormClient] = useState("");
   const [formType, setFormType] = useState("Web");
   const [formFechaInicio, setFormFechaInicio] = useState(todayStr);
+  const [formFechaCobro50, setFormFechaCobro50] = useState("");
   const [formUltimaActualizacion, setFormUltimaActualizacion] = useState("");
   const [formUltimaSolicitud, setFormUltimaSolicitud] = useState(todayStr);
   const [formStatus, setFormStatus] = useState<ProyectoStatus>("en_desarrollo");
@@ -101,6 +106,7 @@ export default function ProyectosPage() {
   const [editClient, setEditClient] = useState("");
   const [editType, setEditType] = useState("Web");
   const [editFechaInicio, setEditFechaInicio] = useState("");
+  const [editFechaCobro50, setEditFechaCobro50] = useState("");
   const [editUltimaActualizacion, setEditUltimaActualizacion] = useState("");
   const [editUltimaSolicitud, setEditUltimaSolicitud] = useState("");
   const [editStatus, setEditStatus] = useState<ProyectoStatus>("en_desarrollo");
@@ -305,6 +311,7 @@ export default function ProyectosPage() {
           ultimaActualizacion: formUltimaActualizacion || undefined,
           ultimaSolicitud: formUltimaSolicitud,
           status: formStatus,
+          fechaCobro50: formStatus === "desarrollo_50" && formFechaCobro50 ? formFechaCobro50 : undefined,
           notes: formNotes.trim() || undefined,
           requiereEstadisticas: formRequiereEstadisticas,
           cambioPendiente: formCambioPendiente,
@@ -427,6 +434,7 @@ export default function ProyectosPage() {
     setEditClient(p.clientName);
     setEditType(p.type);
     setEditFechaInicio(p.fechaInicio);
+    setEditFechaCobro50(p.fechaCobro50 || "");
     setEditUltimaActualizacion(p.ultimaActualizacion || "");
     setEditUltimaSolicitud(p.ultimaSolicitud || "");
     setEditStatus(p.status);
@@ -463,6 +471,7 @@ export default function ProyectosPage() {
           ultimaActualizacion: editUltimaActualizacion,
           ultimaSolicitud: editUltimaSolicitud,
           status: editStatus,
+          fechaCobro50: editStatus === "desarrollo_50" ? editFechaCobro50 : "",
           notes: editNotes.trim() || undefined,
           requiereEstadisticas: editRequiereEstadisticas,
           cambioPendiente: editCambioPendiente,
@@ -640,6 +649,17 @@ export default function ProyectosPage() {
                     ))}
                   </select>
                 </div>
+                {formStatus === "desarrollo_50" && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Cobro 50% (fecha)</label>
+                    <input
+                      type="date"
+                      value={formFechaCobro50}
+                      onChange={(e) => setFormFechaCobro50(e.target.value)}
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Fecha inicio</label>
                   <input
@@ -891,6 +911,17 @@ export default function ProyectosPage() {
                                   ))}
                                 </select>
                               </div>
+                              {editStatus === "desarrollo_50" && (
+                                <div>
+                                  <label className="block text-xs font-medium text-slate-600 mb-1">Cobro 50%</label>
+                                  <input
+                                    type="date"
+                                    value={editFechaCobro50}
+                                    onChange={(e) => setEditFechaCobro50(e.target.value)}
+                                    className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                                  />
+                                </div>
+                              )}
                               <div>
                                 <label className="block text-xs font-medium text-slate-600 mb-1">Últ. solicitud</label>
                                 <input

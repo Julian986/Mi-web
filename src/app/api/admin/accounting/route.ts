@@ -76,8 +76,8 @@ export async function POST(req: NextRequest) {
       date: recordDate,
     };
 
-    await insertAccountingRecord(doc);
-    return NextResponse.json({ ok: true });
+    const id = await insertAccountingRecord(doc);
+    return NextResponse.json({ ok: true, id: id.toString() });
   } catch (e) {
     console.error("[admin:accounting] insert failed", e);
     return NextResponse.json(

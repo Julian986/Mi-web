@@ -13,6 +13,8 @@ export type CobroDoc = {
   /** Fecha real del cobro (ingreso contable), YYYY-MM-DD */
   fechaCobro?: string;
   servicio?: string;
+  /** Texto libre en Cuotas del día; si no hay, se usa «cliente - Cuota» */
+  descripcionCuota?: string;
   notes?: string;
   origen?: "manual" | "suscripcion_mp";
   estadisticasEnviadas?: boolean;

@@ -3,6 +3,7 @@ import { getMongoClient } from "@/app/lib/mongoClient";
 export type ProyectoStatus =
   | "en_desarrollo"
   | "en_revision"
+  | "desarrollo_50"
   | "en_produccion"
   | "archivado";
 
@@ -21,6 +22,8 @@ export type ProyectoDoc = {
   status: ProyectoStatus;
   type: string;
   fechaInicio: string; // YYYY-MM-DD
+  /** Fecha en que cobraste el 50% inicial (desarrollo 50-50) */
+  fechaCobro50?: string; // YYYY-MM-DD
   ultimaActualizacion?: string; // YYYY-MM-DD
   /** Última solicitud concreta del cliente (ej. pedido de cambio) */
   ultimaSolicitud?: string; // YYYY-MM-DD

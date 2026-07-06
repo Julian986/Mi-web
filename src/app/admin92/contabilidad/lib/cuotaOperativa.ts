@@ -84,13 +84,12 @@ export function hasStatsPendientes(
     estadisticasEnviadas?: boolean;
   },
   proyecto: ProyectoOperativo | null | undefined,
-  today: string,
+  _today: string,
 ): boolean {
   if (!proyecto?.requiereEstadisticas) return false;
   if (!cobro.paid || cobro.estadisticasEnviadas) return false;
-  const objetivo = getStatsObjectiveDate(cobro);
-  if (!objetivo) return false;
-  return today >= objetivo;
+  const base = cobro.fechaCobro || cobro.dueDate;
+  return /^\d{4}-\d{2}-\d{2}$/.test(base);
 }
 
 export function getCuotaOperativaBorder(

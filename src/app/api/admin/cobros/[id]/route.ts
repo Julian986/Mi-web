@@ -14,6 +14,26 @@ function todayYmd(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function defaultCuotaDescripcion(cobro: {
+  clientName: string;
+  servicio?: string;
+}): string {
+  const servicioLabel = cobro.servicio;
+  return servicioLabel
+    ? `${cobro.clientName} (${servicioLabel}) - Cuota`
+    : `${cobro.clientName} - Cuota`;
+}
+
+function resolveCuotaDescripcion(cobro: {
+  clientName: string;
+  servicio?: string;
+  descripcionCuota?: string;
+}): string {
+  const custom = cobro.descripcionCuota?.trim();
+  if (custom) return custom;
+  return defaultCuotaDescripcion(cobro);
+}
+
 /** PATCH: actualizar cobro (amount, servicio, paid, paidAt) o actualizar cuotas futuras */
 export async function PATCH(
   req: NextRequest,
@@ -54,6 +74,7 @@ export async function PATCH(
       prioridad,
       cambioPendiente,
       solicitudTasks,
+      descripcionCuota,
     } = body;
 
     const updates: Record<string, unknown> = {};
@@ -181,6 +202,14 @@ export async function PATCH(
         .filter((t: { text: string }) => t.text.length > 0);
       updates.solicitudTasks = tasks;
     }
+    if (descripcionCuota !== undefined) {
+      const trimmed = String(descripcionCuota || "").trim();
+      if (trimmed) {
+        updates.descripcionCuota = trimmed;
+      } else {
+        unsetFields.push("descripcionCuota");
+      }
+    }
 
     if (updateFuture && amount !== undefined && body.clientName) {
       const numAmount = Number(amount);
@@ -201,12 +230,13 @@ export async function PATCH(
           : todayYmd();
       updates.fechaCobro = fechaStr;
       updates.paidAt = fechaStr;
-      const clientName = existing.clientName;
-      const servicioLabel = existing.servicio || (updates.servicio as string | undefined);
       const monto = (updates.amount as number | undefined) ?? existing.amount;
-      const description = servicioLabel
-        ? `${clientName} (${servicioLabel}) - Cuota`
-        : `${clientName} - Cuota`;
+      const description = resolveCuotaDescripcion({
+        clientName: existing.clientName,
+        servicio: existing.servicio || (updates.servicio as string | undefined),
+        descripcionCuota: existing.descripcionCuota,
+      });
+      const servicioLabel = existing.servicio || (updates.servicio as string | undefined);
 
       const insertedId = await insertAccountingRecord({
         type: "ingreso",
@@ -250,6 +280,18 @@ export async function PATCH(
           : todayYmd();
       updates.fechaCobro = fechaStr;
       updates.paidAt = fechaStr;
+    }
+
+    if (descripcionCuota !== undefined && existing.accountingRecordId) {
+      const servicioLabel =
+        (updates.servicio as string | undefined) ?? existing.servicio;
+      const description = resolveCuotaDescripcion({
+        clientName: existing.clientName,
+        servicio: servicioLabel,
+        descripcionCuota:
+          String(descripcionCuota || "").trim() || undefined,
+      });
+      await updateAccountingRecord(existing.accountingRecordId, { description });
     }
 
     if (Object.keys(updates).length > 0 || unsetFields.length > 0) {
