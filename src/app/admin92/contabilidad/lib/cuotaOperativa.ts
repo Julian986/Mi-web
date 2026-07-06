@@ -76,17 +76,28 @@ export function hasCambioPendiente(cobro: { cambioPendiente?: boolean }): boolea
   return Boolean(cobro.cambioPendiente);
 }
 
+export function cobroRequiereEstadisticas(
+  cobro: { requiereEstadisticas?: boolean },
+  proyecto: ProyectoOperativo | null | undefined,
+): boolean {
+  if (cobro.requiereEstadisticas !== undefined) {
+    return Boolean(cobro.requiereEstadisticas);
+  }
+  return Boolean(proyecto?.requiereEstadisticas);
+}
+
 export function hasStatsPendientes(
   cobro: {
     paid: boolean;
     fechaCobro?: string;
     dueDate: string;
     estadisticasEnviadas?: boolean;
+    requiereEstadisticas?: boolean;
   },
   proyecto: ProyectoOperativo | null | undefined,
   _today: string,
 ): boolean {
-  if (!proyecto?.requiereEstadisticas) return false;
+  if (!cobroRequiereEstadisticas(cobro, proyecto)) return false;
   if (!cobro.paid || cobro.estadisticasEnviadas) return false;
   const base = cobro.fechaCobro || cobro.dueDate;
   return /^\d{4}-\d{2}-\d{2}$/.test(base);
@@ -99,6 +110,7 @@ export function getCuotaOperativaBorder(
     dueDate: string;
     estadisticasEnviadas?: boolean;
     cambioPendiente?: boolean;
+    requiereEstadisticas?: boolean;
   },
   proyecto: ProyectoOperativo | null | undefined,
   today: string,

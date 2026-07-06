@@ -30,6 +30,8 @@ type CobroLike = {
   fechaCobro?: string;
   recordatorioEnviado?: boolean;
   estadisticasEnviadas?: boolean;
+  requiereEstadisticas?: boolean;
+  cambioPendiente?: boolean;
 };
 
 function emptyDayMarkers(): DayMarkerTypes {

@@ -75,6 +75,7 @@ export async function PATCH(
       cambioPendiente,
       solicitudTasks,
       descripcionCuota,
+      requiereEstadisticas,
     } = body;
 
     const updates: Record<string, unknown> = {};
@@ -162,6 +163,9 @@ export async function PATCH(
     }
     if (cambioPendiente !== undefined) {
       updates.cambioPendiente = Boolean(cambioPendiente);
+    }
+    if (requiereEstadisticas !== undefined) {
+      updates.requiereEstadisticas = Boolean(requiereEstadisticas);
     }
     if (solicitudTasks !== undefined) {
       if (!Array.isArray(solicitudTasks)) {

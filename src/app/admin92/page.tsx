@@ -97,6 +97,8 @@ type Cobro = {
   estadisticasEnviadas?: boolean;
   fechaEnvioEstadisticas?: string;
   recordatorioEnviado?: boolean;
+  /** Si esta cuota requiere estadísticas (independiente por mes) */
+  requiereEstadisticas?: boolean;
   accountingRecordId?: string;
   /** Prioridad manual en cola de cambios (0 = más urgente) */
   prioridad?: number;

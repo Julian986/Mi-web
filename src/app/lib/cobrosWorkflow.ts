@@ -4,7 +4,7 @@
  *
  * Día 0: vence el pago
  * Día +2 o +3: recordatorio de pago
- * Día +5 desde cobro: estadísticas (solo si pagado y proyecto requiere)
+ * Día +5 desde cobro: estadísticas (solo si pagado y la cuota requiere)
  */
 
 const REMINDER_DAYS = [2, 3] as const;
@@ -70,7 +70,18 @@ export type CobroForWorkflow = {
   servicio?: string;
   origen?: "manual" | "suscripcion_mp";
   estadisticasEnviadas?: boolean;
+  requiereEstadisticas?: boolean;
 };
+
+function cobroRequiresStats(
+  c: CobroForWorkflow,
+  requiereByClient?: Map<string, boolean>,
+): boolean {
+  if (c.requiereEstadisticas !== undefined) {
+    return Boolean(c.requiereEstadisticas);
+  }
+  return clientRequiresStats(c.clientName, requiereByClient);
+}
 
 function clientRequiresStats(
   clientName: string,
@@ -114,7 +125,7 @@ export function getStatsToday(
       (c) =>
         c.paid &&
         !c.estadisticasEnviadas &&
-        clientRequiresStats(c.clientName, requiereByClient) &&
+        cobroRequiresStats(c, requiereByClient) &&
         isStatsObjectiveDay(c, todayStr),
     )
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
@@ -130,7 +141,7 @@ export function getStatsOverdue(
   return cobros
     .filter((c) => {
       if (!c.paid || c.estadisticasEnviadas) return false;
-      if (!clientRequiresStats(c.clientName, requiereByClient)) return false;
+      if (!cobroRequiresStats(c, requiereByClient)) return false;
       const objetivo = getStatsObjectiveDate(c);
       return objetivo !== null && todayStr > objetivo;
     })

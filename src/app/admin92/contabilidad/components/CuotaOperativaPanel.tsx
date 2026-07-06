@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Plus, Trash2 } from "lucide-react";
 import {
+  cobroRequiereEstadisticas,
   getCuotaOperativaBorder,
   getStatsObjectiveDate,
   getTaskFechaRealizada,
@@ -28,6 +29,7 @@ type CobroOperativo = {
   recordatorioEnviado?: boolean;
   estadisticasEnviadas?: boolean;
   fechaEnvioEstadisticas?: string;
+  requiereEstadisticas?: boolean;
   servicio?: string;
   cambioPendiente?: boolean;
   solicitudTasks?: SolicitudTask[];
@@ -105,7 +107,7 @@ export default function CuotaOperativaPanel({
   const objetivoStats = getStatsObjectiveDate(cobro);
   const statsPendientes = hasStatsPendientes(cobro, proyecto, today);
   const cambioPendiente = hasCambioPendiente(cobro);
-  const requiereStats = Boolean(proyecto?.requiereEstadisticas);
+  const requiereStats = cobroRequiereEstadisticas(cobro, proyecto);
   const border = getCuotaOperativaBorder(cobro, proyecto, today);
   const estado = getCuotaEstado(cobro);
 
@@ -188,7 +190,7 @@ export default function CuotaOperativaPanel({
   };
 
   const handleToggleRequiereStats = async () => {
-    await updateProyectoField({ requiereEstadisticas: !requiereStats });
+    await patchCobro({ requiereEstadisticas: !requiereStats });
   };
 
   const handleToggleCambioPendiente = async () => {

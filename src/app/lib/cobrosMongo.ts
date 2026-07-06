@@ -21,6 +21,8 @@ export type CobroDoc = {
   /** Fecha en que se enviaron las estadísticas, YYYY-MM-DD */
   fechaEnvioEstadisticas?: string;
   recordatorioEnviado?: boolean;
+  /** Si esta cuota requiere envío de estadísticas (independiente por mes) */
+  requiereEstadisticas?: boolean;
   /** ID del ingreso auto-generado al marcar pagado */
   accountingRecordId?: string;
   /** Prioridad manual para cola de cambios (0 = más urgente) */
