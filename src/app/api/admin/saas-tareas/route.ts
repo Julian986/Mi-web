@@ -37,11 +37,23 @@ export async function POST(req: NextRequest) {
       typeof body.createdAt === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.createdAt)
         ? body.createdAt
         : todayYmd();
-    const id = await insertSaasTarea({
+    const doc: {
+      text: string;
+      done: boolean;
+      createdAt: string;
+      prioridad?: number;
+    } = {
       text: trimmed,
       done: false,
       createdAt,
-    });
+    };
+    if (body.prioridad !== undefined && body.prioridad !== null && body.prioridad !== "") {
+      const n = parseInt(String(body.prioridad), 10);
+      if (!Number.isNaN(n) && n >= 0) {
+        doc.prioridad = n;
+      }
+    }
+    const id = await insertSaasTarea(doc);
     return NextResponse.json({ ok: true, id });
   } catch (e) {
     console.error("[admin:saas-tareas] insert failed", e);

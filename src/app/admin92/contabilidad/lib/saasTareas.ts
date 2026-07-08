@@ -26,3 +26,10 @@ export function sortSaasTareas(tareas: SaasTarea[]): SaasTarea[] {
 
   return [...pending, ...done];
 }
+
+/** Asigna prioridad 0..n-1 según el orden de ids (solo pendientes). */
+export function prioridadesFromOrder(ids: string[]): Map<string, number> {
+  const map = new Map<string, number>();
+  ids.forEach((id, idx) => map.set(id, idx));
+  return map;
+}

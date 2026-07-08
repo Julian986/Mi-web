@@ -1,8 +1,27 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import { sortSaasTareas, type SaasTarea } from "@/app/admin92/contabilidad/lib/saasTareas";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+  prioridadesFromOrder,
+  sortSaasTareas,
+  type SaasTarea,
+} from "@/app/admin92/contabilidad/lib/saasTareas";
 import { formatLocalDate, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 
 type Props = {
@@ -28,10 +47,214 @@ function mapApiTarea(raw: {
   };
 }
 
+type SortableRowProps = {
+  tarea: SaasTarea;
+  saving: boolean;
+  dragEnabled: boolean;
+  onToggle: (task: SaasTarea) => void;
+  onDelete: (task: SaasTarea) => void;
+  onTextChange: (id: string, text: string) => void;
+  onTextFocus: (id: string) => void;
+  onTextBlur: (id: string, text: string) => void;
+  onDateChange: (id: string, createdAt: string) => void;
+  onDateFocus: (id: string) => void;
+  onDateBlur: (id: string, createdAt: string) => void;
+  onRealDateChange: (id: string, fechaRealizada: string) => void;
+  onRealDateFocus: (id: string) => void;
+  onRealDateBlur: (id: string, fechaRealizada: string) => void;
+};
+
+function SortableSaasTaskRow({
+  tarea: t,
+  saving,
+  dragEnabled,
+  onToggle,
+  onDelete,
+  onTextChange,
+  onTextFocus,
+  onTextBlur,
+  onDateChange,
+  onDateFocus,
+  onDateBlur,
+  onRealDateChange,
+  onRealDateFocus,
+  onRealDateBlur,
+}: SortableRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: t.id,
+    disabled: !dragEnabled,
+  });
+
+  const style = {
+    transform: transform ? CSS.Transform.toString(transform) : undefined,
+    transition,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`flex flex-wrap items-start gap-1.5 rounded-lg border border-indigo-100 bg-indigo-50/30 px-2 py-2 ${
+        isDragging ? "z-10 shadow-md ring-2 ring-indigo-200 bg-white" : ""
+      }`}
+    >
+      <button
+        type="button"
+        aria-label="Reordenar tarea"
+        title="Arrastrá para reordenar"
+        className={`mt-0.5 shrink-0 rounded p-0.5 text-slate-400 touch-none select-none ${
+          dragEnabled
+            ? "cursor-grab active:cursor-grabbing hover:bg-indigo-100 hover:text-indigo-700"
+            : "cursor-not-allowed opacity-40"
+        }`}
+        {...attributes}
+        {...listeners}
+        disabled={!dragEnabled}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+      <input
+        type="checkbox"
+        checked={t.done}
+        disabled={saving}
+        onChange={() => onToggle(t)}
+        className="mt-0.5 rounded border-slate-300 text-indigo-600 cursor-pointer shrink-0"
+      />
+      <div className="min-w-0 flex-1 space-y-1">
+        <input
+          type="text"
+          value={t.text}
+          disabled={saving}
+          onFocus={() => onTextFocus(t.id)}
+          onChange={(e) => onTextChange(t.id, e.target.value)}
+          onBlur={(e) => onTextBlur(t.id, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          className={`w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-sm outline-none focus:border-indigo-200 focus:bg-white disabled:opacity-50 ${
+            t.done ? "text-slate-400 line-through" : "font-medium text-slate-900"
+          }`}
+        />
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+          <span className="text-slate-400">Ped.</span>
+          <input
+            type="date"
+            value={t.createdAt}
+            disabled={saving}
+            onFocus={() => onDateFocus(t.id)}
+            onChange={(e) => onDateChange(t.id, e.target.value)}
+            onBlur={(e) => onDateBlur(t.id, e.target.value)}
+            className="rounded border border-slate-200 px-1 py-0.5 text-[11px] cursor-pointer"
+          />
+          {t.done && (
+            <>
+              <span className="text-slate-400">Real.</span>
+              <input
+                type="date"
+                value={t.fechaRealizada ?? todayYmd()}
+                disabled={saving}
+                onFocus={() => onRealDateFocus(t.id)}
+                onChange={(e) => onRealDateChange(t.id, e.target.value)}
+                onBlur={(e) => onRealDateBlur(t.id, e.target.value)}
+                className="rounded border border-green-200 bg-green-50/50 px-1 py-0.5 text-[11px] text-green-800 cursor-pointer"
+              />
+            </>
+          )}
+          {!t.done && <span className="text-slate-400">· {formatLocalDate(t.createdAt)}</span>}
+        </div>
+      </div>
+      <button
+        type="button"
+        disabled={saving}
+        onClick={() => onDelete(t)}
+        className="shrink-0 p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+        aria-label="Eliminar tarea"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </li>
+  );
+}
+
+function DoneSaasTaskRow({
+  tarea: t,
+  saving,
+  onToggle,
+  onDelete,
+  onTextChange,
+  onTextFocus,
+  onTextBlur,
+  onDateChange,
+  onDateFocus,
+  onDateBlur,
+  onRealDateChange,
+  onRealDateFocus,
+  onRealDateBlur,
+}: Omit<SortableRowProps, "dragEnabled">) {
+  return (
+    <li className="flex flex-wrap items-start gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2 py-2 opacity-90">
+      <span className="mt-0.5 w-5 shrink-0" aria-hidden />
+      <input
+        type="checkbox"
+        checked={t.done}
+        disabled={saving}
+        onChange={() => onToggle(t)}
+        className="mt-0.5 rounded border-slate-300 text-indigo-600 cursor-pointer shrink-0"
+      />
+      <div className="min-w-0 flex-1 space-y-1">
+        <input
+          type="text"
+          value={t.text}
+          disabled={saving}
+          onFocus={() => onTextFocus(t.id)}
+          onChange={(e) => onTextChange(t.id, e.target.value)}
+          onBlur={(e) => onTextBlur(t.id, e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          className="w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-sm text-slate-400 line-through outline-none focus:border-indigo-200 focus:bg-white disabled:opacity-50"
+        />
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+          <span className="text-slate-400">Ped.</span>
+          <input
+            type="date"
+            value={t.createdAt}
+            disabled={saving}
+            onFocus={() => onDateFocus(t.id)}
+            onChange={(e) => onDateChange(t.id, e.target.value)}
+            onBlur={(e) => onDateBlur(t.id, e.target.value)}
+            className="rounded border border-slate-200 px-1 py-0.5 text-[11px] cursor-pointer"
+          />
+          <span className="text-slate-400">Real.</span>
+          <input
+            type="date"
+            value={t.fechaRealizada ?? todayYmd()}
+            disabled={saving}
+            onFocus={() => onRealDateFocus(t.id)}
+            onChange={(e) => onRealDateChange(t.id, e.target.value)}
+            onBlur={(e) => onRealDateBlur(t.id, e.target.value)}
+            className="rounded border border-green-200 bg-green-50/50 px-1 py-0.5 text-[11px] text-green-800 cursor-pointer"
+          />
+        </div>
+      </div>
+      <button
+        type="button"
+        disabled={saving}
+        onClick={() => onDelete(t)}
+        className="shrink-0 p-1 text-slate-400 hover:text-red-600 cursor-pointer"
+        aria-label="Eliminar tarea"
+      >
+        <Trash2 className="h-3.5 w-3.5" />
+      </button>
+    </li>
+  );
+}
+
 export default function SaasTareasPanel({ onCountChange }: Props) {
   const [tareas, setTareas] = useState<SaasTarea[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [error, setError] = useState("");
   const [newTaskText, setNewTaskText] = useState("");
   const [newTaskDate, setNewTaskDate] = useState(todayYmd());
@@ -48,7 +271,18 @@ export default function SaasTareasPanel({ onCountChange }: Props) {
   tareasRef.current = tareas;
 
   const sorted = useMemo(() => sortSaasTareas(tareas), [tareas]);
-  const pendingCount = tareas.filter((t) => !t.done).length;
+  const pendingSorted = useMemo(() => sorted.filter((t) => !t.done), [sorted]);
+  const doneSorted = useMemo(() => sorted.filter((t) => t.done), [sorted]);
+  const pendingIds = useMemo(() => pendingSorted.map((t) => t.id), [pendingSorted]);
+  const pendingCount = pendingSorted.length;
+  const dragEnabled =
+    pendingSorted.length > 1 && !saving && !reordering && !pendingComplete && !taskPendingDelete;
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+  );
 
   useEffect(() => {
     onCountChange?.(pendingCount);
@@ -96,6 +330,58 @@ export default function SaasTareasPanel({ onCountChange }: Props) {
     }
   };
 
+  const savePrioridades = async (orderIds: string[]) => {
+    const prioridades = prioridadesFromOrder(orderIds);
+    const snapshot = tareasRef.current;
+
+    setTareas((prev) =>
+      prev.map((t) => {
+        const p = prioridades.get(t.id);
+        return p !== undefined ? { ...t, prioridad: p } : t;
+      }),
+    );
+
+    setReordering(true);
+    setError("");
+    try {
+      const results = await Promise.all(
+        orderIds.map((id, idx) =>
+          fetch(`/api/admin/saas-tareas/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prioridad: idx }),
+          }).then(async (res) => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || "No se pudo reordenar.");
+          }),
+        ),
+      );
+      void results;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error al reordenar.");
+      setTareas(snapshot);
+      await loadTareas();
+    } finally {
+      setReordering(false);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    if (!dragEnabled) return;
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overId = String(over.id);
+    if (activeId === overId) return;
+
+    const oldIndex = pendingIds.indexOf(activeId);
+    const newIndex = pendingIds.indexOf(overId);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrder = arrayMove(pendingIds, oldIndex, newIndex);
+    void savePrioridades(newOrder);
+  };
+
   const handleToggle = (task: SaasTarea) => {
     if (task.done) {
       void patchTarea(task.id, { done: false, fechaRealizada: null });
@@ -120,12 +406,17 @@ export default function SaasTareasPanel({ onCountChange }: Props) {
     setSaving(true);
     setError("");
     try {
+      const nextPrioridad =
+        pendingSorted.length > 0
+          ? Math.max(...pendingSorted.map((t) => t.prioridad ?? 0)) + 1
+          : 0;
       const res = await fetch("/api/admin/saas-tareas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text,
           createdAt: /^\d{4}-\d{2}-\d{2}$/.test(newTaskDate) ? newTaskDate : todayYmd(),
+          prioridad: nextPrioridad,
         }),
       });
       const data = await res.json();
@@ -192,6 +483,39 @@ export default function SaasTareasPanel({ onCountChange }: Props) {
     await patchTarea(id, { fechaRealizada });
   };
 
+  const rowHandlers = {
+    saving,
+    onToggle: handleToggle,
+    onDelete: setTaskPendingDelete,
+    onTextChange: (id: string, text: string) =>
+      setTareas((prev) => prev.map((x) => (x.id === id ? { ...x, text } : x))),
+    onTextFocus: (id: string) => {
+      editingTextRef.current = id;
+    },
+    onTextBlur: (id: string, text: string) => {
+      editingTextRef.current = null;
+      void commitText(id, text);
+    },
+    onDateChange: (id: string, createdAt: string) =>
+      setTareas((prev) => prev.map((x) => (x.id === id ? { ...x, createdAt } : x))),
+    onDateFocus: (id: string) => {
+      editingDateRef.current = id;
+    },
+    onDateBlur: (id: string, createdAt: string) => {
+      editingDateRef.current = null;
+      void commitDate(id, createdAt);
+    },
+    onRealDateChange: (id: string, fechaRealizada: string) =>
+      setTareas((prev) => prev.map((x) => (x.id === id ? { ...x, fechaRealizada } : x))),
+    onRealDateFocus: (id: string) => {
+      editingRealDateRef.current = id;
+    },
+    onRealDateBlur: (id: string, fechaRealizada: string) => {
+      editingRealDateRef.current = null;
+      void commitFechaRealizada(id, fechaRealizada);
+    },
+  };
+
   if (loading && tareas.length === 0) {
     return <p className="text-sm text-slate-500 py-4 text-center">Cargando tareas SaaS…</p>;
   }
@@ -209,107 +533,50 @@ export default function SaasTareasPanel({ onCountChange }: Props) {
           Sin tareas del producto SaaS. Agregá la primera abajo.
         </p>
       ) : (
-        <ul className="space-y-1.5 max-h-[min(380px,45vh)] overflow-y-auto pr-0.5">
-          {sorted.map((t) => (
-            <li
-              key={t.id}
-              className="flex flex-wrap items-start gap-1.5 rounded-lg border border-indigo-100 bg-indigo-50/30 px-2 py-2"
-            >
-              <input
-                type="checkbox"
-                checked={t.done}
-                disabled={saving}
-                onChange={() => handleToggle(t)}
-                className="mt-0.5 rounded border-slate-300 text-indigo-600 cursor-pointer shrink-0"
-              />
-              <div className="min-w-0 flex-1 space-y-1">
-                <input
-                  type="text"
-                  value={t.text}
-                  disabled={saving}
-                  onFocus={() => {
-                    editingTextRef.current = t.id;
-                  }}
-                  onChange={(e) =>
-                    setTareas((prev) =>
-                      prev.map((x) => (x.id === t.id ? { ...x, text: e.target.value } : x)),
-                    )
-                  }
-                  onBlur={(e) => {
-                    editingTextRef.current = null;
-                    void commitText(t.id, e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") e.currentTarget.blur();
-                  }}
-                  className={`w-full rounded border border-transparent bg-transparent px-1 py-0.5 text-sm outline-none focus:border-indigo-200 focus:bg-white disabled:opacity-50 ${
-                    t.done ? "text-slate-400 line-through" : "font-medium text-slate-900"
-                  }`}
-                />
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                  <span className="text-slate-400">Ped.</span>
-                  <input
-                    type="date"
-                    value={t.createdAt}
-                    disabled={saving}
-                    onFocus={() => {
-                      editingDateRef.current = t.id;
-                    }}
-                    onChange={(e) =>
-                      setTareas((prev) =>
-                        prev.map((x) =>
-                          x.id === t.id ? { ...x, createdAt: e.target.value } : x,
-                        ),
-                      )
-                    }
-                    onBlur={(e) => {
-                      editingDateRef.current = null;
-                      void commitDate(t.id, e.target.value);
-                    }}
-                    className="rounded border border-slate-200 px-1 py-0.5 text-[11px] cursor-pointer"
-                  />
-                  {t.done && (
-                    <>
-                      <span className="text-slate-400">Real.</span>
-                      <input
-                        type="date"
-                        value={t.fechaRealizada ?? todayYmd()}
-                        disabled={saving}
-                        onFocus={() => {
-                          editingRealDateRef.current = t.id;
-                        }}
-                        onChange={(e) =>
-                          setTareas((prev) =>
-                            prev.map((x) =>
-                              x.id === t.id ? { ...x, fechaRealizada: e.target.value } : x,
-                            ),
-                          )
-                        }
-                        onBlur={(e) => {
-                          editingRealDateRef.current = null;
-                          void commitFechaRealizada(t.id, e.target.value);
-                        }}
-                        className="rounded border border-green-200 bg-green-50/50 px-1 py-0.5 text-[11px] text-green-800 cursor-pointer"
-                      />
-                    </>
-                  )}
-                  {!t.done && (
-                    <span className="text-slate-400">· {formatLocalDate(t.createdAt)}</span>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={saving}
-                onClick={() => setTaskPendingDelete(t)}
-                className="shrink-0 p-1 text-slate-400 hover:text-red-600 cursor-pointer"
-                aria-label="Eliminar tarea"
+        <div className="space-y-2 max-h-[min(380px,45vh)] overflow-y-auto pr-0.5">
+          {pendingSorted.length > 0 && (
+            <div className="space-y-1.5">
+              {pendingSorted.length > 1 && (
+                <p className="text-[10px] text-slate-500 px-1">
+                  Arrastrá el ícono ≡ para reordenar las tareas pendientes.
+                </p>
+              )}
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
               >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </li>
-          ))}
-        </ul>
+                <SortableContext items={pendingIds} strategy={verticalListSortingStrategy}>
+                  <ul className="space-y-1.5">
+                    {pendingSorted.map((t) => (
+                      <SortableSaasTaskRow
+                        key={t.id}
+                        tarea={t}
+                        dragEnabled={dragEnabled}
+                        {...rowHandlers}
+                      />
+                    ))}
+                  </ul>
+                </SortableContext>
+              </DndContext>
+            </div>
+          )}
+
+          {doneSorted.length > 0 && (
+            <div className="space-y-1.5">
+              {pendingSorted.length > 0 && (
+                <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400 px-1 pt-1">
+                  Realizadas
+                </p>
+              )}
+              <ul className="space-y-1.5">
+                {doneSorted.map((t) => (
+                  <DoneSaasTaskRow key={t.id} tarea={t} {...rowHandlers} />
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       )}
 
       {pendingComplete && (
@@ -378,6 +645,10 @@ export default function SaasTareasPanel({ onCountChange }: Props) {
           Agregar
         </button>
       </div>
+
+      {(saving || reordering) && (
+        <p className="text-xs text-slate-400">{reordering ? "Guardando orden…" : "Guardando…"}</p>
+      )}
 
       {taskPendingDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
