@@ -1712,6 +1712,12 @@ function Admin92PageContent() {
                     </button>
                   );
                 })}
+                <Link
+                  href="/admin92/erp"
+                  className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100"
+                >
+                  ERP
+                </Link>
               </div>
               {contabilidadToolPanel === "objetivos" && (
                 <HerramientasPanel
@@ -3161,11 +3167,13 @@ function Admin92PageContent() {
 
 export default function Admin92Page() {
   return (
-    <Suspense fallback={
-      <main className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-slate-500">Cargando...</p>
-      </main>
-    }>
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-white flex items-center justify-center">
+          <p className="text-slate-500">Cargando...</p>
+        </main>
+      }
+    >
       <Admin92PageContent />
     </Suspense>
   );
