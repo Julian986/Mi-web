@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   AlarmClock,
+  BookOpen,
   Check,
   Dumbbell,
   Home,
@@ -64,6 +65,7 @@ function cloneLog(log: ErpDayLog): ErpDayLog {
       natacion: { ...training.natacion },
       casa: { ...training.casa },
     },
+    english: { ...(log.english ?? emptyTrainingSession()) },
   };
 }
 
@@ -148,6 +150,22 @@ export default function ErpDayForm({
         },
       };
     });
+  };
+
+  const toggleEnglish = () => {
+    setDraft((prev) => ({
+      ...prev,
+      english: prev.english.done
+        ? emptyTrainingSession(false)
+        : { ...prev.english, done: true },
+    }));
+  };
+
+  const patchEnglish = (patch: Partial<ErpTrainingSession>) => {
+    setDraft((prev) => ({
+      ...prev,
+      english: { ...prev.english, ...patch },
+    }));
   };
 
   const handleSave = async () => {
@@ -462,6 +480,70 @@ export default function ErpDayForm({
             className="mt-2 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-300"
           />
         </label>
+      </section>
+
+      <section className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 p-4 shadow-sm">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Inglés</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Seguimiento liviano, separado del entrenamiento.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleEnglish}
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              draft.english.done
+                ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200"
+                : "bg-white text-slate-600 ring-1 ring-slate-200 hover:text-slate-800"
+            }`}
+          >
+            <BookOpen className="h-4 w-4" />
+            {draft.english.done ? "Hecho" : "Marcar"}
+            {draft.english.done && <Check className="h-3.5 w-3.5 text-emerald-600" />}
+          </button>
+        </div>
+
+        {draft.english.done ? (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[110px_1fr]">
+            <label className="text-[11px] font-medium text-slate-600">
+              Minutos
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="30"
+                aria-label="Minutos de inglés"
+                value={draft.english.minutes ?? ""}
+                onChange={(event) => {
+                  const raw = event.target.value.trim();
+                  if (raw === "") {
+                    patchEnglish({ minutes: null });
+                    return;
+                  }
+                  const minutes = parseMinutes(raw);
+                  if (minutes !== null) patchEnglish({ minutes });
+                }}
+                className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+              />
+            </label>
+            <label className="text-[11px] font-medium text-slate-600">
+              Detalle
+              <input
+                type="text"
+                placeholder="Listening, vocabulario, clase…"
+                aria-label="Detalle de inglés"
+                value={draft.english.notes ?? ""}
+                onChange={(event) => patchEnglish({ notes: event.target.value })}
+                className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+              />
+            </label>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-emerald-200 bg-white/70 px-3 py-2 text-xs text-slate-500">
+            Si ese día hiciste inglés, podés anotar minutos y un detalle corto.
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">

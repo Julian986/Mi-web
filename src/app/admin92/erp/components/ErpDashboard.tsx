@@ -7,6 +7,7 @@ import {
   ArrowDownRight,
   ArrowUpRight,
   BellRing,
+  BookOpen,
   BriefcaseBusiness,
   Code2,
   Dumbbell,
@@ -51,6 +52,7 @@ const colorClasses = {
   blue: "bg-blue-50 text-blue-600 ring-blue-100",
   cyan: "bg-cyan-50 text-cyan-600 ring-cyan-100",
   violet: "bg-violet-50 text-violet-600 ring-violet-100",
+  emerald: "bg-emerald-50 text-emerald-600 ring-emerald-100",
   indigo: "bg-indigo-50 text-indigo-600 ring-indigo-100",
   amber: "bg-amber-50 text-amber-600 ring-amber-100",
 } as const;
@@ -59,6 +61,7 @@ const kpiIcons: Record<KpiView["kind"], ComponentType<{ className?: string }>> =
   work: BriefcaseBusiness,
   daily: Activity,
   training: Dumbbell,
+  english: BookOpen,
   sleep: Moon,
   food: Salad,
 };
@@ -132,6 +135,46 @@ function KpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }
   );
 }
 
+function SecondaryKpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }) {
+  const Icon = kpiIcons[item.kind];
+  const change = item.change;
+  const improved = change !== null && change >= 0;
+
+  return (
+    <article className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/50 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
+      <div className="flex items-start justify-between gap-2">
+        <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700 ring-1 ring-emerald-200">
+          <Icon className="h-4 w-4" aria-hidden />
+        </div>
+        {change === null ? (
+          <span className="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-slate-400 ring-1 ring-slate-200">
+            —
+          </span>
+        ) : (
+          <span
+            className={`inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-semibold ${
+              improved ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+            }`}
+          >
+            {improved ? (
+              <ArrowUpRight className="h-3 w-3" />
+            ) : (
+              <ArrowDownRight className="h-3 w-3" />
+            )}
+            {Math.abs(change)}%
+          </span>
+        )}
+      </div>
+      <p className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-500">{item.label}</p>
+      <div className="mt-1 flex items-baseline gap-1">
+        <strong className="text-2xl font-bold tracking-tight text-slate-950">{item.value}</strong>
+        {item.unit ? <span className="text-xs font-semibold text-slate-400">{item.unit}</span> : null}
+      </div>
+      <p className="mt-3 text-[11px] text-slate-400">{compareLabel}</p>
+    </article>
+  );
+}
+
 export default function ErpDashboard({
   period,
   rangeLabel,
@@ -147,6 +190,8 @@ export default function ErpDashboard({
   const trainingCats = trainingCategoryCards(current);
   const workTotal = current.workHours;
   const trainingTotal = current.trainingDays;
+  const primaryKpis = kpis.filter((item) => item.kind !== "english");
+  const englishKpi = kpis.find((item) => item.kind === "english");
   const alarm = alarmFromLog(focusLog);
   const overall = overallChangePct(current, previous);
   const compareLabel = periodCompareLabel(period);
@@ -189,8 +234,8 @@ export default function ErpDashboard({
     return (
       <div className="space-y-4" aria-busy="true" aria-label="Cargando métricas">
         <div className="h-24 animate-pulse rounded-2xl bg-slate-200/70" />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {Array.from({ length: 5 }, (_, index) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          {Array.from({ length: 6 }, (_, index) => (
             <div key={index} className="h-44 animate-pulse rounded-2xl bg-slate-200/70" />
           ))}
         </div>
@@ -242,10 +287,11 @@ export default function ErpDashboard({
           )}
         </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {kpis.map((item) => (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {primaryKpis.map((item) => (
             <KpiCard key={item.label} item={item} compareLabel={compareLabel} />
           ))}
+          {englishKpi && <SecondaryKpiCard item={englishKpi} compareLabel={compareLabel} />}
         </div>
       </section>
 

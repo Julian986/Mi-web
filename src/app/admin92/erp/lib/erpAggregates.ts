@@ -146,6 +146,8 @@ export type PeriodStats = {
   workHours: number;
   dailyAvg: number;
   trainingDays: number;
+  englishDays: number;
+  englishMinutes: number;
   /** null si ningún día del período registró sueño */
   sleepAvg: number | null;
   /** null si ningún día del período registró alimentación */
@@ -186,6 +188,8 @@ export function computePeriodStats(
 
   let workHours = 0;
   let trainingDays = 0;
+  let englishDays = 0;
+  let englishMinutes = 0;
   const sleepVals: number[] = [];
   const foodVals: number[] = [];
 
@@ -213,6 +217,10 @@ export function computePeriodStats(
       if (isTrainingDone(log.training.gimnasio)) trainingByCategory.gimnasio += 1;
       if (isTrainingDone(log.training.natacion)) trainingByCategory.natacion += 1;
       if (isTrainingDone(log.training.casa)) trainingByCategory.casa += 1;
+      if (isTrainingDone(log.english)) {
+        englishDays += 1;
+        englishMinutes += log.english.minutes ?? 0;
+      }
     }
 
     return { day: chartDayLabel(date, period), date, ...work };
@@ -300,6 +308,8 @@ export function computePeriodStats(
     workHours,
     dailyAvg,
     trainingDays,
+    englishDays,
+    englishMinutes,
     sleepAvg,
     foodAvg,
     workByCategory,
@@ -328,8 +338,8 @@ export type KpiView = {
   value: string;
   unit: string;
   change: number | null;
-  color: "blue" | "cyan" | "violet" | "indigo" | "amber";
-  kind: "work" | "daily" | "training" | "sleep" | "food";
+  color: "blue" | "cyan" | "violet" | "emerald" | "indigo" | "amber";
+  kind: "work" | "daily" | "training" | "english" | "sleep" | "food";
 };
 
 export function buildKpis(
@@ -387,6 +397,26 @@ export function buildKpis(
       change: previous ? pctChange(current.trainingDays, previous.trainingDays) : null,
       color: "violet",
       kind: "training",
+    },
+    {
+      label: "Inglés",
+      value:
+        period === "day"
+          ? current.englishDays > 0
+            ? "Sí"
+            : "No"
+          : String(current.englishDays),
+      unit:
+        period === "day"
+          ? current.englishMinutes > 0
+            ? `${current.englishMinutes} min`
+            : ""
+          : current.englishMinutes > 0
+            ? `días · ${current.englishMinutes} min`
+            : "días",
+      change: previous ? pctChange(current.englishDays, previous.englishDays) : null,
+      color: "emerald",
+      kind: "english",
     },
     {
       label: period === "day" ? "Sueño" : "Promedio sueño",

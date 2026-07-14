@@ -1,5 +1,8 @@
 import { getMongoClient } from "@/app/lib/mongoClient";
-import type { ErpDayLog } from "@/app/admin92/erp/lib/erpTypes";
+import {
+  emptyTrainingSession,
+  type ErpDayLog,
+} from "@/app/admin92/erp/lib/erpTypes";
 
 type ErpDayLogDoc = ErpDayLog & {
   createdAt: Date;
@@ -36,6 +39,7 @@ function toErpDayLog(doc: ErpDayLogDoc): ErpDayLog {
     alarm: doc.alarm,
     work: doc.work,
     training: doc.training,
+    english: doc.english ?? emptyTrainingSession(),
     sleepHours: doc.sleepHours,
     foodScore: doc.foodScore,
     notes: doc.notes ?? "",

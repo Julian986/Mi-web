@@ -34,6 +34,8 @@ export type ErpDayLog = {
   alarm: ErpAlarm;
   work: ErpWorkHours;
   training: ErpTraining;
+  /** Práctica de inglés, separada del entrenamiento físico */
+  english: ErpTrainingSession;
   /** null = no registrado ese día */
   sleepHours: number | null;
   /** null = no registrado ese día; 1-10 si hay valor */
@@ -93,6 +95,7 @@ export function emptyDayLog(date: string): ErpDayLog {
       natacion: emptyTrainingSession(),
       casa: emptyTrainingSession(),
     },
+    english: emptyTrainingSession(),
     sleepHours: null,
     foodScore: null,
     notes: "",
@@ -283,6 +286,35 @@ export function validateErpDayLog(
     session.notes = (session.notes ?? "").trim().slice(0, 1000);
   }
 
+  const rawEnglish = value.english;
+  let english = emptyTrainingSession();
+  if (rawEnglish !== undefined) {
+    if (!rawEnglish || typeof rawEnglish !== "object") {
+      return { ok: false, error: "Los datos de inglés son inválidos" };
+    }
+    const session = rawEnglish as Record<string, unknown>;
+    if (typeof session.done !== "boolean") {
+      return { ok: false, error: "El estado de inglés es inválido" };
+    }
+    if (
+      session.minutes !== null &&
+      session.minutes !== undefined &&
+      (typeof session.minutes !== "number" ||
+        !Number.isInteger(session.minutes) ||
+        session.minutes < 0)
+    ) {
+      return { ok: false, error: "Los minutos de inglés son inválidos" };
+    }
+    if (session.notes !== undefined && typeof session.notes !== "string") {
+      return { ok: false, error: "El detalle de inglés es inválido" };
+    }
+    english = {
+      done: session.done,
+      minutes: typeof session.minutes === "number" ? session.minutes : null,
+      notes: typeof session.notes === "string" ? session.notes.trim().slice(0, 1000) : "",
+    };
+  }
+
   const nullableNumber = (
     input: unknown,
     min: number,
@@ -310,6 +342,7 @@ export function validateErpDayLog(
       alarm: { rangAt, snoozedTimes, startedWorkAt },
       work,
       training,
+      english,
       sleepHours,
       foodScore,
       notes: typeof value.notes === "string" ? value.notes.trim().slice(0, 5000) : "",
