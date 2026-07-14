@@ -37,6 +37,7 @@ export default function ErpPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [titleExpanded, setTitleExpanded] = useState(false);
 
   const dates = useMemo(() => periodDates(selectedDate, period), [selectedDate, period]);
   const prevAnchor = useMemo(
@@ -187,14 +188,23 @@ export default function ErpPage() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-                  ERP Personal
+              <button
+                type="button"
+                onClick={() => setTitleExpanded((prev) => !prev)}
+                aria-expanded={titleExpanded}
+                className="group text-left cursor-pointer"
+              >
+                <h1 className="text-2xl font-bold tracking-tight text-slate-950 transition group-hover:text-slate-700 sm:text-3xl">
+                  {titleExpanded ? "Enterprise Resource Planning Personal" : "ERP Personal"}
                 </h1>
-              </div>
-              <p className="mt-1 text-sm text-slate-500">
-                Filtrá por día, semana o mes.
-              </p>
+                {titleExpanded ? (
+                  <p className="mt-1 text-xs text-slate-500 sm:text-sm">
+                    Planificación de Recursos Empresariales Personal.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-sm text-slate-500">Filtrá por día, semana o mes.</p>
+                )}
+              </button>
             </div>
           </div>
 
