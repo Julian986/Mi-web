@@ -217,7 +217,6 @@ export default function ErpDayForm({
       const empty = emptyDayLog(selectedDate);
       setDraft(empty);
       setWorkText(workTextsFromLog(empty));
-      setSavedFlash(false);
     } catch {
       // El mensaje de error lo muestra el contenedor.
     }
