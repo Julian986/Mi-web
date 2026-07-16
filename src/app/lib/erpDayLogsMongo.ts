@@ -40,6 +40,7 @@ function toErpDayLog(doc: ErpDayLogDoc): ErpDayLog {
     work: doc.work,
     training: doc.training,
     english: doc.english ?? emptyTrainingSession(),
+    creatine: Boolean(doc.creatine),
     sleepHours: doc.sleepHours,
     foodScore: doc.foodScore,
     notes: doc.notes ?? "",

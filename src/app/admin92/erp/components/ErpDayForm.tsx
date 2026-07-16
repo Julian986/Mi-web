@@ -6,6 +6,7 @@ import {
   BookOpen,
   Check,
   Dumbbell,
+  FlaskConical,
   Home,
   LoaderCircle,
   Trash2,
@@ -39,6 +40,7 @@ type Props = {
   dayLogs: ErpDayLog[];
   onSave: (log: ErpDayLog) => Promise<ErpDayLog>;
   onDelete: (date: string) => Promise<void>;
+  onClose: () => void;
   loading: boolean;
   saving: boolean;
   saveError: string | null;
@@ -66,6 +68,7 @@ function cloneLog(log: ErpDayLog): ErpDayLog {
       casa: { ...training.casa },
     },
     english: { ...(log.english ?? emptyTrainingSession()) },
+    creatine: Boolean(log.creatine),
   };
 }
 
@@ -84,6 +87,7 @@ export default function ErpDayForm({
   dayLogs,
   onSave,
   onDelete,
+  onClose,
   loading,
   saving,
   saveError,
@@ -101,14 +105,23 @@ export default function ErpDayForm({
   const [workText, setWorkText] = useState<Record<WorkCategoryKey, string>>(() =>
     workTextsFromLog(existing ? cloneLog(existing) : emptyDayLog(selectedDate)),
   );
-  const [savedFlash, setSavedFlash] = useState(false);
 
   useEffect(() => {
     const next = existing ? cloneLog(existing) : emptyDayLog(selectedDate);
     setDraft(next);
     setWorkText(workTextsFromLog(next));
-    setSavedFlash(false);
   }, [selectedDate, existing]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (saving) return;
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, saving]);
 
   const workTotal = sumWorkHours(draft.work);
   const delay = minutesBetweenTimes(draft.alarm.rangAt, draft.alarm.startedWorkAt);
@@ -168,6 +181,10 @@ export default function ErpDayForm({
     }));
   };
 
+  const toggleCreatine = () => {
+    setDraft((prev) => ({ ...prev, creatine: !prev.creatine }));
+  };
+
   const handleSave = async () => {
     // Commit any pending text fields before save
     const nextWork = { ...draft.work };
@@ -185,10 +202,9 @@ export default function ErpDayForm({
       const savedLog = await onSave(log);
       setDraft(savedLog);
       setWorkText(workTextsFromLog(savedLog));
-      setSavedFlash(true);
-      window.setTimeout(() => setSavedFlash(false), 1800);
+      onClose();
     } catch {
-      setSavedFlash(false);
+      // El error lo muestra el contenedor.
     }
   };
 
@@ -546,6 +562,28 @@ export default function ErpDayForm({
         )}
       </section>
 
+      <section className="rounded-2xl border border-cyan-200/80 bg-gradient-to-br from-cyan-50/70 via-white to-sky-50/40 p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">Creatina</h3>
+            <p className="mt-0.5 text-xs text-slate-500">¿La tomaste hoy?</p>
+          </div>
+          <button
+            type="button"
+            onClick={toggleCreatine}
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition cursor-pointer ${
+              draft.creatine
+                ? "bg-cyan-100 text-cyan-800 ring-1 ring-cyan-200"
+                : "bg-white text-slate-600 ring-1 ring-slate-200 hover:text-slate-800"
+            }`}
+          >
+            <FlaskConical className="h-4 w-4" />
+            {draft.creatine ? "Tomada" : "Marcar"}
+            {draft.creatine && <Check className="h-3.5 w-3.5 text-cyan-600" />}
+          </button>
+        </div>
+      </section>
+
       <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
         <label className="text-xs font-medium text-slate-600">
           Notas (opcional)
@@ -579,9 +617,6 @@ export default function ErpDayForm({
             <Trash2 className="h-4 w-4" />
             Eliminar día
           </button>
-        )}
-        {savedFlash && (
-          <span className="text-sm font-medium text-emerald-700">Guardado ✓</span>
         )}
         {saveError && (
           <span className="text-sm font-medium text-rose-700">{saveError}</span>

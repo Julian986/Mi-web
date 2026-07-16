@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard, PenLine } from "lucide-react";
 import ErpDashboard from "@/app/admin92/erp/components/ErpDashboard";
@@ -17,7 +17,8 @@ import {
   weekDates,
   type ErpPeriod,
 } from "@/app/admin92/erp/lib/erpAggregates";
-import type { ErpDayLog } from "@/app/admin92/erp/lib/erpTypes";
+import type { ErpDayLog, ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
+import { emptyMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
 import { getMonthKeySafe, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 
 type ViewTab = "dashboard" | "cargar";
@@ -38,6 +39,12 @@ export default function ErpPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [titleExpanded, setTitleExpanded] = useState(false);
+  const [membership, setMembership] = useState<ErpMembershipMonth>(() =>
+    emptyMembershipMonth(getMonthKeySafe(todayYmd())),
+  );
+  const [membershipSaving, setMembershipSaving] = useState(false);
+  const membershipSaveTimer = useRef<number | null>(null);
+  const membershipMonth = getMonthKeySafe(selectedDate);
 
   const dates = useMemo(() => periodDates(selectedDate, period), [selectedDate, period]);
   const prevAnchor = useMemo(
@@ -115,6 +122,59 @@ export default function ErpPage() {
 
     return () => controller.abort();
   }, [requestFrom, requestTo]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch(`/api/admin/erp-memberships/${membershipMonth}`, {
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        const data = (await response.json()) as {
+          membership?: ErpMembershipMonth;
+          error?: string;
+        };
+        if (!response.ok || !data.membership) {
+          throw new Error(data.error || "No se pudieron cargar las cuotas.");
+        }
+        setMembership(data.membership);
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setMembership(emptyMembershipMonth(membershipMonth));
+      });
+
+    return () => controller.abort();
+  }, [membershipMonth]);
+
+  const handleMembershipChange = (next: ErpMembershipMonth) => {
+    setMembership(next);
+    setMembershipSaving(true);
+    if (membershipSaveTimer.current !== null) {
+      window.clearTimeout(membershipSaveTimer.current);
+    }
+    membershipSaveTimer.current = window.setTimeout(() => {
+      void fetch(`/api/admin/erp-memberships/${next.month}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(next),
+      })
+        .then(async (response) => {
+          const data = (await response.json()) as {
+            membership?: ErpMembershipMonth;
+            error?: string;
+          };
+          if (!response.ok || !data.membership) {
+            throw new Error(data.error || "No se pudieron guardar las cuotas.");
+          }
+          setMembership(data.membership);
+        })
+        .catch(() => {
+          // Mantener el valor local si falla el guardado.
+        })
+        .finally(() => setMembershipSaving(false));
+    }, 450);
+  };
 
   const upsertLocalLog = (log: ErpDayLog) => {
     setDayLogs((prev) => {
@@ -315,6 +375,10 @@ export default function ErpPage() {
               focusLog={focusLog}
               loading={loading}
               hasData={currentLogs.length > 0}
+              membershipMonth={membershipMonth}
+              membership={membership}
+              membershipSaving={membershipSaving}
+              onMembershipChange={handleMembershipChange}
             />
           </>
         ) : (
@@ -324,6 +388,7 @@ export default function ErpPage() {
             dayLogs={dayLogs}
             onSave={handleSaveDay}
             onDelete={handleDeleteDay}
+            onClose={() => setView("dashboard")}
             loading={loading}
             saving={saving}
             saveError={saveError}

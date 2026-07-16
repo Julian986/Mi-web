@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ComponentType } from "react";
+import { useEffect, useRef, useState, type ComponentType } from "react";
 import {
   Activity,
   AlarmClock,
@@ -9,8 +9,10 @@ import {
   BellRing,
   BookOpen,
   BriefcaseBusiness,
+  ChevronDown,
   Code2,
   Dumbbell,
+  FlaskConical,
   Home,
   Layers,
   Megaphone,
@@ -19,6 +21,7 @@ import {
   Salad,
   Sparkles,
   Target,
+  Wallet,
   Waves,
 } from "lucide-react";
 import {
@@ -46,7 +49,8 @@ import {
   type KpiView,
   type PeriodStats,
 } from "@/app/admin92/erp/lib/erpAggregates";
-import { formatHoursAsHm, type ErpDayLog } from "@/app/admin92/erp/lib/erpTypes";
+import { formatHoursAsHm, type ErpDayLog, type ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
+import { formatCurrency, formatMonthLabel } from "@/app/admin92/contabilidad/lib/utils";
 
 const colorClasses = {
   blue: "bg-blue-50 text-blue-600 ring-blue-100",
@@ -62,6 +66,7 @@ const kpiIcons: Record<KpiView["kind"], ComponentType<{ className?: string }>> =
   daily: Activity,
   training: Dumbbell,
   english: BookOpen,
+  creatine: FlaskConical,
   sleep: Moon,
   food: Salad,
 };
@@ -93,6 +98,10 @@ type Props = {
   focusLog: ErpDayLog | undefined;
   loading: boolean;
   hasData: boolean;
+  membershipMonth: string;
+  membership: ErpMembershipMonth;
+  membershipSaving: boolean;
+  onMembershipChange: (next: ErpMembershipMonth) => void;
 };
 
 function KpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }) {
@@ -135,42 +144,224 @@ function KpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }
   );
 }
 
-function SecondaryKpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }) {
+function TrainingKpiCard({
+  item,
+  compareLabel,
+  membershipMonth,
+  membership,
+  membershipSaving,
+  onMembershipChange,
+}: {
+  item: KpiView;
+  compareLabel: string;
+  membershipMonth: string;
+  membership: ErpMembershipMonth;
+  membershipSaving: boolean;
+  onMembershipChange: (next: ErpMembershipMonth) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const Icon = kpiIcons[item.kind];
   const change = item.change;
   const improved = change !== null && change >= 0;
 
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+    };
+  }, [open]);
+
+  const patchService = (
+    key: "gimnasio" | "natacion",
+    patch: Partial<ErpMembershipMonth["gimnasio"]>,
+  ) => {
+    onMembershipChange({
+      ...membership,
+      month: membershipMonth,
+      [key]: { ...membership[key], ...patch },
+    });
+  };
+
   return (
-    <article className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/50 p-4 shadow-[0_8px_24px_rgba(15,23,42,0.05)]">
-      <div className="flex items-start justify-between gap-2">
-        <div className="rounded-xl bg-emerald-100 p-2 text-emerald-700 ring-1 ring-emerald-200">
-          <Icon className="h-4 w-4" aria-hidden />
+    <article className="relative z-10 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className={`rounded-xl p-2.5 ring-1 ${colorClasses[item.color]}`}>
+          <Icon className="h-5 w-5" aria-hidden />
         </div>
-        {change === null ? (
-          <span className="rounded-full bg-white/80 px-2 py-1 text-[11px] font-semibold text-slate-400 ring-1 ring-slate-200">
-            —
-          </span>
-        ) : (
-          <span
-            className={`inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-semibold ${
-              improved ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+        <div className="relative inline-flex flex-col items-end" ref={menuRef}>
+          {change === null ? (
+            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-400">
+              —
+            </span>
+          ) : (
+            <span
+              className={`inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-semibold ${
+                improved ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+              }`}
+            >
+              {improved ? (
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              ) : (
+                <ArrowDownRight className="h-3.5 w-3.5" />
+              )}
+              {Math.abs(change)}%
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen((prev) => !prev)}
+            aria-expanded={open}
+            aria-label="Cuotas del mes"
+            title="Cuotas del mes"
+            className={`absolute top-[calc(100%+0.35rem)] right-0 inline-flex h-7 w-7 items-center justify-center rounded-lg border transition cursor-pointer ${
+              open
+                ? "border-violet-300 bg-violet-100 text-violet-700"
+                : "border-slate-200 bg-white text-slate-500 hover:border-violet-200 hover:bg-violet-50 hover:text-violet-700"
             }`}
           >
-            {improved ? (
-              <ArrowUpRight className="h-3 w-3" />
-            ) : (
-              <ArrowDownRight className="h-3 w-3" />
-            )}
-            {Math.abs(change)}%
-          </span>
-        )}
+            <Wallet className="h-3.5 w-3.5" />
+          </button>
+
+          {open && (
+            <div className="absolute right-0 top-16 z-30 w-[min(100vw-2rem,17rem)] space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.14)]">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold text-slate-700">
+                  {formatMonthLabel(membershipMonth)}
+                </p>
+                <div className="inline-flex items-center gap-1.5">
+                  {membershipSaving && (
+                    <span className="text-[11px] font-medium text-slate-400">Guardando…</span>
+                  )}
+                  <ChevronDown className="h-3.5 w-3.5 rotate-180 text-slate-400" />
+                </div>
+              </div>
+
+              {(["gimnasio", "natacion"] as const).map((key) => {
+                const service = membership[key];
+                const label = key === "gimnasio" ? "Gimnasio" : "Natación";
+                return (
+                  <div
+                    key={key}
+                    className="rounded-xl border border-slate-200 bg-slate-50/80 p-3"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-800">{label}</p>
+                      <button
+                        type="button"
+                        onClick={() => patchService(key, { paid: !service.paid })}
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition cursor-pointer ${
+                          service.paid
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {service.paid ? "Pagado" : "No pagado"}
+                      </button>
+                    </div>
+                    <label className="block text-[11px] font-medium text-slate-500">
+                      Monto
+                      <input
+                        type="number"
+                        min={0}
+                        step={100}
+                        placeholder="0"
+                        value={service.amount ?? ""}
+                        onChange={(event) => {
+                          const raw = event.target.value.trim();
+                          patchService(key, {
+                            amount: raw === "" ? null : Math.max(0, Number(raw) || 0),
+                          });
+                        }}
+                        className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800"
+                      />
+                    </label>
+                    {service.amount !== null && (
+                      <p className="mt-1.5 text-[11px] text-slate-400">
+                        {formatCurrency(service.amount)}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
-      <p className="mt-4 text-xs font-bold uppercase tracking-wide text-slate-500">{item.label}</p>
-      <div className="mt-1 flex items-baseline gap-1">
-        <strong className="text-2xl font-bold tracking-tight text-slate-950">{item.value}</strong>
-        {item.unit ? <span className="text-xs font-semibold text-slate-400">{item.unit}</span> : null}
+      <p className="mt-5 text-sm font-medium text-slate-500">{item.label}</p>
+      <div className="mt-1 flex items-baseline gap-1.5">
+        <strong className="text-3xl font-bold tracking-tight text-slate-950">{item.value}</strong>
+        <span className="text-sm font-semibold text-slate-400">{item.unit}</span>
       </div>
-      <p className="mt-3 text-[11px] text-slate-400">{compareLabel}</p>
+      <p className="mt-3 text-xs text-slate-400">{compareLabel}</p>
+    </article>
+  );
+}
+
+function DualHabitKpiCard({
+  english,
+  creatine,
+  compareLabel,
+}: {
+  english: KpiView;
+  creatine: KpiView;
+  compareLabel: string;
+}) {
+  const renderHalf = (item: KpiView, Icon: ComponentType<{ className?: string }>) => {
+    const change = item.change;
+    const improved = change !== null && change >= 0;
+    return (
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="flex items-start justify-between gap-2">
+          <div className={`rounded-xl p-2 ring-1 ${colorClasses[item.color]}`}>
+            <Icon className="h-4 w-4" aria-hidden />
+          </div>
+          {change === null ? (
+            <span className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-400">
+              —
+            </span>
+          ) : (
+            <span
+              className={`inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-[11px] font-semibold ${
+                improved ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+              }`}
+            >
+              {improved ? (
+                <ArrowUpRight className="h-3 w-3" />
+              ) : (
+                <ArrowDownRight className="h-3 w-3" />
+              )}
+              {Math.abs(change)}%
+            </span>
+          )}
+        </div>
+        <p className="mt-4 text-xs font-medium text-slate-500">{item.label}</p>
+        <div className="mt-0.5 flex items-baseline gap-1">
+          <strong className="text-2xl font-bold tracking-tight text-slate-950">{item.value}</strong>
+          {item.unit ? (
+            <span className="text-[11px] font-semibold text-slate-400">{item.unit}</span>
+          ) : null}
+        </div>
+        <p className="mt-2 text-[11px] text-slate-400">{compareLabel}</p>
+      </div>
+    );
+  };
+
+  return (
+    <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+      <div className="flex items-stretch gap-3">
+        {renderHalf(english, BookOpen)}
+        <div className="w-px shrink-0 self-stretch bg-slate-100" />
+        {renderHalf(creatine, FlaskConical)}
+      </div>
     </article>
   );
 }
@@ -184,14 +375,21 @@ export default function ErpDashboard({
   focusLog,
   loading,
   hasData,
+  membershipMonth,
+  membership,
+  membershipSaving,
+  onMembershipChange,
 }: Props) {
   const [chartsReady, setChartsReady] = useState(false);
   const workCats = workCategoryBars(current);
   const trainingCats = trainingCategoryCards(current);
   const workTotal = current.workHours;
   const trainingTotal = current.trainingDays;
-  const primaryKpis = kpis.filter((item) => item.kind !== "english");
+  const primaryKpis = kpis.filter(
+    (item) => item.kind !== "english" && item.kind !== "creatine",
+  );
   const englishKpi = kpis.find((item) => item.kind === "english");
+  const creatineKpi = kpis.find((item) => item.kind === "creatine");
   const alarm = alarmFromLog(focusLog);
   const overall = overallChangePct(current, previous);
   const compareLabel = periodCompareLabel(period);
@@ -288,10 +486,28 @@ export default function ErpDashboard({
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          {primaryKpis.map((item) => (
-            <KpiCard key={item.label} item={item} compareLabel={compareLabel} />
-          ))}
-          {englishKpi && <SecondaryKpiCard item={englishKpi} compareLabel={compareLabel} />}
+          {primaryKpis.map((item) =>
+            item.kind === "training" ? (
+              <TrainingKpiCard
+                key={item.label}
+                item={item}
+                compareLabel={compareLabel}
+                membershipMonth={membershipMonth}
+                membership={membership}
+                membershipSaving={membershipSaving}
+                onMembershipChange={onMembershipChange}
+              />
+            ) : (
+              <KpiCard key={item.label} item={item} compareLabel={compareLabel} />
+            ),
+          )}
+          {englishKpi && creatineKpi && (
+            <DualHabitKpiCard
+              english={englishKpi}
+              creatine={creatineKpi}
+              compareLabel={compareLabel}
+            />
+          )}
         </div>
       </section>
 

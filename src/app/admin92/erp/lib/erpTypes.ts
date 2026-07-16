@@ -36,12 +36,85 @@ export type ErpDayLog = {
   training: ErpTraining;
   /** Práctica de inglés, separada del entrenamiento físico */
   english: ErpTrainingSession;
+  /** Tomó creatina ese día */
+  creatine: boolean;
   /** null = no registrado ese día */
   sleepHours: number | null;
   /** null = no registrado ese día; 1-10 si hay valor */
   foodScore: number | null;
   notes?: string;
 };
+
+/** Pago mensual de un servicio (gimnasio / pileta) */
+export type ErpServicePayment = {
+  paid: boolean;
+  amount: number | null;
+};
+
+/** Estado de cuotas del mes YYYY-MM */
+export type ErpMembershipMonth = {
+  month: string;
+  gimnasio: ErpServicePayment;
+  natacion: ErpServicePayment;
+};
+
+export function emptyServicePayment(): ErpServicePayment {
+  return { paid: false, amount: null };
+}
+
+export function emptyMembershipMonth(month: string): ErpMembershipMonth {
+  return {
+    month,
+    gimnasio: emptyServicePayment(),
+    natacion: emptyServicePayment(),
+  };
+}
+
+export function validateErpMembershipMonth(
+  raw: unknown,
+  expectedMonth?: string,
+): { ok: true; membership: ErpMembershipMonth } | { ok: false; error: string } {
+  if (!raw || typeof raw !== "object") {
+    return { ok: false, error: "El registro de cuotas es inválido" };
+  }
+  const value = raw as Record<string, unknown>;
+  const month =
+    typeof value.month === "string" ? value.month : expectedMonth ?? "";
+  if (!/^\d{4}-\d{2}$/.test(month) || (expectedMonth && month !== expectedMonth)) {
+    return { ok: false, error: "El mes es inválido" };
+  }
+
+  const parseService = (
+    key: "gimnasio" | "natacion",
+  ): ErpServicePayment | { error: string } => {
+    const service = value[key];
+    if (!service || typeof service !== "object") {
+      return { error: `Los datos de ${key} son inválidos` };
+    }
+    const entry = service as Record<string, unknown>;
+    if (typeof entry.paid !== "boolean") {
+      return { error: `El estado de pago de ${key} es inválido` };
+    }
+    if (entry.amount === null || entry.amount === undefined || entry.amount === "") {
+      return { paid: entry.paid, amount: null };
+    }
+    const amount = Number(entry.amount);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return { error: `El monto de ${key} es inválido` };
+    }
+    return { paid: entry.paid, amount };
+  };
+
+  const gimnasio = parseService("gimnasio");
+  if ("error" in gimnasio) return { ok: false, error: gimnasio.error };
+  const natacion = parseService("natacion");
+  if ("error" in natacion) return { ok: false, error: natacion.error };
+
+  return {
+    ok: true,
+    membership: { month, gimnasio, natacion },
+  };
+}
 
 export type WorkCategoryKey = keyof ErpWorkHours;
 export type TrainingCategoryKey = keyof ErpTraining;
@@ -96,6 +169,7 @@ export function emptyDayLog(date: string): ErpDayLog {
       casa: emptyTrainingSession(),
     },
     english: emptyTrainingSession(),
+    creatine: false,
     sleepHours: null,
     foodScore: null,
     notes: "",
@@ -315,6 +389,14 @@ export function validateErpDayLog(
     };
   }
 
+  let creatine = false;
+  if (value.creatine !== undefined) {
+    if (typeof value.creatine !== "boolean") {
+      return { ok: false, error: "El estado de creatina es inválido" };
+    }
+    creatine = value.creatine;
+  }
+
   const nullableNumber = (
     input: unknown,
     min: number,
@@ -343,6 +425,7 @@ export function validateErpDayLog(
       work,
       training,
       english,
+      creatine,
       sleepHours,
       foodScore,
       notes: typeof value.notes === "string" ? value.notes.trim().slice(0, 5000) : "",

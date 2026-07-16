@@ -148,6 +148,7 @@ export type PeriodStats = {
   trainingDays: number;
   englishDays: number;
   englishMinutes: number;
+  creatineDays: number;
   /** null si ningún día del período registró sueño */
   sleepAvg: number | null;
   /** null si ningún día del período registró alimentación */
@@ -190,6 +191,7 @@ export function computePeriodStats(
   let trainingDays = 0;
   let englishDays = 0;
   let englishMinutes = 0;
+  let creatineDays = 0;
   const sleepVals: number[] = [];
   const foodVals: number[] = [];
 
@@ -221,6 +223,7 @@ export function computePeriodStats(
         englishDays += 1;
         englishMinutes += log.english.minutes ?? 0;
       }
+      if (log.creatine) creatineDays += 1;
     }
 
     return { day: chartDayLabel(date, period), date, ...work };
@@ -310,6 +313,7 @@ export function computePeriodStats(
     trainingDays,
     englishDays,
     englishMinutes,
+    creatineDays,
     sleepAvg,
     foodAvg,
     workByCategory,
@@ -339,7 +343,7 @@ export type KpiView = {
   unit: string;
   change: number | null;
   color: "blue" | "cyan" | "violet" | "emerald" | "indigo" | "amber";
-  kind: "work" | "daily" | "training" | "english" | "sleep" | "food";
+  kind: "work" | "daily" | "training" | "english" | "creatine" | "sleep" | "food";
 };
 
 export function buildKpis(
@@ -417,6 +421,19 @@ export function buildKpis(
       change: previous ? pctChange(current.englishDays, previous.englishDays) : null,
       color: "emerald",
       kind: "english",
+    },
+    {
+      label: "Creatina",
+      value:
+        period === "day"
+          ? current.creatineDays > 0
+            ? "Sí"
+            : "No"
+          : String(current.creatineDays),
+      unit: period === "day" ? "" : "días",
+      change: previous ? pctChange(current.creatineDays, previous.creatineDays) : null,
+      color: "cyan",
+      kind: "creatine",
     },
     {
       label: period === "day" ? "Sueño" : "Promedio sueño",
