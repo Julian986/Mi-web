@@ -1,6 +1,7 @@
 import { getMongoClient } from "@/app/lib/mongoClient";
 import {
   emptyTrainingSession,
+  normalizeFood,
   type ErpDayLog,
 } from "@/app/admin92/erp/lib/erpTypes";
 
@@ -33,7 +34,7 @@ async function getCollection() {
   return collection;
 }
 
-function toErpDayLog(doc: ErpDayLogDoc): ErpDayLog {
+function toErpDayLog(doc: ErpDayLogDoc & { foodScore?: number | null }): ErpDayLog {
   return {
     date: doc.date,
     alarm: doc.alarm,
@@ -42,7 +43,7 @@ function toErpDayLog(doc: ErpDayLogDoc): ErpDayLog {
     english: doc.english ?? emptyTrainingSession(),
     creatine: Boolean(doc.creatine),
     sleepHours: doc.sleepHours,
-    foodScore: doc.foodScore,
+    food: normalizeFood(doc.food),
     notes: doc.notes ?? "",
   };
 }
@@ -64,6 +65,7 @@ export async function upsertErpDayLog(log: ErpDayLog): Promise<ErpDayLog> {
     { date: log.date },
     {
       $set: { ...log, updatedAt: now },
+      $unset: { foodScore: "" },
       $setOnInsert: { createdAt: now },
     },
     { upsert: true },

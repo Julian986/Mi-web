@@ -19,9 +19,13 @@ import {
 } from "@/app/admin92/erp/lib/erpAggregates";
 import {
   emptyDayLog,
+  emptyFood,
+  emptyMeal,
   emptyTrainingSession,
   formatHoursAsHm,
+  MEAL_META,
   minutesBetweenTimes,
+  normalizeFood,
   normalizeTraining,
   parseDurationToHours,
   parseMinutes,
@@ -29,6 +33,7 @@ import {
   WORK_CATEGORY_META,
   type ErpDayLog,
   type ErpTrainingSession,
+  type MealKey,
   type TrainingCategoryKey,
   type WorkCategoryKey,
 } from "@/app/admin92/erp/lib/erpTypes";
@@ -58,6 +63,7 @@ const trainingMeta: {
 
 function cloneLog(log: ErpDayLog): ErpDayLog {
   const training = normalizeTraining(log.training);
+  const food = normalizeFood(log.food ?? emptyFood());
   return {
     ...log,
     alarm: { ...log.alarm },
@@ -69,6 +75,12 @@ function cloneLog(log: ErpDayLog): ErpDayLog {
     },
     english: { ...(log.english ?? emptyTrainingSession()) },
     creatine: Boolean(log.creatine),
+    food: {
+      desayuno: { ...food.desayuno },
+      almuerzo: { ...food.almuerzo },
+      merienda: { ...food.merienda },
+      cena: { ...food.cena },
+    },
   };
 }
 
@@ -179,6 +191,34 @@ export default function ErpDayForm({
       ...prev,
       english: { ...prev.english, ...patch },
     }));
+  };
+
+  const toggleMeal = (key: MealKey) => {
+    setDraft((prev) => {
+      const food = normalizeFood(prev.food);
+      const cur = food[key];
+      const nextDone = !cur.done;
+      return {
+        ...prev,
+        food: {
+          ...food,
+          [key]: nextDone ? { done: true, quality: cur.quality } : emptyMeal(false),
+        },
+      };
+    });
+  };
+
+  const setMealQuality = (key: MealKey, quality: number | null) => {
+    setDraft((prev) => {
+      const food = normalizeFood(prev.food);
+      return {
+        ...prev,
+        food: {
+          ...food,
+          [key]: { ...food[key], done: true, quality },
+        },
+      };
+    });
   };
 
   const toggleCreatine = () => {
@@ -445,8 +485,8 @@ export default function ErpDayForm({
         </div>
       </section>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="rounded-2xl border border-slate-200/80 bg-white p-5 text-xs font-medium text-slate-600 shadow-sm">
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
+        <label className="block text-xs font-medium text-slate-600">
           Sueño (hs)
           <span className="ml-1 font-normal text-slate-400">· opcional</span>
           <input
@@ -463,38 +503,65 @@ export default function ErpDayForm({
                 sleepHours: raw === "" ? null : Math.max(0, parseFloat(raw) || 0),
               }));
             }}
-            className="mt-2 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-300"
+            className="mt-2 block w-full max-w-xs rounded-xl border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-300"
           />
         </label>
-        <label className="rounded-2xl border border-slate-200/80 bg-white p-5 text-xs font-medium text-slate-600 shadow-sm">
-          Alimentación (1–10)
-          <span className="ml-1 font-normal text-slate-400">· opcional</span>
-          <input
-            type="number"
-            min={1}
-            max={10}
-            step={1}
-            value={draft.foodScore ?? ""}
-            placeholder="Sin dato"
-            onChange={(e) => {
-              const raw = e.target.value.trim();
-              if (raw === "") {
-                setDraft((p) => ({ ...p, foodScore: null }));
-                return;
-              }
-              const n = parseInt(raw, 10);
-              if (Number.isNaN(n)) {
-                setDraft((p) => ({ ...p, foodScore: null }));
-                return;
-              }
-              setDraft((p) => ({
-                ...p,
-                foodScore: Math.min(10, Math.max(1, n)),
-              }));
-            }}
-            className="mt-2 block w-full rounded-xl border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-300"
-          />
-        </label>
+      </section>
+
+      <section className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/40 p-4 shadow-sm">
+        <div className="mb-3">
+          <h3 className="text-sm font-bold text-slate-900">Alimentación</h3>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Marcá cada comida y, si querés, su calidad (1–5).
+          </p>
+        </div>
+        <div className="space-y-2">
+          {MEAL_META.map(({ key, label }) => {
+            const meal = (draft.food ?? emptyFood())[key];
+            return (
+              <div
+                key={key}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white/80 px-3 py-2 ring-1 ring-slate-200/80"
+              >
+                <button
+                  type="button"
+                  onClick={() => toggleMeal(key)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                    meal.done
+                      ? "bg-amber-100 text-amber-900 ring-1 ring-amber-200"
+                      : "bg-slate-50 text-slate-600 ring-1 ring-slate-200 hover:text-slate-800"
+                  }`}
+                >
+                  {label}
+                  {meal.done && <Check className="h-3.5 w-3.5 text-amber-700" />}
+                </button>
+                {meal.done ? (
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] font-medium text-slate-500">Calidad</span>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() =>
+                          setMealQuality(key, meal.quality === n ? null : n)
+                        }
+                        className={`h-7 w-7 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          meal.quality === n
+                            ? "bg-amber-500 text-white"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-[11px] text-slate-400">Sin marcar</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </section>
 
       <section className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50/80 via-white to-teal-50/40 p-4 shadow-sm">

@@ -20,6 +20,7 @@ import {
   Play,
   Salad,
   Sparkles,
+  StickyNote,
   Target,
   Wallet,
   Waves,
@@ -39,6 +40,7 @@ import {
 } from "recharts";
 import {
   alarmFromLog,
+  dayShortLabel,
   overallChangePct,
   periodCompareLabel,
   periodTitle,
@@ -50,7 +52,7 @@ import {
   type PeriodStats,
 } from "@/app/admin92/erp/lib/erpAggregates";
 import { formatHoursAsHm, type ErpDayLog, type ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
-import { formatCurrency, formatMonthLabel } from "@/app/admin92/contabilidad/lib/utils";
+import { formatCurrency, formatLocalDate, formatMonthLabel } from "@/app/admin92/contabilidad/lib/utils";
 
 const colorClasses = {
   blue: "bg-blue-50 text-blue-600 ring-blue-100",
@@ -96,6 +98,7 @@ type Props = {
   previous: PeriodStats | null;
   kpis: KpiView[];
   focusLog: ErpDayLog | undefined;
+  periodLogs: ErpDayLog[];
   loading: boolean;
   hasData: boolean;
   membershipMonth: string;
@@ -373,6 +376,7 @@ export default function ErpDashboard({
   previous,
   kpis,
   focusLog,
+  periodLogs,
   loading,
   hasData,
   membershipMonth,
@@ -391,6 +395,10 @@ export default function ErpDashboard({
   const englishKpi = kpis.find((item) => item.kind === "english");
   const creatineKpi = kpis.find((item) => item.kind === "creatine");
   const alarm = alarmFromLog(focusLog);
+  const notesEntries = periodLogs
+    .filter((log) => (log.notes ?? "").trim().length > 0)
+    .map((log) => ({ date: log.date, notes: (log.notes ?? "").trim() }))
+    .sort((a, b) => b.date.localeCompare(a.date));
   const overall = overallChangePct(current, previous);
   const compareLabel = periodCompareLabel(period);
   const title = periodTitle(period);
@@ -583,6 +591,46 @@ export default function ErpDashboard({
                   {alarm.startedWorkAt}
                 </span>
               </div>
+            </div>
+          </article>
+        </section>
+      )}
+
+      {notesEntries.length > 0 && (
+        <section>
+          <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-slate-100 p-2.5 text-slate-700 ring-1 ring-slate-200">
+                <StickyNote className="h-5 w-5" aria-hidden />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-950">
+                  {period === "day" ? "Notas del día" : "Notas del período"}
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {period === "day"
+                    ? "Lo que anotaste al cargar el día"
+                    : `${notesEntries.length} día${notesEntries.length === 1 ? "" : "s"} con notas`}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {notesEntries.map((entry) => (
+                <div
+                  key={entry.date}
+                  className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3"
+                >
+                  {period !== "day" && (
+                    <p className="mb-1.5 text-xs font-semibold text-slate-500">
+                      {dayShortLabel(entry.date)} · {formatLocalDate(entry.date)}
+                    </p>
+                  )}
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+                    {entry.notes}
+                  </p>
+                </div>
+              ))}
             </div>
           </article>
         </section>

@@ -40,10 +40,74 @@ export type ErpDayLog = {
   creatine: boolean;
   /** null = no registrado ese día */
   sleepHours: number | null;
-  /** null = no registrado ese día; 1-10 si hay valor */
-  foodScore: number | null;
+  /** 4 comidas del día: hecha + calidad 1–5 opcional */
+  food: ErpFood;
   notes?: string;
 };
+
+export type MealKey = "desayuno" | "almuerzo" | "merienda" | "cena";
+
+export type ErpMeal = {
+  done: boolean;
+  /** 1–5 si la comida está hecha; null si no calificó */
+  quality: number | null;
+};
+
+export type ErpFood = Record<MealKey, ErpMeal>;
+
+export const MEAL_META: { key: MealKey; label: string }[] = [
+  { key: "desayuno", label: "Desayuno" },
+  { key: "almuerzo", label: "Almuerzo" },
+  { key: "merienda", label: "Merienda" },
+  { key: "cena", label: "Cena" },
+];
+
+export function emptyMeal(done = false): ErpMeal {
+  return { done, quality: null };
+}
+
+export function emptyFood(): ErpFood {
+  return {
+    desayuno: emptyMeal(),
+    almuerzo: emptyMeal(),
+    merienda: emptyMeal(),
+    cena: emptyMeal(),
+  };
+}
+
+export function normalizeFood(raw: unknown): ErpFood {
+  const base = emptyFood();
+  if (!raw || typeof raw !== "object") return base;
+  const record = raw as Record<string, unknown>;
+  for (const { key } of MEAL_META) {
+    const meal = record[key];
+    if (!meal || typeof meal !== "object") continue;
+    const entry = meal as Partial<ErpMeal>;
+    const done = Boolean(entry.done);
+    const quality =
+      done &&
+      typeof entry.quality === "number" &&
+      Number.isInteger(entry.quality) &&
+      entry.quality >= 1 &&
+      entry.quality <= 5
+        ? entry.quality
+        : null;
+    base[key] = { done, quality };
+  }
+  return base;
+}
+
+export function countMealsDone(food: ErpFood): number {
+  return MEAL_META.reduce((sum, { key }) => sum + (food[key].done ? 1 : 0), 0);
+}
+
+export function avgMealQuality(food: ErpFood): number | null {
+  const qualities = MEAL_META.map(({ key }) => food[key])
+    .filter((meal) => meal.done && meal.quality !== null)
+    .map((meal) => meal.quality as number);
+  if (qualities.length === 0) return null;
+  return qualities.reduce((a, b) => a + b, 0) / qualities.length;
+}
 
 /** Pago mensual de un servicio (gimnasio / pileta) */
 export type ErpServicePayment = {
@@ -171,7 +235,7 @@ export function emptyDayLog(date: string): ErpDayLog {
     english: emptyTrainingSession(),
     creatine: false,
     sleepHours: null,
-    foodScore: null,
+    food: emptyFood(),
     notes: "",
   };
 }
@@ -412,9 +476,36 @@ export function validateErpDayLog(
   if (sleepHours === undefined) {
     return { ok: false, error: "Las horas de sueño son inválidas" };
   }
-  const foodScore = nullableNumber(value.foodScore, 1, 10);
-  if (foodScore === undefined || (foodScore !== null && !Number.isInteger(foodScore))) {
-    return { ok: false, error: "La puntuación de alimentación es inválida" };
+
+  let food = emptyFood();
+  if (value.food !== undefined) {
+    if (!value.food || typeof value.food !== "object") {
+      return { ok: false, error: "Los datos de alimentación son inválidos" };
+    }
+    const rawFood = value.food as Record<string, unknown>;
+    for (const { key, label } of MEAL_META) {
+      const meal = rawFood[key];
+      if (!meal || typeof meal !== "object") {
+        return { ok: false, error: `${label}: datos inválidos` };
+      }
+      const entry = meal as Record<string, unknown>;
+      if (typeof entry.done !== "boolean") {
+        return { ok: false, error: `${label}: estado inválido` };
+      }
+      if (!entry.done) {
+        food[key] = emptyMeal(false);
+        continue;
+      }
+      if (entry.quality === null || entry.quality === undefined || entry.quality === "") {
+        food[key] = { done: true, quality: null };
+        continue;
+      }
+      const quality = Number(entry.quality);
+      if (!Number.isInteger(quality) || quality < 1 || quality > 5) {
+        return { ok: false, error: `${label}: la calidad debe ser 1–5` };
+      }
+      food[key] = { done: true, quality };
+    }
   }
 
   return {
@@ -427,7 +518,7 @@ export function validateErpDayLog(
       english,
       creatine,
       sleepHours,
-      foodScore,
+      food,
       notes: typeof value.notes === "string" ? value.notes.trim().slice(0, 5000) : "",
     },
   };

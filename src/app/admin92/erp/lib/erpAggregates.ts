@@ -6,10 +6,13 @@ import {
   shiftMonth,
 } from "@/app/admin92/contabilidad/lib/utils";
 import {
+  formatHoursAsHm,
+  isTrainingDone,
+  countMealsDone,
+  avgMealQuality,
+  emptyFood,
   minutesBetweenTimes,
   sumWorkHours,
-  isTrainingDone,
-  formatHoursAsHm,
   WORK_CATEGORY_META,
   TRAINING_CATEGORY_META,
   type ErpDayLog,
@@ -151,8 +154,10 @@ export type PeriodStats = {
   creatineDays: number;
   /** null si ningún día del período registró sueño */
   sleepAvg: number | null;
-  /** null si ningún día del período registró alimentación */
-  foodAvg: number | null;
+  /** Promedio de comidas hechas por día (0–4); null si no hay logs */
+  foodMealsAvg: number | null;
+  /** Promedio de calidad (1–5) entre comidas calificadas; null si no hay */
+  foodQualityAvg: number | null;
   workByCategory: Record<WorkCategoryKey, number>;
   trainingByCategory: Record<"gimnasio" | "natacion" | "casa", number>;
   workByDay: Array<ErpWorkHours & { day: string; date: string }>;
@@ -193,7 +198,8 @@ export function computePeriodStats(
   let englishMinutes = 0;
   let creatineDays = 0;
   const sleepVals: number[] = [];
-  const foodVals: number[] = [];
+  const mealCountVals: number[] = [];
+  const qualityDayVals: number[] = [];
 
   const workByDay = dates.map((date) => {
     const log = byDate.get(date);
@@ -208,9 +214,10 @@ export function computePeriodStats(
       if (log.sleepHours !== null && log.sleepHours !== undefined) {
         sleepVals.push(log.sleepHours);
       }
-      if (log.foodScore !== null && log.foodScore !== undefined) {
-        foodVals.push(log.foodScore);
-      }
+      const food = log.food ?? emptyFood();
+      mealCountVals.push(countMealsDone(food));
+      const dayQuality = avgMealQuality(food);
+      if (dayQuality !== null) qualityDayVals.push(dayQuality);
       const trained =
         isTrainingDone(log.training.gimnasio) ||
         isTrainingDone(log.training.natacion) ||
@@ -280,11 +287,16 @@ export function computePeriodStats(
   ];
 
   const sleepAvg = sleepVals.length > 0 ? avg(sleepVals) : null;
-  const foodAvg = foodVals.length > 0 ? avg(foodVals) : null;
+  const foodMealsAvg = mealCountVals.length > 0 ? avg(mealCountVals) : null;
+  const foodQualityAvg = qualityDayVals.length > 0 ? avg(qualityDayVals) : null;
 
   const sleepScore =
     sleepAvg !== null ? Math.min(100, (sleepAvg / 8) * 100) : workProgress;
-  const foodScorePart = foodAvg !== null ? (foodAvg / 10) * 100 : workProgress;
+  const foodCompletion =
+    foodMealsAvg !== null ? (foodMealsAvg / 4) * 100 : workProgress;
+  const foodQualityPart =
+    foodQualityAvg !== null ? (foodQualityAvg / 5) * 100 : foodCompletion;
+  const foodScorePart = foodCompletion * 0.7 + foodQualityPart * 0.3;
 
   const score = Math.round(
     workProgress * 0.45 +
@@ -315,7 +327,8 @@ export function computePeriodStats(
     englishMinutes,
     creatineDays,
     sleepAvg,
-    foodAvg,
+    foodMealsAvg,
+    foodQualityAvg,
     workByCategory,
     trainingByCategory,
     workByDay,
@@ -356,8 +369,8 @@ export function buildKpis(
       ? pctChange(current.sleepAvg, previous.sleepAvg)
       : null;
   const foodChange =
-    current.foodAvg !== null && previous?.foodAvg != null
-      ? pctChange(current.foodAvg, previous.foodAvg)
+    current.foodMealsAvg !== null && previous?.foodMealsAvg != null
+      ? pctChange(current.foodMealsAvg, previous.foodMealsAvg)
       : null;
 
   const dailyKpi =
@@ -444,9 +457,21 @@ export function buildKpis(
       kind: "sleep",
     },
     {
-      label: period === "day" ? "Alimentación" : "Alimentación promedio",
-      value: current.foodAvg !== null ? formatHours(current.foodAvg) : "—",
-      unit: current.foodAvg !== null ? "/10" : "",
+      label: period === "day" ? "Alimentación" : "Comidas / día",
+      value:
+        current.foodMealsAvg !== null
+          ? period === "day"
+            ? `${Math.round(current.foodMealsAvg)}/4`
+            : formatHours(current.foodMealsAvg)
+          : "—",
+      unit:
+        current.foodMealsAvg === null
+          ? ""
+          : current.foodQualityAvg !== null
+            ? `cal. ${formatHours(current.foodQualityAvg)}`
+            : period === "day"
+              ? "comidas"
+              : "prom.",
       change: foodChange,
       color: "amber",
       kind: "food",

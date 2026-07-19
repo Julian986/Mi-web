@@ -373,6 +373,7 @@ export default function ErpPage() {
               previous={previousStats}
               kpis={kpis}
               focusLog={focusLog}
+              periodLogs={currentLogs}
               loading={loading}
               hasData={currentLogs.length > 0}
               membershipMonth={membershipMonth}
