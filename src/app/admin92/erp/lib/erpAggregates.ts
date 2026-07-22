@@ -7,6 +7,7 @@ import {
 } from "@/app/admin92/contabilidad/lib/utils";
 import {
   formatHoursAsHm,
+  formatMinutesAsHm,
   isTrainingDone,
   countMealsDone,
   avgMealQuality,
@@ -149,6 +150,8 @@ export type PeriodStats = {
   workHours: number;
   dailyAvg: number;
   trainingDays: number;
+  /** Minutos totales de entrenamiento físico registrados */
+  trainingMinutes: number;
   englishDays: number;
   englishMinutes: number;
   creatineDays: number;
@@ -160,6 +163,7 @@ export type PeriodStats = {
   foodQualityAvg: number | null;
   workByCategory: Record<WorkCategoryKey, number>;
   trainingByCategory: Record<"gimnasio" | "natacion" | "casa", number>;
+  trainingMinutesByCategory: Record<"gimnasio" | "natacion" | "casa", number>;
   workByDay: Array<ErpWorkHours & { day: string; date: string }>;
   distribution: Array<{ name: string; value: number; color: string; hours: number }>;
   goals: Array<{
@@ -191,9 +195,11 @@ export function computePeriodStats(
     branding: 0,
   };
   const trainingByCategory = { gimnasio: 0, natacion: 0, casa: 0 };
+  const trainingMinutesByCategory = { gimnasio: 0, natacion: 0, casa: 0 };
 
   let workHours = 0;
   let trainingDays = 0;
+  let trainingMinutes = 0;
   let englishDays = 0;
   let englishMinutes = 0;
   let creatineDays = 0;
@@ -223,9 +229,18 @@ export function computePeriodStats(
         isTrainingDone(log.training.natacion) ||
         isTrainingDone(log.training.casa);
       if (trained) trainingDays += 1;
-      if (isTrainingDone(log.training.gimnasio)) trainingByCategory.gimnasio += 1;
-      if (isTrainingDone(log.training.natacion)) trainingByCategory.natacion += 1;
-      if (isTrainingDone(log.training.casa)) trainingByCategory.casa += 1;
+
+      (["gimnasio", "natacion", "casa"] as const).forEach((key) => {
+        const session = log.training[key];
+        if (!isTrainingDone(session)) return;
+        trainingByCategory[key] += 1;
+        const mins = session.minutes ?? 0;
+        if (mins > 0) {
+          trainingMinutesByCategory[key] += mins;
+          trainingMinutes += mins;
+        }
+      });
+
       if (isTrainingDone(log.english)) {
         englishDays += 1;
         englishMinutes += log.english.minutes ?? 0;
@@ -239,7 +254,8 @@ export function computePeriodStats(
   const daysWithWork = periodLogs.filter((l) => sumWorkHours(l.work) > 0).length || 1;
   const dailyAvg = workHours / Math.max(daysWithWork, 1);
 
-  const trainingHours = trainingDays * 1.25;
+  const trainingHours =
+    trainingMinutes > 0 ? trainingMinutes / 60 : trainingDays * 1.25;
   const restPool = Math.max(workHours + trainingHours, 1);
   const descansoHours = Math.max(restPool * 0.3, 0);
   const totalPie = workHours + trainingHours + descansoHours;
@@ -269,6 +285,11 @@ export function computePeriodStats(
   const workProgress = Math.min(100, Math.round((workHours / workGoal) * 100));
   const trainingProgress = Math.min(100, Math.round((trainingDays / trainingGoal) * 100));
 
+  const trainingGoalCurrent =
+    trainingMinutes > 0
+      ? `${trainingDays} / ${trainingGoal} ${trainingGoal === 1 ? "día" : "días"} · ${formatMinutesAsHm(trainingMinutes)}`
+      : `${trainingDays} / ${trainingGoal} ${trainingGoal === 1 ? "día" : "días"}`;
+
   const goals = [
     {
       label: "Trabajo",
@@ -279,7 +300,7 @@ export function computePeriodStats(
     },
     {
       label: "Entrenamiento",
-      current: `${trainingDays} / ${trainingGoal} ${trainingGoal === 1 ? "día" : "días"}`,
+      current: trainingGoalCurrent,
       progress: trainingProgress,
       color: "bg-violet-500",
       track: "bg-violet-100",
@@ -323,6 +344,7 @@ export function computePeriodStats(
     workHours,
     dailyAvg,
     trainingDays,
+    trainingMinutes,
     englishDays,
     englishMinutes,
     creatineDays,
@@ -331,6 +353,7 @@ export function computePeriodStats(
     foodQualityAvg,
     workByCategory,
     trainingByCategory,
+    trainingMinutesByCategory,
     workByDay,
     distribution,
     goals,
@@ -407,10 +430,19 @@ export function buildKpis(
       value:
         period === "day"
           ? current.trainingDays > 0
-            ? "Sí"
+            ? current.trainingMinutes > 0
+              ? formatMinutesAsHm(current.trainingMinutes)
+              : "Sí"
             : "No"
           : String(current.trainingDays),
-      unit: period === "day" ? "" : "días",
+      unit:
+        period === "day"
+          ? current.trainingDays > 0 && current.trainingMinutes > 0
+            ? "hs"
+            : ""
+          : current.trainingMinutes > 0
+            ? `días · ${formatMinutesAsHm(current.trainingMinutes)}`
+            : "días",
       change: previous ? pctChange(current.trainingDays, previous.trainingDays) : null,
       color: "violet",
       kind: "training",
@@ -516,6 +548,7 @@ export function trainingCategoryCards(stats: PeriodStats) {
     name: c.name,
     color: c.color,
     days: stats.trainingByCategory[c.key],
+    minutes: stats.trainingMinutesByCategory[c.key],
   }));
 }
 

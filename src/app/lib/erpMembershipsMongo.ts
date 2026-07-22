@@ -35,10 +35,13 @@ async function getCollection() {
 }
 
 function normalizeService(raw: ErpServicePayment | undefined): ErpServicePayment {
-  return {
-    paid: Boolean(raw?.paid),
-    amount: typeof raw?.amount === "number" ? raw.amount : null,
-  };
+  const paid = Boolean(raw?.paid);
+  const amount = typeof raw?.amount === "number" ? raw.amount : null;
+  const paidOn =
+    paid && typeof raw?.paidOn === "string" && /^\d{4}-\d{2}-\d{2}$/.test(raw.paidOn)
+      ? raw.paidOn
+      : null;
+  return { paid, amount, paidOn };
 }
 
 function toMembership(doc: ErpMembershipDoc | null, month: string): ErpMembershipMonth {
@@ -54,6 +57,31 @@ export async function getErpMembershipMonth(month: string): Promise<ErpMembershi
   const collection = await getCollection();
   const doc = await collection.findOne({ month });
   return toMembership(doc, month);
+}
+
+/** Lista cuotas en un rango inclusivo de meses YYYY-MM (rellena vacíos). */
+export async function listErpMembershipMonths(
+  from: string,
+  to: string,
+): Promise<ErpMembershipMonth[]> {
+  const collection = await getCollection();
+  const docs = await collection
+    .find({ month: { $gte: from, $lte: to } })
+    .sort({ month: 1 })
+    .limit(36)
+    .toArray();
+  const byMonth = new Map(docs.map((doc) => [doc.month, toMembership(doc, doc.month)]));
+
+  const months: string[] = [];
+  let cursor = from;
+  while (cursor <= to && months.length < 36) {
+    months.push(cursor);
+    const [y, m] = cursor.split("-").map(Number);
+    const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+    cursor = next;
+  }
+
+  return months.map((month) => byMonth.get(month) ?? emptyMembershipMonth(month));
 }
 
 export async function upsertErpMembershipMonth(

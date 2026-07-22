@@ -51,8 +51,8 @@ import {
   type KpiView,
   type PeriodStats,
 } from "@/app/admin92/erp/lib/erpAggregates";
-import { formatHoursAsHm, type ErpDayLog, type ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
-import { formatCurrency, formatLocalDate, formatMonthLabel } from "@/app/admin92/contabilidad/lib/utils";
+import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, type ErpDayLog, type ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
+import { formatCurrency, formatLocalDate, formatMonthLabel, MONTH_NAMES, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 
 const colorClasses = {
   blue: "bg-blue-50 text-blue-600 ring-blue-100",
@@ -102,8 +102,11 @@ type Props = {
   loading: boolean;
   hasData: boolean;
   membershipMonth: string;
+  membershipMonths: string[];
+  membershipsByMonth: Record<string, ErpMembershipMonth>;
   membership: ErpMembershipMonth;
   membershipSaving: boolean;
+  onMembershipMonthChange: (month: string) => void;
   onMembershipChange: (next: ErpMembershipMonth) => void;
 };
 
@@ -147,19 +150,36 @@ function KpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }
   );
 }
 
+function shortMonthLabel(ym: string): string {
+  const monthIdx = Number(ym.slice(5, 7)) - 1;
+  return MONTH_NAMES[monthIdx]?.slice(0, 3) ?? ym;
+}
+
+function paidDayLabel(paidOn: string | null): string {
+  if (!paidOn) return "Sin día";
+  const day = Number(paidOn.slice(8, 10));
+  return Number.isFinite(day) ? `día ${day}` : formatLocalDate(paidOn);
+}
+
 function TrainingKpiCard({
   item,
   compareLabel,
   membershipMonth,
+  membershipMonths,
+  membershipsByMonth,
   membership,
   membershipSaving,
+  onMembershipMonthChange,
   onMembershipChange,
 }: {
   item: KpiView;
   compareLabel: string;
   membershipMonth: string;
+  membershipMonths: string[];
+  membershipsByMonth: Record<string, ErpMembershipMonth>;
   membership: ErpMembershipMonth;
   membershipSaving: boolean;
+  onMembershipMonthChange: (month: string) => void;
   onMembershipChange: (next: ErpMembershipMonth) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -187,10 +207,23 @@ function TrainingKpiCard({
     key: "gimnasio" | "natacion",
     patch: Partial<ErpMembershipMonth["gimnasio"]>,
   ) => {
+    const current = membership[key];
+    let next = { ...current, ...patch };
+    if (typeof patch.paid === "boolean") {
+      if (patch.paid) {
+        next = {
+          ...next,
+          paid: true,
+          paidOn: next.paidOn ?? todayYmd(),
+        };
+      } else {
+        next = { ...next, paid: false, paidOn: null };
+      }
+    }
     onMembershipChange({
       ...membership,
       month: membershipMonth,
-      [key]: { ...membership[key], ...patch },
+      [key]: next,
     });
   };
 
@@ -235,7 +268,7 @@ function TrainingKpiCard({
           </button>
 
           {open && (
-            <div className="absolute right-0 top-16 z-30 w-[min(100vw-2rem,17rem)] space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.14)]">
+            <div className="absolute right-0 top-16 z-30 w-[min(100vw-2rem,22rem)] space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-[0_16px_40px_rgba(15,23,42,0.14)]">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-bold text-slate-700">
                   {formatMonthLabel(membershipMonth)}
@@ -270,31 +303,109 @@ function TrainingKpiCard({
                         {service.paid ? "Pagado" : "No pagado"}
                       </button>
                     </div>
-                    <label className="block text-[11px] font-medium text-slate-500">
-                      Monto
-                      <input
-                        type="number"
-                        min={0}
-                        step={100}
-                        placeholder="0"
-                        value={service.amount ?? ""}
-                        onChange={(event) => {
-                          const raw = event.target.value.trim();
-                          patchService(key, {
-                            amount: raw === "" ? null : Math.max(0, Number(raw) || 0),
-                          });
-                        }}
-                        className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800"
-                      />
-                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label className="block text-[11px] font-medium text-slate-500">
+                        Monto
+                        <input
+                          type="number"
+                          min={0}
+                          step={100}
+                          placeholder="0"
+                          value={service.amount ?? ""}
+                          onChange={(event) => {
+                            const raw = event.target.value.trim();
+                            patchService(key, {
+                              amount: raw === "" ? null : Math.max(0, Number(raw) || 0),
+                            });
+                          }}
+                          className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800"
+                        />
+                      </label>
+                      <label className="block text-[11px] font-medium text-slate-500">
+                        Día de pago
+                        <input
+                          type="date"
+                          disabled={!service.paid}
+                          value={service.paidOn ?? ""}
+                          onChange={(event) => {
+                            const raw = event.target.value;
+                            patchService(key, {
+                              paidOn: raw === "" ? null : raw,
+                            });
+                          }}
+                          className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-800 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400"
+                        />
+                      </label>
+                    </div>
                     {service.amount !== null && (
                       <p className="mt-1.5 text-[11px] text-slate-400">
                         {formatCurrency(service.amount)}
+                        {service.paidOn ? ` · ${formatLocalDate(service.paidOn)}` : ""}
                       </p>
                     )}
                   </div>
                 );
               })}
+
+              <div className="border-t border-slate-100 pt-3">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  Meses
+                </p>
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
+                  {membershipMonths.map((month) => {
+                    const row =
+                      membershipsByMonth[month] ?? emptyMembershipMonth(month);
+                    const active = month === membershipMonth;
+                    return (
+                      <button
+                        key={month}
+                        type="button"
+                        onClick={() => onMembershipMonthChange(month)}
+                        className={`min-w-[4.4rem] shrink-0 rounded-xl border px-2 py-2 text-left transition cursor-pointer ${
+                          active
+                            ? "border-violet-400 bg-violet-50 ring-1 ring-violet-200"
+                            : "border-slate-200 bg-white hover:bg-slate-50"
+                        }`}
+                      >
+                        <p
+                          className={`text-[11px] font-bold ${
+                            active ? "text-violet-800" : "text-slate-700"
+                          }`}
+                        >
+                          {shortMonthLabel(month)}
+                        </p>
+                        <div className="mt-1.5 space-y-1">
+                          {(
+                            [
+                              ["G", row.gimnasio],
+                              ["N", row.natacion],
+                            ] as const
+                          ).map(([tag, service]) => (
+                            <div
+                              key={tag}
+                              className="flex items-center justify-between gap-1 text-[10px] leading-tight"
+                            >
+                              <span className="font-semibold text-slate-400">{tag}</span>
+                              <span
+                                className={`font-semibold ${
+                                  service.paid
+                                    ? "text-emerald-700"
+                                    : "text-amber-700"
+                                }`}
+                              >
+                                {service.paid ? "Pagado" : "No"}
+                              </span>
+                              <span className="text-slate-400">
+                                {service.paid ? paidDayLabel(service.paidOn) : "—"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -380,8 +491,11 @@ export default function ErpDashboard({
   loading,
   hasData,
   membershipMonth,
+  membershipMonths,
+  membershipsByMonth,
   membership,
   membershipSaving,
+  onMembershipMonthChange,
   onMembershipChange,
 }: Props) {
   const [chartsReady, setChartsReady] = useState(false);
@@ -389,6 +503,7 @@ export default function ErpDashboard({
   const trainingCats = trainingCategoryCards(current);
   const workTotal = current.workHours;
   const trainingTotal = current.trainingDays;
+  const trainingMinutesTotal = current.trainingMinutes;
   const primaryKpis = kpis.filter(
     (item) => item.kind !== "english" && item.kind !== "creatine",
   );
@@ -501,8 +616,11 @@ export default function ErpDashboard({
                 item={item}
                 compareLabel={compareLabel}
                 membershipMonth={membershipMonth}
+                membershipMonths={membershipMonths}
+                membershipsByMonth={membershipsByMonth}
                 membership={membership}
                 membershipSaving={membershipSaving}
+                onMembershipMonthChange={onMembershipMonthChange}
                 onMembershipChange={onMembershipChange}
               />
             ) : (
@@ -730,10 +848,17 @@ export default function ErpDashboard({
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-base font-bold text-slate-950">Categorías de entrenamiento</h2>
-              <p className="mt-1 text-xs text-slate-400">Desglose de días activos</p>
+              <p className="mt-1 text-xs text-slate-400">
+                {trainingMinutesTotal > 0
+                  ? "Días activos y tiempo registrado"
+                  : "Desglose de días activos"}
+              </p>
             </div>
             <span className="rounded-lg bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
               {trainingTotal} {trainingTotal === 1 ? "día" : "días"}
+              {trainingMinutesTotal > 0
+                ? ` · ${formatMinutesAsHm(trainingMinutesTotal)}`
+                : ""}
             </span>
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -754,6 +879,9 @@ export default function ErpDashboard({
                   <p className="mt-1 text-2xl font-bold tracking-tight text-slate-950">
                     {cat.days}
                     <span className="ml-1 text-sm font-semibold text-slate-400">d</span>
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-violet-700">
+                    {cat.minutes > 0 ? formatMinutesAsHm(cat.minutes) : "Sin tiempo"}
                   </p>
                 </div>
               );

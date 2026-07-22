@@ -19,7 +19,7 @@ import {
 } from "@/app/admin92/erp/lib/erpAggregates";
 import type { ErpDayLog, ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
 import { emptyMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
-import { getMonthKeySafe, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
+import { getMonthKeySafe, shiftMonth, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 
 type ViewTab = "dashboard" | "cargar";
 
@@ -39,12 +39,27 @@ export default function ErpPage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [titleExpanded, setTitleExpanded] = useState(false);
-  const [membership, setMembership] = useState<ErpMembershipMonth>(() =>
-    emptyMembershipMonth(getMonthKeySafe(todayYmd())),
-  );
   const [membershipSaving, setMembershipSaving] = useState(false);
   const membershipSaveTimer = useRef<number | null>(null);
-  const membershipMonth = getMonthKeySafe(selectedDate);
+  const periodMonth = getMonthKeySafe(selectedDate);
+  const [editMembershipMonth, setEditMembershipMonth] = useState(periodMonth);
+  const [membershipsByMonth, setMembershipsByMonth] = useState<
+    Record<string, ErpMembershipMonth>
+  >(() => ({
+    [periodMonth]: emptyMembershipMonth(periodMonth),
+  }));
+
+  const membershipMonthWindow = useMemo(() => {
+    const months: string[] = [];
+    for (let i = -2; i <= 3; i += 1) {
+      months.push(shiftMonth(periodMonth, i));
+    }
+    return months;
+  }, [periodMonth]);
+
+  const membership =
+    membershipsByMonth[editMembershipMonth] ??
+    emptyMembershipMonth(editMembershipMonth);
 
   const dates = useMemo(() => periodDates(selectedDate, period), [selectedDate, period]);
   const prevAnchor = useMemo(
@@ -124,31 +139,48 @@ export default function ErpPage() {
   }, [requestFrom, requestTo]);
 
   useEffect(() => {
+    setEditMembershipMonth(periodMonth);
+  }, [periodMonth]);
+
+  useEffect(() => {
     const controller = new AbortController();
-    void fetch(`/api/admin/erp-memberships/${membershipMonth}`, {
+    const from = membershipMonthWindow[0];
+    const to = membershipMonthWindow[membershipMonthWindow.length - 1];
+    void fetch(`/api/admin/erp-memberships?from=${from}&to=${to}`, {
       signal: controller.signal,
       cache: "no-store",
     })
       .then(async (response) => {
         const data = (await response.json()) as {
-          membership?: ErpMembershipMonth;
+          memberships?: ErpMembershipMonth[];
           error?: string;
         };
-        if (!response.ok || !data.membership) {
+        if (!response.ok || !data.memberships) {
           throw new Error(data.error || "No se pudieron cargar las cuotas.");
         }
-        setMembership(data.membership);
+        const next: Record<string, ErpMembershipMonth> = {};
+        for (const month of membershipMonthWindow) {
+          next[month] = emptyMembershipMonth(month);
+        }
+        for (const item of data.memberships) {
+          next[item.month] = item;
+        }
+        setMembershipsByMonth(next);
       })
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setMembership(emptyMembershipMonth(membershipMonth));
+        const next: Record<string, ErpMembershipMonth> = {};
+        for (const month of membershipMonthWindow) {
+          next[month] = emptyMembershipMonth(month);
+        }
+        setMembershipsByMonth(next);
       });
 
     return () => controller.abort();
-  }, [membershipMonth]);
+  }, [membershipMonthWindow]);
 
   const handleMembershipChange = (next: ErpMembershipMonth) => {
-    setMembership(next);
+    setMembershipsByMonth((prev) => ({ ...prev, [next.month]: next }));
     setMembershipSaving(true);
     if (membershipSaveTimer.current !== null) {
       window.clearTimeout(membershipSaveTimer.current);
@@ -167,7 +199,10 @@ export default function ErpPage() {
           if (!response.ok || !data.membership) {
             throw new Error(data.error || "No se pudieron guardar las cuotas.");
           }
-          setMembership(data.membership);
+          setMembershipsByMonth((prev) => ({
+            ...prev,
+            [data.membership!.month]: data.membership!,
+          }));
         })
         .catch(() => {
           // Mantener el valor local si falla el guardado.
@@ -376,9 +411,12 @@ export default function ErpPage() {
               periodLogs={currentLogs}
               loading={loading}
               hasData={currentLogs.length > 0}
-              membershipMonth={membershipMonth}
+              membershipMonth={editMembershipMonth}
+              membershipMonths={membershipMonthWindow}
+              membershipsByMonth={membershipsByMonth}
               membership={membership}
               membershipSaving={membershipSaving}
+              onMembershipMonthChange={setEditMembershipMonth}
               onMembershipChange={handleMembershipChange}
             />
           </>

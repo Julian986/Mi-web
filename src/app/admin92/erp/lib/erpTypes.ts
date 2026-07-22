@@ -116,6 +116,8 @@ export function avgMealQuality(food: ErpFood): number | null {
 export type ErpServicePayment = {
   paid: boolean;
   amount: number | null;
+  /** Día en que se pagó (YYYY-MM-DD); null si no se cargó */
+  paidOn: string | null;
 };
 
 /** Estado de cuotas del mes YYYY-MM */
@@ -126,7 +128,7 @@ export type ErpMembershipMonth = {
 };
 
 export function emptyServicePayment(): ErpServicePayment {
-  return { paid: false, amount: null };
+  return { paid: false, amount: null, paidOn: null };
 }
 
 export function emptyMembershipMonth(month: string): ErpMembershipMonth {
@@ -162,14 +164,29 @@ export function validateErpMembershipMonth(
     if (typeof entry.paid !== "boolean") {
       return { error: `El estado de pago de ${key} es inválido` };
     }
-    if (entry.amount === null || entry.amount === undefined || entry.amount === "") {
-      return { paid: entry.paid, amount: null };
+
+    let amount: number | null = null;
+    if (entry.amount !== null && entry.amount !== undefined && entry.amount !== "") {
+      const n = Number(entry.amount);
+      if (!Number.isFinite(n) || n < 0) {
+        return { error: `El monto de ${key} es inválido` };
+      }
+      amount = n;
     }
-    const amount = Number(entry.amount);
-    if (!Number.isFinite(amount) || amount < 0) {
-      return { error: `El monto de ${key} es inválido` };
+
+    let paidOn: string | null = null;
+    if (entry.paidOn !== null && entry.paidOn !== undefined && entry.paidOn !== "") {
+      if (typeof entry.paidOn !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(entry.paidOn)) {
+        return { error: `La fecha de pago de ${key} es inválida` };
+      }
+      paidOn = entry.paidOn;
     }
-    return { paid: entry.paid, amount };
+
+    if (!entry.paid) {
+      paidOn = null;
+    }
+
+    return { paid: entry.paid, amount, paidOn };
   };
 
   const gimnasio = parseService("gimnasio");
