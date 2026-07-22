@@ -1,6 +1,7 @@
 import { getMongoClient } from "@/app/lib/mongoClient";
 import {
   emptyTrainingSession,
+  normalizeAlarm,
   normalizeFood,
   type ErpDayLog,
 } from "@/app/admin92/erp/lib/erpTypes";
@@ -37,7 +38,7 @@ async function getCollection() {
 function toErpDayLog(doc: ErpDayLogDoc & { foodScore?: number | null }): ErpDayLog {
   return {
     date: doc.date,
-    alarm: doc.alarm,
+    alarm: normalizeAlarm(doc.alarm),
     work: doc.work,
     training: doc.training,
     english: doc.english ?? emptyTrainingSession(),

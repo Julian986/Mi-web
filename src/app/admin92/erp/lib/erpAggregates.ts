@@ -489,12 +489,15 @@ export function overallChangePct(
 
 export function alarmFromLog(log: ErpDayLog | undefined) {
   if (!log) return null;
-  const delay = minutesBetweenTimes(log.alarm.rangAt, log.alarm.startedWorkAt);
+  const rangAt = log.alarm.rangAt;
+  const startedWorkAt = log.alarm.startedWorkAt;
+  const snoozedTimes = log.alarm.snoozedTimes;
+  const delay = minutesBetweenTimes(rangAt, startedWorkAt);
   return {
-    rangAt: log.alarm.rangAt,
-    snoozedTimes: log.alarm.snoozedTimes,
-    startedWorkAt: log.alarm.startedWorkAt,
-    delayMinutes: delay ?? 0,
+    rangAt,
+    snoozedTimes,
+    startedWorkAt,
+    delayMinutes: delay,
   };
 }
 

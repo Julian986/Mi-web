@@ -24,9 +24,12 @@ export type ErpTraining = {
 export type ErpTrainingFlags = ErpTraining;
 
 export type ErpAlarm = {
-  rangAt: string; // HH:MM
-  snoozedTimes: number;
-  startedWorkAt: string; // HH:MM
+  /** HH:MM; null = no cargado */
+  rangAt: string | null;
+  /** null = no cargado */
+  snoozedTimes: number | null;
+  /** HH:MM; null = no cargado */
+  startedWorkAt: string | null;
 };
 
 export type ErpDayLog = {
@@ -225,7 +228,7 @@ export const EMPTY_TRAINING: ErpTraining = {
 export function emptyDayLog(date: string): ErpDayLog {
   return {
     date,
-    alarm: { rangAt: "07:00", snoozedTimes: 0, startedWorkAt: "08:00" },
+    alarm: { rangAt: null, snoozedTimes: null, startedWorkAt: null },
     work: { ...EMPTY_WORK },
     training: {
       gimnasio: emptyTrainingSession(),
@@ -240,12 +243,42 @@ export function emptyDayLog(date: string): ErpDayLog {
   };
 }
 
+export function normalizeAlarm(raw: unknown): ErpAlarm {
+  if (!raw || typeof raw !== "object") {
+    return { rangAt: null, snoozedTimes: null, startedWorkAt: null };
+  }
+  const alarm = raw as Partial<ErpAlarm>;
+  const rangAt =
+    typeof alarm.rangAt === "string" && isValidTime(alarm.rangAt) ? alarm.rangAt : null;
+  const startedWorkAt =
+    typeof alarm.startedWorkAt === "string" && isValidTime(alarm.startedWorkAt)
+      ? alarm.startedWorkAt
+      : null;
+  const snoozed =
+    typeof alarm.snoozedTimes === "number" &&
+    Number.isInteger(alarm.snoozedTimes) &&
+    alarm.snoozedTimes >= 0
+      ? alarm.snoozedTimes
+      : null;
+
+  // Defaults viejos del formulario vacío (07:00 → 08:00, 0 snooze) = sin cargar
+  if (rangAt === "07:00" && startedWorkAt === "08:00" && snoozed === 0) {
+    return { rangAt: null, snoozedTimes: null, startedWorkAt: null };
+  }
+
+  return { rangAt, snoozedTimes: snoozed, startedWorkAt };
+}
+
 export function sumWorkHours(work: ErpWorkHours): number {
   return work.software + work.saas + work.planificacion + work.branding;
 }
 
 /** Minutos entre HH:MM y HH:MM (mismo día; si end < start asume end al día siguiente) */
-export function minutesBetweenTimes(start: string, end: string): number | null {
+export function minutesBetweenTimes(
+  start: string | null | undefined,
+  end: string | null | undefined,
+): number | null {
+  if (!start || !end) return null;
   if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return null;
   const [sh, sm] = start.split(":").map(Number);
   const [eh, em] = end.split(":").map(Number);
@@ -282,6 +315,23 @@ export function formatHoursAsHm(hours: number): string {
   const h = Math.floor(totalMins / 60);
   const m = totalMins % 60;
   return `${h}:${String(m).padStart(2, "0")}`;
+}
+
+/** Formatea minutos totales como "1:30"; vacío si no hay dato */
+export function formatMinutesAsHm(minutes: number | null | undefined): string {
+  if (minutes == null || !Number.isFinite(minutes) || minutes < 0) return "";
+  if (minutes === 0) return "0:00";
+  return formatHoursAsHm(minutes / 60);
+}
+
+/**
+ * Parsea duración a minutos totales con el mismo formato que trabajo:
+ * "1:30", "1", "1.5" → minutos.
+ */
+export function parseDurationToMinutes(raw: string): number | null {
+  const hours = parseDurationToHours(raw);
+  if (hours === null) return null;
+  return Math.round(hours * 60);
 }
 
 /** Parsea solo minutos enteros ("45", "45m", "45min") */
@@ -362,17 +412,24 @@ export function validateErpDayLog(
   }
 
   const alarm = value.alarm as Record<string, unknown> | undefined;
-  const rangAt = typeof alarm?.rangAt === "string" ? alarm.rangAt : "";
-  const startedWorkAt =
-    typeof alarm?.startedWorkAt === "string" ? alarm.startedWorkAt : "";
-  const snoozedTimes = Number(alarm?.snoozedTimes);
-  if (
-    !isValidTime(rangAt) ||
-    !isValidTime(startedWorkAt) ||
-    !Number.isInteger(snoozedTimes) ||
-    snoozedTimes < 0
-  ) {
+  const parseOptionalTime = (raw: unknown): string | null | undefined => {
+    if (raw === null || raw === undefined || raw === "") return null;
+    if (typeof raw !== "string" || !isValidTime(raw)) return undefined;
+    return raw;
+  };
+  const rangAt = parseOptionalTime(alarm?.rangAt);
+  const startedWorkAt = parseOptionalTime(alarm?.startedWorkAt);
+  if (rangAt === undefined || startedWorkAt === undefined) {
     return { ok: false, error: "Los datos de la alarma son inválidos" };
+  }
+
+  let snoozedTimes: number | null = null;
+  if (alarm?.snoozedTimes !== null && alarm?.snoozedTimes !== undefined && alarm?.snoozedTimes !== "") {
+    const n = Number(alarm.snoozedTimes);
+    if (!Number.isInteger(n) || n < 0) {
+      return { ok: false, error: "Los datos de la alarma son inválidos" };
+    }
+    snoozedTimes = n;
   }
 
   const rawWork = value.work as Record<string, unknown> | undefined;

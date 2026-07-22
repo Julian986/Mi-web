@@ -23,11 +23,13 @@ import {
   emptyMeal,
   emptyTrainingSession,
   formatHoursAsHm,
+  formatMinutesAsHm,
   MEAL_META,
   minutesBetweenTimes,
   normalizeFood,
   normalizeTraining,
   parseDurationToHours,
+  parseDurationToMinutes,
   parseMinutes,
   sumWorkHours,
   WORK_CATEGORY_META,
@@ -93,6 +95,17 @@ function workTextsFromLog(log: ErpDayLog): Record<WorkCategoryKey, string> {
   };
 }
 
+function trainingTextsFromLog(
+  log: ErpDayLog,
+): Record<TrainingCategoryKey, string> {
+  const training = normalizeTraining(log.training);
+  return {
+    gimnasio: formatMinutesAsHm(training.gimnasio.minutes),
+    natacion: formatMinutesAsHm(training.natacion.minutes),
+    casa: formatMinutesAsHm(training.casa.minutes),
+  };
+}
+
 export default function ErpDayForm({
   selectedDate,
   onSelectedDateChange,
@@ -117,11 +130,17 @@ export default function ErpDayForm({
   const [workText, setWorkText] = useState<Record<WorkCategoryKey, string>>(() =>
     workTextsFromLog(existing ? cloneLog(existing) : emptyDayLog(selectedDate)),
   );
+  const [trainingText, setTrainingText] = useState<
+    Record<TrainingCategoryKey, string>
+  >(() =>
+    trainingTextsFromLog(existing ? cloneLog(existing) : emptyDayLog(selectedDate)),
+  );
 
   useEffect(() => {
     const next = existing ? cloneLog(existing) : emptyDayLog(selectedDate);
     setDraft(next);
     setWorkText(workTextsFromLog(next));
+    setTrainingText(trainingTextsFromLog(next));
   }, [selectedDate, existing]);
 
   useEffect(() => {
@@ -161,10 +180,32 @@ export default function ErpDayForm({
     }));
   };
 
+  const commitTrainingDuration = (key: TrainingCategoryKey, raw: string) => {
+    const trimmed = raw.trim();
+    if (trimmed === "") {
+      patchTraining(key, { minutes: null });
+      setTrainingText((prev) => ({ ...prev, [key]: "" }));
+      return;
+    }
+    const mins = parseDurationToMinutes(trimmed);
+    if (mins === null) {
+      setTrainingText((prev) => ({
+        ...prev,
+        [key]: formatMinutesAsHm(draft.training[key].minutes),
+      }));
+      return;
+    }
+    patchTraining(key, { minutes: mins });
+    setTrainingText((prev) => ({ ...prev, [key]: formatMinutesAsHm(mins) }));
+  };
+
   const toggleTraining = (key: TrainingCategoryKey) => {
     setDraft((prev) => {
       const cur = prev.training[key];
       const nextDone = !cur.done;
+      if (!nextDone) {
+        setTrainingText((text) => ({ ...text, [key]: "" }));
+      }
       return {
         ...prev,
         training: {
@@ -232,16 +273,30 @@ export default function ErpDayForm({
       const parsed = parseDurationToHours(workText[key]);
       if (parsed !== null) nextWork[key] = parsed;
     });
+    const nextTraining = normalizeTraining(draft.training);
+    (Object.keys(trainingText) as TrainingCategoryKey[]).forEach((key) => {
+      if (!nextTraining[key].done) return;
+      const trimmed = trainingText[key].trim();
+      if (trimmed === "") {
+        nextTraining[key] = { ...nextTraining[key], minutes: null };
+        return;
+      }
+      const mins = parseDurationToMinutes(trimmed);
+      if (mins !== null) {
+        nextTraining[key] = { ...nextTraining[key], minutes: mins };
+      }
+    });
     const log: ErpDayLog = {
       ...draft,
       date: selectedDate,
       work: nextWork,
-      training: normalizeTraining(draft.training),
+      training: nextTraining,
     };
     try {
       const savedLog = await onSave(log);
       setDraft(savedLog);
       setWorkText(workTextsFromLog(savedLog));
+      setTrainingText(trainingTextsFromLog(savedLog));
       onClose();
     } catch {
       // El error lo muestra el contenedor.
@@ -257,6 +312,7 @@ export default function ErpDayForm({
       const empty = emptyDayLog(selectedDate);
       setDraft(empty);
       setWorkText(workTextsFromLog(empty));
+      setTrainingText(trainingTextsFromLog(empty));
     } catch {
       // El mensaje de error lo muestra el contenedor.
     }
@@ -315,6 +371,7 @@ export default function ErpDayForm({
         <div className="mb-4 flex items-center gap-2">
           <AlarmClock className="h-5 w-5 text-amber-700" />
           <h3 className="text-sm font-bold text-slate-950">Alarma</h3>
+          <span className="ml-1 text-[11px] font-normal text-slate-400">· opcional</span>
           {delay !== null && (
             <span className="ml-auto rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
               Retraso {delay} min
@@ -326,9 +383,12 @@ export default function ErpDayForm({
             Sonó
             <input
               type="time"
-              value={draft.alarm.rangAt}
+              value={draft.alarm.rangAt ?? ""}
               onChange={(e) =>
-                setDraft((p) => ({ ...p, alarm: { ...p.alarm, rangAt: e.target.value } }))
+                setDraft((p) => ({
+                  ...p,
+                  alarm: { ...p.alarm, rangAt: e.target.value || null },
+                }))
               }
               className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
             />
@@ -339,28 +399,31 @@ export default function ErpDayForm({
               type="number"
               min={0}
               step={1}
-              value={draft.alarm.snoozedTimes}
-              onChange={(e) =>
+              value={draft.alarm.snoozedTimes ?? ""}
+              placeholder="Sin dato"
+              onChange={(e) => {
+                const raw = e.target.value.trim();
                 setDraft((p) => ({
                   ...p,
                   alarm: {
                     ...p.alarm,
-                    snoozedTimes: Math.max(0, parseInt(e.target.value, 10) || 0),
+                    snoozedTimes:
+                      raw === "" ? null : Math.max(0, parseInt(raw, 10) || 0),
                   },
-                }))
-              }
-              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                }));
+              }}
+              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-300"
             />
           </label>
           <label className="text-xs font-medium text-slate-600">
             Empecé a trabajar
             <input
               type="time"
-              value={draft.alarm.startedWorkAt}
+              value={draft.alarm.startedWorkAt ?? ""}
               onChange={(e) =>
                 setDraft((p) => ({
                   ...p,
-                  alarm: { ...p.alarm, startedWorkAt: e.target.value },
+                  alarm: { ...p.alarm, startedWorkAt: e.target.value || null },
                 }))
               }
               className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
@@ -412,7 +475,11 @@ export default function ErpDayForm({
       </section>
 
       <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-bold text-slate-950">Entrenamiento</h3>
+        <h3 className="mb-1 text-sm font-bold text-slate-950">Entrenamiento</h3>
+        <p className="mb-4 text-xs text-slate-400">
+          Duración como en trabajo:{" "}
+          <strong className="font-semibold text-slate-600">1:30</strong> (horas:minutos).
+        </p>
         <div className="space-y-3">
           {trainingMeta.map(({ key, label, icon: Icon }) => {
             const session = draft.training[key];
@@ -441,26 +508,24 @@ export default function ErpDayForm({
                 {on && (
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[120px_1fr]">
                     <label className="text-[11px] font-medium text-slate-600">
-                      Minutos
+                      Duración
                       <span className="font-normal text-slate-400"> · opcional</span>
                       <input
                         type="text"
                         inputMode="numeric"
-                        placeholder="—"
-                        value={session.minutes ?? ""}
-                        onChange={(e) => {
-                          const raw = e.target.value.trim();
-                          if (raw === "") {
-                            patchTraining(key, { minutes: null });
-                            return;
-                          }
-                          const mins = parseMinutes(raw);
-                          if (mins !== null) patchTraining(key, { minutes: mins });
-                          else if (/^\d+$/.test(raw)) {
-                            patchTraining(key, { minutes: parseInt(raw, 10) });
-                          }
+                        placeholder="0:00"
+                        value={trainingText[key]}
+                        onChange={(e) =>
+                          setTrainingText((prev) => ({
+                            ...prev,
+                            [key]: e.target.value,
+                          }))
+                        }
+                        onBlur={(e) => commitTrainingDuration(key, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") e.currentTarget.blur();
                         }}
-                        className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm"
+                        className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-sm"
                       />
                     </label>
                     <label className="text-[11px] font-medium text-slate-600">

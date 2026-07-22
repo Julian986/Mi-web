@@ -534,9 +534,15 @@ export default function ErpDashboard({
                   </p>
                 </div>
               </div>
-              <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                Retraso {alarm.delayMinutes} min
-              </span>
+              {alarm.delayMinutes !== null ? (
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                  Retraso {alarm.delayMinutes} min
+                </span>
+              ) : (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-400">
+                  Retraso · Sin dato
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -545,8 +551,14 @@ export default function ErpDashboard({
                   <BellRing className="h-4 w-4" />
                   <span className="text-xs font-semibold uppercase tracking-wide">Sonó</span>
                 </div>
-                <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
-                  {alarm.rangAt}
+                <p
+                  className={`mt-3 tracking-tight ${
+                    alarm.rangAt
+                      ? "text-3xl font-bold text-slate-950"
+                      : "text-xl font-semibold text-slate-400"
+                  }`}
+                >
+                  {alarm.rangAt ?? "Sin dato"}
                 </p>
                 <p className="mt-1 text-xs text-slate-400">Hora de la alarma</p>
               </div>
@@ -555,13 +567,24 @@ export default function ErpDashboard({
                   <AlarmClock className="h-4 w-4" />
                   <span className="text-xs font-semibold uppercase tracking-wide">Pospuesta</span>
                 </div>
-                <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
-                  {alarm.snoozedTimes}
-                  <span className="ml-1 text-base font-semibold text-slate-400">veces</span>
-                </p>
-                <p className="mt-1 text-xs text-slate-400">
-                  {alarm.snoozedTimes === 0 ? "Sin snooze" : "Snooze activado"}
-                </p>
+                {alarm.snoozedTimes !== null ? (
+                  <>
+                    <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
+                      {alarm.snoozedTimes}
+                      <span className="ml-1 text-base font-semibold text-slate-400">veces</span>
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {alarm.snoozedTimes === 0 ? "Sin snooze" : "Snooze activado"}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="mt-3 text-xl font-semibold tracking-tight text-slate-400">
+                      Sin dato
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">Veces pospuesta</p>
+                  </>
+                )}
               </div>
               <div className="rounded-xl border border-amber-100 bg-white/90 p-4">
                 <div className="flex items-center gap-2 text-emerald-700">
@@ -570,28 +593,56 @@ export default function ErpDashboard({
                     Empecé a trabajar
                   </span>
                 </div>
-                <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
-                  {alarm.startedWorkAt}
+                <p
+                  className={`mt-3 tracking-tight ${
+                    alarm.startedWorkAt
+                      ? "text-3xl font-bold text-slate-950"
+                      : "text-xl font-semibold text-slate-400"
+                  }`}
+                >
+                  {alarm.startedWorkAt ?? "Sin dato"}
                 </p>
                 <p className="mt-1 text-xs text-slate-400">Primer bloque de trabajo</p>
               </div>
             </div>
 
-            <div className="mt-5 flex items-center gap-2 overflow-x-auto">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <span className="shrink-0 rounded-full bg-amber-500 px-2.5 py-1 text-[11px] font-bold text-white">
-                  {alarm.rangAt}
-                </span>
-                <div className="h-1.5 min-w-8 flex-1 rounded-full bg-amber-200" />
-                <span className="shrink-0 rounded-full border border-orange-300 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold text-orange-700">
-                  ×{alarm.snoozedTimes} snooze
-                </span>
-                <div className="h-1.5 min-w-8 flex-1 rounded-full bg-emerald-200" />
-                <span className="shrink-0 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-bold text-white">
-                  {alarm.startedWorkAt}
-                </span>
+            {(alarm.rangAt || alarm.startedWorkAt || alarm.snoozedTimes !== null) && (
+              <div className="mt-5 flex items-center gap-2 overflow-x-auto">
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                      alarm.rangAt
+                        ? "bg-amber-500 text-white"
+                        : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    {alarm.rangAt ?? "Sin dato"}
+                  </span>
+                  <div className="h-1.5 min-w-8 flex-1 rounded-full bg-amber-200" />
+                  <span
+                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
+                      alarm.snoozedTimes !== null
+                        ? "border-orange-300 bg-orange-50 text-orange-700"
+                        : "border-slate-200 bg-slate-50 text-slate-400"
+                    }`}
+                  >
+                    {alarm.snoozedTimes !== null
+                      ? `×${alarm.snoozedTimes} snooze`
+                      : "Sin dato"}
+                  </span>
+                  <div className="h-1.5 min-w-8 flex-1 rounded-full bg-emerald-200" />
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
+                      alarm.startedWorkAt
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    {alarm.startedWorkAt ?? "Sin dato"}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </article>
         </section>
       )}
