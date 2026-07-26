@@ -10,7 +10,10 @@ import {
   BookOpen,
   BriefcaseBusiness,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Code2,
+  Columns2,
   Dumbbell,
   FlaskConical,
   Home,
@@ -50,6 +53,7 @@ import {
   type ErpPeriod,
   type KpiView,
   type PeriodStats,
+  type WeekCompareRow,
 } from "@/app/admin92/erp/lib/erpAggregates";
 import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, type ErpDayLog, type ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
 import { formatCurrency, formatLocalDate, formatMonthLabel, MONTH_NAMES, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
@@ -91,6 +95,16 @@ const goalIcons = {
   Entrenamiento: Dumbbell,
 } as const;
 
+type WeekCompareProps = {
+  weekA: string;
+  weekB: string;
+  labelA: string;
+  labelB: string;
+  rows: WeekCompareRow[];
+  onShiftA: (delta: number) => void;
+  onShiftB: (delta: number) => void;
+};
+
 type Props = {
   period: ErpPeriod;
   rangeLabel: string;
@@ -108,7 +122,121 @@ type Props = {
   membershipSaving: boolean;
   onMembershipMonthChange: (month: string) => void;
   onMembershipChange: (next: ErpMembershipMonth) => void;
+  weekCompare?: WeekCompareProps;
 };
+
+function WeekPicker({
+  label,
+  title,
+  onShift,
+}: {
+  label: string;
+  title: string;
+  onShift: (delta: number) => void;
+}) {
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-1 rounded-xl border border-slate-200 bg-slate-50/80 px-1.5 py-1">
+      <button
+        type="button"
+        onClick={() => onShift(-1)}
+        aria-label={`${title}: semana anterior`}
+        className="rounded-lg p-1.5 text-slate-500 transition hover:bg-white hover:text-slate-900 cursor-pointer"
+      >
+        <ChevronLeft className="h-4 w-4" />
+      </button>
+      <div className="min-w-0 flex-1 text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+          {title}
+        </p>
+        <p className="truncate text-xs font-bold text-slate-800">{label}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => onShift(1)}
+        aria-label={`${title}: semana siguiente`}
+        className="rounded-lg p-1.5 text-slate-500 transition hover:bg-white hover:text-slate-900 cursor-pointer"
+      >
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+function WeekCompareSection({ weekCompare }: { weekCompare: WeekCompareProps }) {
+  return (
+    <section>
+      <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+        <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-slate-100 p-2.5 text-slate-700 ring-1 ring-slate-200">
+              <Columns2 className="h-5 w-5" aria-hidden />
+            </div>
+            <div>
+              <h2 className="text-base font-bold text-slate-950">Comparar semanas</h2>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Elegí dos semanas y mirá las métricas lado a lado
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+          <WeekPicker
+            title="Semana A"
+            label={weekCompare.labelA}
+            onShift={weekCompare.onShiftA}
+          />
+          <WeekPicker
+            title="Semana B"
+            label={weekCompare.labelB}
+            onShift={weekCompare.onShiftB}
+          />
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[28rem] border-collapse text-left text-sm">
+            <thead>
+              <tr className="border-b border-slate-100 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <th className="py-2 pr-3 font-semibold">Métrica</th>
+                <th className="px-2 py-2 font-semibold">Semana A</th>
+                <th className="px-2 py-2 font-semibold">Semana B</th>
+                <th className="py-2 pl-2 text-right font-semibold">B vs A</th>
+              </tr>
+            </thead>
+            <tbody>
+              {weekCompare.rows.map((row) => (
+                <tr key={row.key} className="border-b border-slate-50 last:border-0">
+                  <td className="py-2.5 pr-3 font-medium text-slate-600">{row.label}</td>
+                  <td className="px-2 py-2.5 font-semibold text-slate-950">{row.valueA}</td>
+                  <td className="px-2 py-2.5 font-semibold text-slate-950">{row.valueB}</td>
+                  <td className="py-2.5 pl-2 text-right">
+                    {row.diffLabel === null ? (
+                      <span className="text-xs font-medium text-slate-300">—</span>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
+                          row.improved === null
+                            ? "text-slate-500"
+                            : row.improved
+                              ? "text-emerald-700"
+                              : "text-rose-700"
+                        }`}
+                      >
+                        {row.improved === true && <ArrowUpRight className="h-3.5 w-3.5" />}
+                        {row.improved === false && <ArrowDownRight className="h-3.5 w-3.5" />}
+                        {row.diffLabel}
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+  );
+}
 
 function KpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }) {
   const Icon = kpiIcons[item.kind];
@@ -497,6 +625,7 @@ export default function ErpDashboard({
   membershipSaving,
   onMembershipMonthChange,
   onMembershipChange,
+  weekCompare,
 }: Props) {
   const [chartsReady, setChartsReady] = useState(false);
   const workCats = workCategoryBars(current);
@@ -566,14 +695,19 @@ export default function ErpDashboard({
 
   if (!hasData) {
     return (
-      <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
-        <Activity className="mx-auto h-10 w-10 text-slate-300" />
-        <h2 className="mt-4 text-lg font-bold text-slate-900">Sin datos en este período</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-          Elegí “Cargar día” para registrar tu actividad. Las métricas aparecerán acá
-          automáticamente.
-        </p>
-      </section>
+      <div className="space-y-6">
+        <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center shadow-sm">
+          <Activity className="mx-auto h-10 w-10 text-slate-300" />
+          <h2 className="mt-4 text-lg font-bold text-slate-900">Sin datos en este período</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+            Elegí “Cargar día” para registrar tu actividad. Las métricas aparecerán acá
+            automáticamente.
+          </p>
+        </section>
+        {period === "week" && weekCompare && (
+          <WeekCompareSection weekCompare={weekCompare} />
+        )}
+      </div>
     );
   }
 
@@ -636,6 +770,10 @@ export default function ErpDashboard({
           )}
         </div>
       </section>
+
+      {period === "week" && weekCompare && (
+        <WeekCompareSection weekCompare={weekCompare} />
+      )}
 
       {alarm && (
         <section>

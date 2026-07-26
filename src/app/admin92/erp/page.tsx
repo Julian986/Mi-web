@@ -7,8 +7,10 @@ import ErpDashboard from "@/app/admin92/erp/components/ErpDashboard";
 import ErpDayForm from "@/app/admin92/erp/components/ErpDayForm";
 import {
   buildKpis,
+  buildWeekCompareRows,
   computePeriodStats,
   formatPeriodLabel,
+  formatWeekRangeLabel,
   logsInDates,
   mondayOfWeek,
   periodDates,
@@ -19,7 +21,12 @@ import {
 } from "@/app/admin92/erp/lib/erpAggregates";
 import type { ErpDayLog, ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
 import { emptyMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
-import { getMonthKeySafe, shiftMonth, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
+import {
+  getMonthKeySafe,
+  shiftDate,
+  shiftMonth,
+  todayYmd,
+} from "@/app/admin92/contabilidad/lib/utils";
 
 type ViewTab = "dashboard" | "cargar";
 
@@ -61,6 +68,11 @@ export default function ErpPage() {
     membershipsByMonth[editMembershipMonth] ??
     emptyMembershipMonth(editMembershipMonth);
 
+  const [compareWeekA, setCompareWeekA] = useState(() => mondayOfWeek(todayYmd()));
+  const [compareWeekB, setCompareWeekB] = useState(() =>
+    shiftDate(mondayOfWeek(todayYmd()), -7),
+  );
+
   const dates = useMemo(() => periodDates(selectedDate, period), [selectedDate, period]);
   const prevAnchor = useMemo(
     () => previousPeriodAnchor(selectedDate, period),
@@ -85,6 +97,42 @@ export default function ErpPage() {
     [currentStats, previousStats, period],
   );
 
+  const compareDatesA = useMemo(() => weekDates(compareWeekA), [compareWeekA]);
+  const compareDatesB = useMemo(() => weekDates(compareWeekB), [compareWeekB]);
+  const compareLogsA = useMemo(
+    () => logsInDates(dayLogs, compareDatesA),
+    [dayLogs, compareDatesA],
+  );
+  const compareLogsB = useMemo(
+    () => logsInDates(dayLogs, compareDatesB),
+    [dayLogs, compareDatesB],
+  );
+  const compareStatsA = useMemo(
+    () => computePeriodStats(compareLogsA, compareDatesA, "week"),
+    [compareLogsA, compareDatesA],
+  );
+  const compareStatsB = useMemo(
+    () => computePeriodStats(compareLogsB, compareDatesB, "week"),
+    [compareLogsB, compareDatesB],
+  );
+  const weekCompareRows = useMemo(
+    () =>
+      buildWeekCompareRows(
+        compareStatsA,
+        compareStatsB,
+        compareLogsA.length > 0,
+        compareLogsB.length > 0,
+      ),
+    [compareStatsA, compareStatsB, compareLogsA.length, compareLogsB.length],
+  );
+
+  useEffect(() => {
+    if (period !== "week") return;
+    const nextA = mondayOfWeek(selectedDate);
+    setCompareWeekA(nextA);
+    setCompareWeekB((prevB) => (prevB === nextA ? shiftDate(nextA, -7) : prevB));
+  }, [selectedDate, period]);
+
   const focusLog = useMemo(() => {
     if (period === "day") return dayLogs.find((l) => l.date === selectedDate);
     const today = todayYmd();
@@ -96,8 +144,12 @@ export default function ErpPage() {
 
   const requestedDates = useMemo(() => {
     if (view === "cargar") return weekDates(mondayOfWeek(selectedDate));
-    return [...prevDates, ...dates].sort();
-  }, [dates, prevDates, selectedDate, view]);
+    const base = [...prevDates, ...dates];
+    if (period === "week") {
+      base.push(...compareDatesA, ...compareDatesB);
+    }
+    return Array.from(new Set(base)).sort();
+  }, [compareDatesA, compareDatesB, dates, period, prevDates, selectedDate, view]);
 
   const requestFrom = requestedDates[0];
   const requestTo = requestedDates[requestedDates.length - 1];
@@ -418,6 +470,27 @@ export default function ErpPage() {
               membershipSaving={membershipSaving}
               onMembershipMonthChange={setEditMembershipMonth}
               onMembershipChange={handleMembershipChange}
+              weekCompare={{
+                weekA: compareWeekA,
+                weekB: compareWeekB,
+                labelA: formatWeekRangeLabel(compareWeekA),
+                labelB: formatWeekRangeLabel(compareWeekB),
+                rows: weekCompareRows,
+                onShiftA: (delta) => {
+                  setCompareWeekA((prev) => {
+                    let next = shiftDate(prev, delta * 7);
+                    if (next === compareWeekB) next = shiftDate(next, delta * 7);
+                    return next;
+                  });
+                },
+                onShiftB: (delta) => {
+                  setCompareWeekB((prev) => {
+                    let next = shiftDate(prev, delta * 7);
+                    if (next === compareWeekA) next = shiftDate(next, delta * 7);
+                    return next;
+                  });
+                },
+              }}
             />
           </>
         ) : (

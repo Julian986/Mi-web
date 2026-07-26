@@ -520,6 +520,182 @@ export function overallChangePct(
   return pctChange(current.score, previous.score);
 }
 
+export type WeekCompareRow = {
+  key: string;
+  label: string;
+  valueA: string;
+  valueB: string;
+  /** Texto de diferencia (absoluto + %); null si no aplica */
+  diffLabel: string | null;
+  /** true = A mejor que B; null = neutro / sin dato */
+  improved: boolean | null;
+};
+
+function formatSignedHours(delta: number): string {
+  const sign = delta > 0 ? "+" : delta < 0 ? "−" : "";
+  return `${sign}${formatHoursAsHm(Math.abs(delta))}`;
+}
+
+function formatSignedNumber(delta: number, digits = 1): string {
+  const sign = delta > 0 ? "+" : delta < 0 ? "−" : "";
+  const abs = Math.abs(delta);
+  const text =
+    digits === 0
+      ? String(Math.round(abs))
+      : Number(abs.toFixed(digits)).toLocaleString("es-AR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: digits,
+        });
+  return `${sign}${text}`;
+}
+
+/** Diff = B − A (cambio de la semana A hacia la B). */
+function weekMetricDiff(
+  a: number | null,
+  b: number | null,
+  formatAbs: (delta: number) => string,
+): Pick<WeekCompareRow, "diffLabel" | "improved"> {
+  if (a === null || b === null) return { diffLabel: null, improved: null };
+  const delta = b - a;
+  const pct = pctChange(b, a);
+  const absPart = formatAbs(delta);
+  const pctPart = pct === null ? "" : ` (${pct > 0 ? "+" : ""}${pct}%)`;
+  return {
+    diffLabel: `${absPart}${pctPart}`,
+    improved: delta === 0 ? null : delta > 0,
+  };
+}
+
+function formatTrainingWeek(stats: PeriodStats): string {
+  if (stats.trainingMinutes > 0) {
+    return `${stats.trainingDays} d · ${formatMinutesAsHm(stats.trainingMinutes)}`;
+  }
+  return `${stats.trainingDays} d`;
+}
+
+function formatEnglishWeek(stats: PeriodStats): string {
+  if (stats.englishMinutes > 0) {
+    return `${stats.englishDays} d · ${stats.englishMinutes} min`;
+  }
+  return `${stats.englishDays} d`;
+}
+
+function formatFoodWeek(stats: PeriodStats): string {
+  if (stats.foodMealsAvg === null) return "—";
+  const meals = formatHours(stats.foodMealsAvg);
+  if (stats.foodQualityAvg !== null) {
+    return `${meals} · cal. ${formatHours(stats.foodQualityAvg)}`;
+  }
+  return meals;
+}
+
+/** Filas para comparar dos semanas (A vs B). */
+export function buildWeekCompareRows(
+  statsA: PeriodStats | null,
+  statsB: PeriodStats | null,
+  hasDataA: boolean,
+  hasDataB: boolean,
+): WeekCompareRow[] {
+  const empty = "Sin datos";
+  const val = (has: boolean, text: string) => (has ? text : empty);
+
+  const a = statsA;
+  const b = statsB;
+
+  const row = (
+    key: string,
+    label: string,
+    textA: string,
+    textB: string,
+    numA: number | null,
+    numB: number | null,
+    formatAbs: (delta: number) => string,
+  ): WeekCompareRow => {
+    const valueA = val(hasDataA, textA);
+    const valueB = val(hasDataB, textB);
+    if (!hasDataA || !hasDataB) {
+      return { key, label, valueA, valueB, diffLabel: null, improved: null };
+    }
+    const { diffLabel, improved } = weekMetricDiff(numA, numB, formatAbs);
+    return { key, label, valueA, valueB, diffLabel, improved };
+  };
+
+  return [
+    row(
+      "work",
+      "Horas trabajadas",
+      a ? `${formatHoursAsHm(a.workHours)} hs` : "—",
+      b ? `${formatHoursAsHm(b.workHours)} hs` : "—",
+      a?.workHours ?? null,
+      b?.workHours ?? null,
+      formatSignedHours,
+    ),
+    row(
+      "daily",
+      "Promedio diario",
+      a ? `${formatHoursAsHm(a.dailyAvg)} hs` : "—",
+      b ? `${formatHoursAsHm(b.dailyAvg)} hs` : "—",
+      a?.dailyAvg ?? null,
+      b?.dailyAvg ?? null,
+      formatSignedHours,
+    ),
+    row(
+      "training",
+      "Entrenamiento",
+      a ? formatTrainingWeek(a) : "—",
+      b ? formatTrainingWeek(b) : "—",
+      a?.trainingDays ?? null,
+      b?.trainingDays ?? null,
+      (d) => formatSignedNumber(d, 0),
+    ),
+    row(
+      "english",
+      "Inglés",
+      a ? formatEnglishWeek(a) : "—",
+      b ? formatEnglishWeek(b) : "—",
+      a?.englishDays ?? null,
+      b?.englishDays ?? null,
+      (d) => formatSignedNumber(d, 0),
+    ),
+    row(
+      "creatine",
+      "Creatina",
+      a ? `${a.creatineDays} d` : "—",
+      b ? `${b.creatineDays} d` : "—",
+      a?.creatineDays ?? null,
+      b?.creatineDays ?? null,
+      (d) => formatSignedNumber(d, 0),
+    ),
+    row(
+      "sleep",
+      "Sueño promedio",
+      a && a.sleepAvg !== null ? `${formatHours(a.sleepAvg)} hs` : "—",
+      b && b.sleepAvg !== null ? `${formatHours(b.sleepAvg)} hs` : "—",
+      a?.sleepAvg ?? null,
+      b?.sleepAvg ?? null,
+      (d) => `${formatSignedNumber(d, 1)} hs`,
+    ),
+    row(
+      "food",
+      "Alimentación",
+      a ? formatFoodWeek(a) : "—",
+      b ? formatFoodWeek(b) : "—",
+      a?.foodMealsAvg ?? null,
+      b?.foodMealsAvg ?? null,
+      (d) => formatSignedNumber(d, 1),
+    ),
+    row(
+      "score",
+      "Puntaje",
+      a ? String(a.score) : "—",
+      b ? String(b.score) : "—",
+      a?.score ?? null,
+      b?.score ?? null,
+      (d) => formatSignedNumber(d, 0),
+    ),
+  ];
+}
+
 export function alarmFromLog(log: ErpDayLog | undefined) {
   if (!log) return null;
   const rangAt = log.alarm.rangAt;
