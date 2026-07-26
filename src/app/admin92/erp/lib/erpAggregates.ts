@@ -251,8 +251,9 @@ export function computePeriodStats(
     return { day: chartDayLabel(date, period), date, ...work };
   });
 
-  const daysWithWork = periodLogs.filter((l) => sumWorkHours(l.work) > 0).length || 1;
-  const dailyAvg = workHours / Math.max(daysWithWork, 1);
+  // Incluye días registrados con 0 hs; excluye días sin log
+  const daysLogged = periodLogs.length || 1;
+  const dailyAvg = workHours / Math.max(daysLogged, 1);
 
   const trainingHours =
     trainingMinutes > 0 ? trainingMinutes / 60 : trainingDays * 1.25;
