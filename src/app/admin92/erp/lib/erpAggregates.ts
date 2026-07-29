@@ -4,6 +4,7 @@ import {
   getMonthKeySafe,
   shiftDate,
   shiftMonth,
+  todayYmd,
 } from "@/app/admin92/contabilidad/lib/utils";
 import {
   formatHoursAsHm,
@@ -251,9 +252,13 @@ export function computePeriodStats(
     return { day: chartDayLabel(date, period), date, ...work };
   });
 
-  // Incluye días registrados con 0 hs; excluye días sin log
-  const daysLogged = periodLogs.length || 1;
-  const dailyAvg = workHours / Math.max(daysLogged, 1);
+  // Días con log, incluido 0 hs. Hoy con 0 hs no cuenta: el día aún está en curso.
+  const today = todayYmd();
+  const daysForAvg = periodLogs.filter((log) => {
+    if (log.date === today && sumWorkHours(log.work) === 0) return false;
+    return true;
+  }).length;
+  const dailyAvg = workHours / Math.max(daysForAvg || 1, 1);
 
   const trainingHours =
     trainingMinutes > 0 ? trainingMinutes / 60 : trainingDays * 1.25;
