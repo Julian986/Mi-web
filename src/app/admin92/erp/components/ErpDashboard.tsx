@@ -20,6 +20,7 @@ import {
   Layers,
   Megaphone,
   Moon,
+  Newspaper,
   Play,
   Salad,
   Sparkles,
@@ -82,6 +83,7 @@ const workIcons = {
   saas: Layers,
   planificacion: Target,
   branding: Megaphone,
+  itNews: Newspaper,
 } as const;
 
 const trainingIcons = {
@@ -673,7 +675,7 @@ export default function ErpDashboard({
       ? "Días del mes · apilado por categoría"
       : period === "day"
         ? "Desglose del día por categoría"
-        : "Apilado por categoría · software · saas · planificación · branding";
+        : "Apilado por categoría · software · saas · planificación · branding · IT news";
   const alarmTitle = period === "day" ? "Alarma del día" : "Alarma";
 
   useEffect(() => {

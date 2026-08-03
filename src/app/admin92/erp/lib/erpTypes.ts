@@ -3,6 +3,7 @@ export type ErpWorkHours = {
   saas: number;
   planificacion: number;
   branding: number;
+  itNews: number;
 };
 
 /** Sesión de entrenamiento: done + minutos opcionales + notas (series, etc.) */
@@ -213,6 +214,7 @@ export const WORK_CATEGORY_META: {
   { key: "saas", name: "SaaS", shortLabel: "SaaS", color: "#7c3aed" },
   { key: "planificacion", name: "Planificación", shortLabel: "Planificación", color: "#0891b2" },
   { key: "branding", name: "Branding / Marketing", shortLabel: "Branding", color: "#ea580c" },
+  { key: "itNews", name: "IT News", shortLabel: "IT News", color: "#0f766e" },
 ];
 
 export const TRAINING_CATEGORY_META: {
@@ -230,7 +232,19 @@ export const EMPTY_WORK: ErpWorkHours = {
   saas: 0,
   planificacion: 0,
   branding: 0,
+  itNews: 0,
 };
+
+export function normalizeWork(raw: unknown): ErpWorkHours {
+  const base = { ...EMPTY_WORK };
+  if (!raw || typeof raw !== "object") return base;
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(base) as WorkCategoryKey[]) {
+    const n = Number(record[key]);
+    base[key] = Number.isFinite(n) && n >= 0 ? n : 0;
+  }
+  return base;
+}
 
 export function emptyTrainingSession(done = false): ErpTrainingSession {
   return { done, minutes: null, notes: "" };
@@ -287,7 +301,10 @@ export function normalizeAlarm(raw: unknown): ErpAlarm {
 }
 
 export function sumWorkHours(work: ErpWorkHours): number {
-  return work.software + work.saas + work.planificacion + work.branding;
+  return (Object.keys(EMPTY_WORK) as WorkCategoryKey[]).reduce(
+    (sum, key) => sum + (work[key] ?? 0),
+    0,
+  );
 }
 
 /** Minutos entre HH:MM y HH:MM (mismo día; si end < start asume end al día siguiente) */
@@ -452,7 +469,12 @@ export function validateErpDayLog(
   const rawWork = value.work as Record<string, unknown> | undefined;
   const work = { ...EMPTY_WORK };
   for (const key of Object.keys(work) as WorkCategoryKey[]) {
-    const hours = Number(rawWork?.[key]);
+    const raw = rawWork?.[key];
+    if (raw === undefined || raw === null || raw === "") {
+      work[key] = 0;
+      continue;
+    }
+    const hours = Number(raw);
     if (!Number.isFinite(hours) || hours < 0) {
       return { ok: false, error: `Las horas de ${key} son inválidas` };
     }

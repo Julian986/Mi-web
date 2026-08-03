@@ -3,6 +3,7 @@ import {
   emptyTrainingSession,
   normalizeAlarm,
   normalizeFood,
+  normalizeWork,
   type ErpDayLog,
 } from "@/app/admin92/erp/lib/erpTypes";
 
@@ -39,7 +40,7 @@ function toErpDayLog(doc: ErpDayLogDoc & { foodScore?: number | null }): ErpDayL
   return {
     date: doc.date,
     alarm: normalizeAlarm(doc.alarm),
-    work: doc.work,
+    work: normalizeWork(doc.work),
     training: doc.training,
     english: doc.english ?? emptyTrainingSession(),
     creatine: Boolean(doc.creatine),

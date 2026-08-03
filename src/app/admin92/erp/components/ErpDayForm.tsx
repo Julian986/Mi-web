@@ -28,6 +28,7 @@ import {
   minutesBetweenTimes,
   normalizeFood,
   normalizeTraining,
+  normalizeWork,
   parseDurationToHours,
   parseDurationToMinutes,
   parseMinutes,
@@ -69,7 +70,7 @@ function cloneLog(log: ErpDayLog): ErpDayLog {
   return {
     ...log,
     alarm: { ...log.alarm },
-    work: { ...log.work },
+    work: normalizeWork(log.work),
     training: {
       gimnasio: { ...training.gimnasio },
       natacion: { ...training.natacion },
@@ -92,6 +93,7 @@ function workTextsFromLog(log: ErpDayLog): Record<WorkCategoryKey, string> {
     saas: formatHoursAsHm(log.work.saas),
     planificacion: formatHoursAsHm(log.work.planificacion),
     branding: formatHoursAsHm(log.work.branding),
+    itNews: formatHoursAsHm(log.work.itNews ?? 0),
   };
 }
 

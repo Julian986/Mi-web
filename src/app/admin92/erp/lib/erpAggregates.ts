@@ -13,7 +13,9 @@ import {
   countMealsDone,
   avgMealQuality,
   emptyFood,
+  EMPTY_WORK,
   minutesBetweenTimes,
+  normalizeWork,
   sumWorkHours,
   WORK_CATEGORY_META,
   TRAINING_CATEGORY_META,
@@ -189,12 +191,7 @@ export function computePeriodStats(
   const byDate = logsByDateMap(periodLogs);
   const { workGoal, trainingGoal } = periodGoals(period, dates.length);
 
-  const workByCategory: Record<WorkCategoryKey, number> = {
-    software: 0,
-    saas: 0,
-    planificacion: 0,
-    branding: 0,
-  };
+  const workByCategory: Record<WorkCategoryKey, number> = { ...EMPTY_WORK };
   const trainingByCategory = { gimnasio: 0, natacion: 0, casa: 0 };
   const trainingMinutesByCategory = { gimnasio: 0, natacion: 0, casa: 0 };
 
@@ -210,12 +207,11 @@ export function computePeriodStats(
 
   const workByDay = dates.map((date) => {
     const log = byDate.get(date);
-    const work = log?.work ?? { software: 0, saas: 0, planificacion: 0, branding: 0 };
+    const work = normalizeWork(log?.work);
     workHours += sumWorkHours(work);
-    workByCategory.software += work.software;
-    workByCategory.saas += work.saas;
-    workByCategory.planificacion += work.planificacion;
-    workByCategory.branding += work.branding;
+    for (const key of Object.keys(workByCategory) as WorkCategoryKey[]) {
+      workByCategory[key] += work[key];
+    }
 
     if (log) {
       if (log.sleepHours !== null && log.sleepHours !== undefined) {
