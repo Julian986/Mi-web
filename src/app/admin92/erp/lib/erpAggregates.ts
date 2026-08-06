@@ -16,11 +16,14 @@ import {
   EMPTY_WORK,
   minutesBetweenTimes,
   normalizeWork,
+  normalizeWorkTimers,
+  emptyWorkTimers,
   sumWorkHours,
   WORK_CATEGORY_META,
   TRAINING_CATEGORY_META,
   type ErpDayLog,
   type ErpWorkHours,
+  type ErpWorkTimer,
   type WorkCategoryKey,
 } from "@/app/admin92/erp/lib/erpTypes";
 
@@ -170,6 +173,8 @@ export type PeriodStats = {
    */
   startedWorkAvgMinutes: number | null;
   workByCategory: Record<WorkCategoryKey, number>;
+  /** Timers mergeados por nombre dentro de cada categoría (período completo) */
+  workTimersByCategory: Record<WorkCategoryKey, ErpWorkTimer[]>;
   trainingByCategory: Record<"gimnasio" | "natacion" | "casa", number>;
   trainingMinutesByCategory: Record<"gimnasio" | "natacion" | "casa", number>;
   workByDay: Array<ErpWorkHours & { day: string; date: string }>;
@@ -197,6 +202,13 @@ export function computePeriodStats(
   const { workGoal, trainingGoal } = periodGoals(period, dates.length);
 
   const workByCategory: Record<WorkCategoryKey, number> = { ...EMPTY_WORK };
+  const workTimerSecondsByName: Record<WorkCategoryKey, Map<string, number>> = {
+    software: new Map(),
+    saas: new Map(),
+    planificacion: new Map(),
+    branding: new Map(),
+    itNews: new Map(),
+  };
   const trainingByCategory = { gimnasio: 0, natacion: 0, casa: 0 };
   const trainingMinutesByCategory = { gimnasio: 0, natacion: 0, casa: 0 };
 
@@ -220,6 +232,13 @@ export function computePeriodStats(
     }
 
     if (log) {
+      const dayTimers = normalizeWorkTimers(log.workTimers ?? emptyWorkTimers());
+      for (const key of Object.keys(workTimerSecondsByName) as WorkCategoryKey[]) {
+        for (const timer of dayTimers[key]) {
+          const map = workTimerSecondsByName[key];
+          map.set(timer.name, (map.get(timer.name) ?? 0) + timer.seconds);
+        }
+      }
       if (log.sleepHours !== null && log.sleepHours !== undefined) {
         sleepVals.push(log.sleepHours);
       }
@@ -352,6 +371,13 @@ export function computePeriodStats(
     }
   }
 
+  const workTimersByCategory = emptyWorkTimers();
+  for (const key of Object.keys(workTimerSecondsByName) as WorkCategoryKey[]) {
+    workTimersByCategory[key] = [...workTimerSecondsByName[key].entries()]
+      .map(([name, seconds]) => ({ name, seconds }))
+      .sort((a, b) => b.seconds - a.seconds);
+  }
+
   return {
     workHours,
     dailyAvg,
@@ -365,6 +391,7 @@ export function computePeriodStats(
     foodQualityAvg,
     startedWorkAvgMinutes,
     workByCategory,
+    workTimersByCategory,
     trainingByCategory,
     trainingMinutesByCategory,
     workByDay,
@@ -780,6 +807,7 @@ export function workCategoryBars(stats: PeriodStats) {
     name: c.name,
     color: c.color,
     hours: stats.workByCategory[c.key],
+    timers: stats.workTimersByCategory[c.key] ?? [],
   }));
 }
 

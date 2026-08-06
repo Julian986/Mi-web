@@ -22,6 +22,7 @@ import {
   emptyFood,
   emptyMeal,
   emptyTrainingSession,
+  emptyWorkTimers,
   formatHoursAsHm,
   formatMinutesAsHm,
   MEAL_META,
@@ -29,10 +30,12 @@ import {
   normalizeFood,
   normalizeTraining,
   normalizeWork,
+  normalizeWorkTimers,
   parseDurationToHours,
   parseDurationToMinutes,
   parseMinutes,
   sumWorkHours,
+  sumWorkTimerSeconds,
   WORK_CATEGORY_META,
   type ErpDayLog,
   type ErpTrainingSession,
@@ -40,6 +43,12 @@ import {
   type TrainingCategoryKey,
   type WorkCategoryKey,
 } from "@/app/admin92/erp/lib/erpTypes";
+import {
+  formatSecondsAsClock,
+  mergeWorkTimersPaste,
+  parseWorkTimersPaste,
+  type ParseWorkTimersPasteResult,
+} from "@/app/admin92/erp/lib/parseWorkTimersPaste";
 import { formatLocalDate } from "@/app/admin92/contabilidad/lib/utils";
 
 type Props = {
@@ -67,10 +76,18 @@ const trainingMeta: {
 function cloneLog(log: ErpDayLog): ErpDayLog {
   const training = normalizeTraining(log.training);
   const food = normalizeFood(log.food ?? emptyFood());
+  const workTimers = normalizeWorkTimers(log.workTimers ?? emptyWorkTimers());
   return {
     ...log,
     alarm: { ...log.alarm },
     work: normalizeWork(log.work),
+    workTimers: {
+      software: [...workTimers.software],
+      saas: [...workTimers.saas],
+      planificacion: [...workTimers.planificacion],
+      branding: [...workTimers.branding],
+      itNews: [...workTimers.itNews],
+    },
     training: {
       gimnasio: { ...training.gimnasio },
       natacion: { ...training.natacion },
@@ -137,12 +154,18 @@ export default function ErpDayForm({
   >(() =>
     trainingTextsFromLog(existing ? cloneLog(existing) : emptyDayLog(selectedDate)),
   );
+  const [pasteText, setPasteText] = useState("");
+  const [pasteResult, setPasteResult] = useState<ParseWorkTimersPasteResult | null>(
+    null,
+  );
 
   useEffect(() => {
     const next = existing ? cloneLog(existing) : emptyDayLog(selectedDate);
     setDraft(next);
     setWorkText(workTextsFromLog(next));
     setTrainingText(trainingTextsFromLog(next));
+    setPasteText("");
+    setPasteResult(null);
   }, [selectedDate, existing]);
 
   useEffect(() => {
@@ -167,6 +190,26 @@ export default function ErpDayForm({
     }
     setDraft((prev) => ({ ...prev, work: { ...prev.work, [key]: parsed } }));
     setWorkText((prev) => ({ ...prev, [key]: formatHoursAsHm(parsed) }));
+  };
+
+  const handleParsePaste = () => {
+    const result = parseWorkTimersPaste(pasteText);
+    setPasteResult(result);
+  };
+
+  const handleApplyPaste = () => {
+    if (!pasteResult?.ok) return;
+    setDraft((prev) => {
+      const timers = normalizeWorkTimers(prev.workTimers ?? emptyWorkTimers());
+      const merged = mergeWorkTimersPaste(prev.work, timers, pasteResult);
+      setWorkText(workTextsFromLog({ ...prev, work: merged.work }));
+      return { ...prev, work: merged.work, workTimers: merged.workTimers };
+    });
+  };
+
+  const handleClearPaste = () => {
+    setPasteText("");
+    setPasteResult(null);
   };
 
   const patchTraining = (
@@ -443,36 +486,122 @@ export default function ErpDayForm({
         </div>
         <p className="mb-4 text-xs text-slate-400">
           Escribí como <strong className="font-semibold text-slate-600">4:52</strong> (horas:minutos).
-          También acepta decimal (4.5).
+          También acepta decimal (4.5). O pegá el desglose de timers abajo.
         </p>
+        <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+          <label className="block text-xs font-medium text-slate-600">
+            Pegar desglose de timers
+            <textarea
+              value={pasteText}
+              onChange={(e) => {
+                setPasteText(e.target.value);
+                setPasteResult(null);
+              }}
+              rows={6}
+              placeholder={`Software development (1:19)\n\nERP mejora view services → 0:38:00\nAni → 0:06:33\n\nSaaS (2:28)\n\nSaaS - TDD → 1:19:15`}
+              className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-xs leading-relaxed text-slate-800"
+            />
+          </label>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleParsePaste}
+              disabled={!pasteText.trim()}
+              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            >
+              Parsear
+            </button>
+            <button
+              type="button"
+              onClick={handleApplyPaste}
+              disabled={!pasteResult?.ok}
+              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+            >
+              Aplicar al día
+            </button>
+            <button
+              type="button"
+              onClick={handleClearPaste}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 cursor-pointer"
+            >
+              Limpiar
+            </button>
+          </div>
+          {pasteResult && (
+            <div className="mt-3 space-y-1.5">
+              {pasteResult.error ? (
+                <p className="text-xs font-medium text-rose-600">{pasteResult.error}</p>
+              ) : (
+                <p className="text-xs font-medium text-emerald-700">
+                  Listo: {pasteResult.summary.categories} categor
+                  {pasteResult.summary.categories === 1 ? "ía" : "ías"} ·{" "}
+                  {pasteResult.summary.timers} timer
+                  {pasteResult.summary.timers === 1 ? "" : "s"}. Revisá y aplicá.
+                </p>
+              )}
+              {pasteResult.warnings.map((w) => (
+                <p key={w} className="text-[11px] text-amber-700">
+                  {w}
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {WORK_CATEGORY_META.map((cat) => (
-            <label key={cat.key} className="text-xs font-medium text-slate-600">
-              <span className="inline-flex items-center gap-1.5">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: cat.color }}
-                />
-                {cat.name}
-              </span>
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="0:00"
-                value={workText[cat.key]}
-                onChange={(e) =>
-                  setWorkText((prev) => ({ ...prev, [cat.key]: e.target.value }))
-                }
-                onBlur={(e) => commitWorkField(cat.key, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.currentTarget.blur();
-                  }
-                }}
-                className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm"
-              />
-            </label>
-          ))}
+          {WORK_CATEGORY_META.map((cat) => {
+            const timers =
+              (draft.workTimers ?? emptyWorkTimers())[cat.key] ?? [];
+            return (
+              <div key={cat.key} className="text-xs font-medium text-slate-600">
+                <label className="block">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: cat.color }}
+                    />
+                    {cat.name}
+                  </span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0:00"
+                    value={workText[cat.key]}
+                    onChange={(e) =>
+                      setWorkText((prev) => ({ ...prev, [cat.key]: e.target.value }))
+                    }
+                    onBlur={(e) => commitWorkField(cat.key, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-sm"
+                  />
+                </label>
+                {timers.length > 0 && (
+                  <ul className="mt-2 space-y-1 rounded-lg border border-slate-100 bg-white px-2.5 py-2">
+                    {timers.map((timer, idx) => (
+                      <li
+                        key={`${timer.name}-${idx}`}
+                        className="flex items-center justify-between gap-2 text-[11px] font-normal text-slate-500"
+                      >
+                        <span className="min-w-0 truncate">{timer.name}</span>
+                        <span className="shrink-0 font-mono text-slate-700">
+                          {formatSecondsAsClock(timer.seconds)}
+                        </span>
+                      </li>
+                    ))}
+                    <li className="flex justify-between border-t border-slate-100 pt-1 text-[10px] text-slate-400">
+                      <span>Suma timers</span>
+                      <span className="font-mono">
+                        {formatSecondsAsClock(sumWorkTimerSeconds(timers))}
+                      </span>
+                    </li>
+                  </ul>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 

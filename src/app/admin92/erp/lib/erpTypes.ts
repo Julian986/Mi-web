@@ -6,6 +6,13 @@ export type ErpWorkHours = {
   itNews: number;
 };
 
+/** Timer individual dentro de una categoría de trabajo */
+export type ErpWorkTimer = {
+  name: string;
+  /** Duración en segundos (desde H:MM:SS del paste) */
+  seconds: number;
+};
+
 /** Sesión de entrenamiento: done + minutos opcionales + notas (series, etc.) */
 export type ErpTrainingSession = {
   done: boolean;
@@ -37,6 +44,8 @@ export type ErpDayLog = {
   date: string; // YYYY-MM-DD
   alarm: ErpAlarm;
   work: ErpWorkHours;
+  /** Desglose de timers por categoría; docs viejos → vacíos */
+  workTimers: ErpWorkTimers;
   training: ErpTraining;
   /** Práctica de inglés, separada del entrenamiento físico */
   english: ErpTrainingSession;
@@ -215,6 +224,8 @@ export function validateErpMembershipMonth(
 export type WorkCategoryKey = keyof ErpWorkHours;
 export type TrainingCategoryKey = keyof ErpTraining;
 
+export type ErpWorkTimers = Record<WorkCategoryKey, ErpWorkTimer[]>;
+
 export const WORK_CATEGORY_META: {
   key: WorkCategoryKey;
   name: string;
@@ -246,6 +257,49 @@ export const EMPTY_WORK: ErpWorkHours = {
   itNews: 0,
 };
 
+export function emptyWorkTimers(): ErpWorkTimers {
+  return {
+    software: [],
+    saas: [],
+    planificacion: [],
+    branding: [],
+    itNews: [],
+  };
+}
+
+export function normalizeWorkTimers(raw: unknown): ErpWorkTimers {
+  const base = emptyWorkTimers();
+  if (!raw || typeof raw !== "object") return base;
+  const record = raw as Record<string, unknown>;
+  for (const key of Object.keys(base) as WorkCategoryKey[]) {
+    const list = record[key];
+    if (!Array.isArray(list)) continue;
+    const timers: ErpWorkTimer[] = [];
+    for (const item of list) {
+      if (!item || typeof item !== "object") continue;
+      const entry = item as Record<string, unknown>;
+      const name = typeof entry.name === "string" ? entry.name.trim().slice(0, 200) : "";
+      const seconds = Number(entry.seconds);
+      if (!name || !Number.isFinite(seconds) || seconds < 0) continue;
+      timers.push({ name, seconds: Math.round(seconds) });
+    }
+    base[key] = timers;
+  }
+  return base;
+}
+
+export function sumWorkTimerSeconds(timers: ErpWorkTimer[]): number {
+  return timers.reduce((sum, t) => sum + t.seconds, 0);
+}
+
+export function workHoursFromTimers(timers: ErpWorkTimers): ErpWorkHours {
+  const work = { ...EMPTY_WORK };
+  for (const key of Object.keys(work) as WorkCategoryKey[]) {
+    work[key] = sumWorkTimerSeconds(timers[key]) / 3600;
+  }
+  return work;
+}
+
 export function normalizeWork(raw: unknown): ErpWorkHours {
   const base = { ...EMPTY_WORK };
   if (!raw || typeof raw !== "object") return base;
@@ -272,6 +326,7 @@ export function emptyDayLog(date: string): ErpDayLog {
     date,
     alarm: { rangAt: null, snoozedTimes: null, startedWorkAt: null },
     work: { ...EMPTY_WORK },
+    workTimers: emptyWorkTimers(),
     training: {
       gimnasio: emptyTrainingSession(),
       natacion: emptyTrainingSession(),
@@ -492,6 +547,43 @@ export function validateErpDayLog(
     work[key] = hours;
   }
 
+  let workTimers = emptyWorkTimers();
+  if (value.workTimers !== undefined && value.workTimers !== null) {
+    if (typeof value.workTimers !== "object") {
+      return { ok: false, error: "El desglose de timers es inválido" };
+    }
+    const rawTimers = value.workTimers as Record<string, unknown>;
+    for (const key of Object.keys(workTimers) as WorkCategoryKey[]) {
+      const list = rawTimers[key];
+      if (list === undefined || list === null) {
+        workTimers[key] = [];
+        continue;
+      }
+      if (!Array.isArray(list)) {
+        return { ok: false, error: `Los timers de ${key} son inválidos` };
+      }
+      const timers: ErpWorkTimer[] = [];
+      for (const item of list) {
+        if (!item || typeof item !== "object") {
+          return { ok: false, error: `Los timers de ${key} son inválidos` };
+        }
+        const entry = item as Record<string, unknown>;
+        if (typeof entry.name !== "string" || !entry.name.trim()) {
+          return { ok: false, error: `Hay un timer sin nombre en ${key}` };
+        }
+        const seconds = Number(entry.seconds);
+        if (!Number.isFinite(seconds) || seconds < 0) {
+          return { ok: false, error: `La duración de un timer en ${key} es inválida` };
+        }
+        timers.push({
+          name: entry.name.trim().slice(0, 200),
+          seconds: Math.round(seconds),
+        });
+      }
+      workTimers[key] = timers;
+    }
+  }
+
   if (!value.training || typeof value.training !== "object") {
     return { ok: false, error: "Los datos de entrenamiento son inválidos" };
   }
@@ -621,6 +713,7 @@ export function validateErpDayLog(
       date,
       alarm: { rangAt, snoozedTimes, startedWorkAt },
       work,
+      workTimers,
       training,
       english,
       creatine,
