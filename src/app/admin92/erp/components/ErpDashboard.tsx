@@ -56,8 +56,18 @@ import {
   type PeriodStats,
   type WeekCompareRow,
 } from "@/app/admin92/erp/lib/erpAggregates";
-import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, type ErpDayLog, type ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
+import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, type ErpDayLog, type ErpMembershipMonth, type ErpMembershipServiceKey } from "@/app/admin92/erp/lib/erpTypes";
 import { formatCurrency, formatLocalDate, formatMonthLabel, MONTH_NAMES, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
+
+const MEMBERSHIP_SERVICES: {
+  key: ErpMembershipServiceKey;
+  label: string;
+  tag: string;
+}[] = [
+  { key: "gimnasio", label: "Gimnasio", tag: "G" },
+  { key: "natacion", label: "Natación", tag: "N" },
+  { key: "cursor", label: "Cursor", tag: "C" },
+];
 
 const colorClasses = {
   blue: "bg-blue-50 text-blue-600 ring-blue-100",
@@ -334,7 +344,7 @@ function TrainingKpiCard({
   }, [open]);
 
   const patchService = (
-    key: "gimnasio" | "natacion",
+    key: ErpMembershipServiceKey,
     patch: Partial<ErpMembershipMonth["gimnasio"]>,
   ) => {
     const current = membership[key];
@@ -386,8 +396,8 @@ function TrainingKpiCard({
             type="button"
             onClick={() => setOpen((prev) => !prev)}
             aria-expanded={open}
-            aria-label="Cuotas del mes"
-            title="Cuotas del mes"
+            aria-label="Detalle de cuotas del mes"
+            title="Monto, día e historial"
             className={`absolute top-[calc(100%+0.35rem)] right-0 inline-flex h-7 w-7 items-center justify-center rounded-lg border transition cursor-pointer ${
               open
                 ? "border-violet-300 bg-violet-100 text-violet-700"
@@ -411,16 +421,20 @@ function TrainingKpiCard({
                 </div>
               </div>
 
-              {(["gimnasio", "natacion"] as const).map((key) => {
+              {MEMBERSHIP_SERVICES.map(({ key, label }) => {
                 const service = membership[key];
-                const label = key === "gimnasio" ? "Gimnasio" : "Natación";
                 return (
                   <div
                     key={key}
                     className="rounded-xl border border-slate-200 bg-slate-50/80 p-3"
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-slate-800">{label}</p>
+                      <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-800">
+                        {key === "cursor" ? (
+                          <Sparkles className="h-3.5 w-3.5 text-violet-500" aria-hidden />
+                        ) : null}
+                        {label}
+                      </p>
                       <button
                         type="button"
                         onClick={() => patchService(key, { paid: !service.paid })}
@@ -491,7 +505,7 @@ function TrainingKpiCard({
                         key={month}
                         type="button"
                         onClick={() => onMembershipMonthChange(month)}
-                        className={`min-w-[4.4rem] shrink-0 rounded-xl border px-2 py-2 text-left transition cursor-pointer ${
+                        className={`min-w-[4.6rem] shrink-0 rounded-xl border px-2 py-2 text-left transition cursor-pointer ${
                           active
                             ? "border-violet-400 bg-violet-50 ring-1 ring-violet-200"
                             : "border-slate-200 bg-white hover:bg-slate-50"
@@ -505,31 +519,29 @@ function TrainingKpiCard({
                           {shortMonthLabel(month)}
                         </p>
                         <div className="mt-1.5 space-y-1">
-                          {(
-                            [
-                              ["G", row.gimnasio],
-                              ["N", row.natacion],
-                            ] as const
-                          ).map(([tag, service]) => (
-                            <div
-                              key={tag}
-                              className="flex items-center justify-between gap-1 text-[10px] leading-tight"
-                            >
-                              <span className="font-semibold text-slate-400">{tag}</span>
-                              <span
-                                className={`font-semibold ${
-                                  service.paid
-                                    ? "text-emerald-700"
-                                    : "text-amber-700"
-                                }`}
+                          {MEMBERSHIP_SERVICES.map(({ key, tag }) => {
+                            const service = row[key];
+                            return (
+                              <div
+                                key={tag}
+                                className="flex items-center justify-between gap-1 text-[10px] leading-tight"
                               >
-                                {service.paid ? "Pagado" : "No"}
-                              </span>
-                              <span className="text-slate-400">
-                                {service.paid ? paidDayLabel(service.paidOn) : "—"}
-                              </span>
-                            </div>
-                          ))}
+                                <span className="font-semibold text-slate-400">{tag}</span>
+                                <span
+                                  className={`font-semibold ${
+                                    service.paid
+                                      ? "text-emerald-700"
+                                      : "text-amber-700"
+                                  }`}
+                                >
+                                  {service.paid ? "Pagado" : "No"}
+                                </span>
+                                <span className="text-slate-400">
+                                  {service.paid ? paidDayLabel(service.paidOn) : "—"}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </button>
                     );
@@ -545,7 +557,34 @@ function TrainingKpiCard({
         <strong className="text-3xl font-bold tracking-tight text-slate-950">{item.value}</strong>
         <span className="text-sm font-semibold text-slate-400">{item.unit}</span>
       </div>
-      <p className="mt-3 text-xs text-slate-400">{compareLabel}</p>
+
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="min-w-0 truncate text-xs text-slate-400">{compareLabel}</p>
+        <div className="flex shrink-0 items-center gap-1">
+          {MEMBERSHIP_SERVICES.map(({ key, label, tag }) => {
+            const service = membership[key];
+            const status = service.paid
+              ? `Pagado${service.amount !== null ? ` · ${formatCurrency(service.amount)}` : ""}`
+              : "No pagado";
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => patchService(key, { paid: !service.paid })}
+                title={`${label}: ${status}. Click para cambiar.`}
+                aria-label={`${label}: ${status}`}
+                className={`inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded px-1 text-[10px] font-bold leading-none transition cursor-pointer ${
+                  service.paid
+                    ? "bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200"
+                    : "bg-amber-100 text-amber-800 ring-1 ring-amber-200"
+                }`}
+              >
+                {tag}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </article>
   );
 }

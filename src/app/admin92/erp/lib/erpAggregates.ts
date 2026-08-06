@@ -164,6 +164,11 @@ export type PeriodStats = {
   foodMealsAvg: number | null;
   /** Promedio de calidad (1–5) entre comidas calificadas; null si no hay */
   foodQualityAvg: number | null;
+  /**
+   * Promedio de hora de inicio de trabajo (minutos desde 00:00).
+   * null si ningún día del período cargó startedWorkAt.
+   */
+  startedWorkAvgMinutes: number | null;
   workByCategory: Record<WorkCategoryKey, number>;
   trainingByCategory: Record<"gimnasio" | "natacion" | "casa", number>;
   trainingMinutesByCategory: Record<"gimnasio" | "natacion" | "casa", number>;
@@ -204,6 +209,7 @@ export function computePeriodStats(
   const sleepVals: number[] = [];
   const mealCountVals: number[] = [];
   const qualityDayVals: number[] = [];
+  const startedWorkVals: number[] = [];
 
   const workByDay = dates.map((date) => {
     const log = byDate.get(date);
@@ -221,6 +227,8 @@ export function computePeriodStats(
       mealCountVals.push(countMealsDone(food));
       const dayQuality = avgMealQuality(food);
       if (dayQuality !== null) qualityDayVals.push(dayQuality);
+      const startMins = clockTimeToMinutes(log.alarm?.startedWorkAt);
+      if (startMins !== null) startedWorkVals.push(startMins);
       const trained =
         isTrainingDone(log.training.gimnasio) ||
         isTrainingDone(log.training.natacion) ||
@@ -312,6 +320,8 @@ export function computePeriodStats(
   const sleepAvg = sleepVals.length > 0 ? avg(sleepVals) : null;
   const foodMealsAvg = mealCountVals.length > 0 ? avg(mealCountVals) : null;
   const foodQualityAvg = qualityDayVals.length > 0 ? avg(qualityDayVals) : null;
+  const startedWorkAvgMinutes =
+    startedWorkVals.length > 0 ? avg(startedWorkVals) : null;
 
   const sleepScore =
     sleepAvg !== null ? Math.min(100, (sleepAvg / 8) * 100) : workProgress;
@@ -353,6 +363,7 @@ export function computePeriodStats(
     sleepAvg,
     foodMealsAvg,
     foodQualityAvg,
+    startedWorkAvgMinutes,
     workByCategory,
     trainingByCategory,
     trainingMinutesByCategory,
@@ -550,20 +561,56 @@ function formatSignedNumber(delta: number, digits = 1): string {
   return `${sign}${text}`;
 }
 
+/** HH:MM → minutos desde medianoche; null si inválido */
+function clockTimeToMinutes(hhmm: string | null | undefined): number | null {
+  if (!hhmm || !/^\d{2}:\d{2}$/.test(hhmm)) return null;
+  const [h, m] = hhmm.split(":").map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m) || m < 0 || m > 59) return null;
+  return h * 60 + m;
+}
+
+/** Minutos desde medianoche → HH:MM */
+function minutesToClockTime(mins: number): string {
+  const rounded = Math.round(mins);
+  const normalized = ((rounded % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(normalized / 60);
+  const m = normalized % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+function formatStartedWorkAvg(stats: PeriodStats): string {
+  if (stats.startedWorkAvgMinutes === null) return "—";
+  return minutesToClockTime(stats.startedWorkAvgMinutes);
+}
+
+/** Diff de hora de inicio: +15 min / −20 min */
+function formatSignedClockMinutes(delta: number): string {
+  const sign = delta > 0 ? "+" : delta < 0 ? "−" : "";
+  const abs = Math.round(Math.abs(delta));
+  return `${sign}${abs} min`;
+}
+
 /** Diff = B − A (cambio de la semana A hacia la B). */
 function weekMetricDiff(
   a: number | null,
   b: number | null,
   formatAbs: (delta: number) => string,
+  opts?: { lowerIsBetter?: boolean },
 ): Pick<WeekCompareRow, "diffLabel" | "improved"> {
   if (a === null || b === null) return { diffLabel: null, improved: null };
   const delta = b - a;
   const pct = pctChange(b, a);
   const absPart = formatAbs(delta);
   const pctPart = pct === null ? "" : ` (${pct > 0 ? "+" : ""}${pct}%)`;
+  const better =
+    delta === 0
+      ? null
+      : opts?.lowerIsBetter
+        ? delta < 0
+        : delta > 0;
   return {
     diffLabel: `${absPart}${pctPart}`,
-    improved: delta === 0 ? null : delta > 0,
+    improved: better,
   };
 }
 
@@ -611,13 +658,19 @@ export function buildWeekCompareRows(
     numA: number | null,
     numB: number | null,
     formatAbs: (delta: number) => string,
+    opts?: { lowerIsBetter?: boolean; includePct?: boolean },
   ): WeekCompareRow => {
     const valueA = val(hasDataA, textA);
     const valueB = val(hasDataB, textB);
     if (!hasDataA || !hasDataB) {
       return { key, label, valueA, valueB, diffLabel: null, improved: null };
     }
-    const { diffLabel, improved } = weekMetricDiff(numA, numB, formatAbs);
+    const { diffLabel, improved } = weekMetricDiff(numA, numB, formatAbs, opts);
+    // Para hora de inicio el % no aporta; quitarlo si includePct === false
+    if (opts?.includePct === false && diffLabel) {
+      const withoutPct = diffLabel.replace(/\s*\([^)]*%\)\s*$/, "");
+      return { key, label, valueA, valueB, diffLabel: withoutPct, improved };
+    }
     return { key, label, valueA, valueB, diffLabel, improved };
   };
 
@@ -639,6 +692,16 @@ export function buildWeekCompareRows(
       a?.dailyAvg ?? null,
       b?.dailyAvg ?? null,
       formatSignedHours,
+    ),
+    row(
+      "startedWork",
+      "Inicio de trabajo",
+      a ? formatStartedWorkAvg(a) : "—",
+      b ? formatStartedWorkAvg(b) : "—",
+      a?.startedWorkAvgMinutes ?? null,
+      b?.startedWorkAvgMinutes ?? null,
+      formatSignedClockMinutes,
+      { lowerIsBetter: true, includePct: false },
     ),
     row(
       "training",

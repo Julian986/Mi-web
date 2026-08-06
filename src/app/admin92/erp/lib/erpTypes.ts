@@ -113,7 +113,7 @@ export function avgMealQuality(food: ErpFood): number | null {
   return qualities.reduce((a, b) => a + b, 0) / qualities.length;
 }
 
-/** Pago mensual de un servicio (gimnasio / pileta) */
+/** Pago mensual de un servicio (gimnasio / pileta / Cursor) */
 export type ErpServicePayment = {
   paid: boolean;
   amount: number | null;
@@ -121,11 +121,14 @@ export type ErpServicePayment = {
   paidOn: string | null;
 };
 
+export type ErpMembershipServiceKey = "gimnasio" | "natacion" | "cursor";
+
 /** Estado de cuotas del mes YYYY-MM */
 export type ErpMembershipMonth = {
   month: string;
   gimnasio: ErpServicePayment;
   natacion: ErpServicePayment;
+  cursor: ErpServicePayment;
 };
 
 export function emptyServicePayment(): ErpServicePayment {
@@ -137,6 +140,7 @@ export function emptyMembershipMonth(month: string): ErpMembershipMonth {
     month,
     gimnasio: emptyServicePayment(),
     natacion: emptyServicePayment(),
+    cursor: emptyServicePayment(),
   };
 }
 
@@ -155,10 +159,15 @@ export function validateErpMembershipMonth(
   }
 
   const parseService = (
-    key: "gimnasio" | "natacion",
+    key: ErpMembershipServiceKey,
   ): ErpServicePayment | { error: string } => {
     const service = value[key];
-    if (!service || typeof service !== "object") {
+    // Docs viejos sin `cursor`: tratar como no pagado
+    if (service === undefined || service === null) {
+      if (key === "cursor") return emptyServicePayment();
+      return { error: `Los datos de ${key} son inválidos` };
+    }
+    if (typeof service !== "object") {
       return { error: `Los datos de ${key} son inválidos` };
     }
     const entry = service as Record<string, unknown>;
@@ -194,10 +203,12 @@ export function validateErpMembershipMonth(
   if ("error" in gimnasio) return { ok: false, error: gimnasio.error };
   const natacion = parseService("natacion");
   if ("error" in natacion) return { ok: false, error: natacion.error };
+  const cursor = parseService("cursor");
+  if ("error" in cursor) return { ok: false, error: cursor.error };
 
   return {
     ok: true,
-    membership: { month, gimnasio, natacion },
+    membership: { month, gimnasio, natacion, cursor },
   };
 }
 

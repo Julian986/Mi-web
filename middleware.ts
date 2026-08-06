@@ -34,8 +34,8 @@ function unauthorized() {
 export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
-  // Recursos PWA públicos para que Chrome pueda resolver íconos/manifest
-  // al crear acceso directo (sin romper la protección de /admin92).
+  // Recursos PWA publicos para que Chrome pueda resolver iconos/manifest
+  // al crear acceso directo (sin romper la proteccion de /admin92).
   if (
     path === "/admin92/proyectos/manifest.webmanifest" ||
     path.startsWith("/admin92/proyectos/app-icon/") ||
@@ -48,7 +48,7 @@ export function middleware(req: NextRequest) {
   const user = process.env.ADMIN_BASIC_USER;
   const pass = process.env.ADMIN_BASIC_PASS;
 
-  // Si no está configurado, no dejamos abierto por accidente.
+  // Si no esta configurado, no dejamos abierto por accidente.
   if (!user || !pass) {
     return new NextResponse("Admin credentials not configured.", { status: 500 });
   }
@@ -76,7 +76,7 @@ export function middleware(req: NextRequest) {
   if (!auth || !auth.toLowerCase().startsWith("basic ")) {
     // No penalizamos la ausencia de credenciales:
     // muchos navegadores disparan requests sin Authorization (prefetch/preload),
-    // y eso no debería bloquear al usuario legítimo.
+    // y eso no deberia bloquear al usuario legitimo.
     return unauthorized();
   }
 
@@ -130,7 +130,7 @@ export function middleware(req: NextRequest) {
     return unauthorized();
   }
 
-  // Éxito: resetear contador para esta IP
+  // Exito: resetear contador para esta IP
   store.delete(ip);
   return NextResponse.next();
 }
@@ -138,4 +138,3 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/admin92/:path*", "/api/admin/:path*"],
 };
-

@@ -1,0 +1,471 @@
+BLOQUES  — CHARLA BALCARCE
+
+"Juego patológico en adolescentes: detección, intervención y derivación"
+
+Público: Profesionales de salud y docentes | 60 min | PowerPoint
+
+BLOQUE 1 — APERTURA Y ENCUADRE (5 min)
+
+Contenido:
+
+Presentación del Programa CASS — quién sos, desde dónde hablás
+
+Encuadre preciso: "Hoy no vamos a hablar de si el juego es bueno o malo. Vamos a hablar de qué hacemos nosotros —como profesionales de salud y educación— cuando lo vemos aparecer en un adolescente."
+
+Contexto local: Balcarce como municipio sin recursos especializados en adicciones conductuales — el rol del primer detector es crítico aquí
+
+Diapositivas: Portada institucional + una diapositiva de encuadre
+
+BLOQUE 2 — HISTORIA, CLASIFICACIÓN Y MARCO CONCEPTUAL (10 min)
+
+Línea de tiempo — Historia en el campo de la salud
+
+Año
+
+Hito
+
+1938
+
+Skinner describe el mecanismo de recompensa variable e intermitente — base neurobiológica de la adictividad del azar
+
+1980
+
+DSM-III: primera inclusión del juego patológico como entidad nosológica — clasificado como trastorno del control de los impulsos
+
+1994
+
+DSM-IV: incorpora el juego como vía de escape de estados disfóricos
+
+2012
+
+España regula el juego online — primer marco europeo de referencia
+
+2013
+
+DSM-5: cambio fundamental — el trastorno por juego se traslada al capítulo de "Trastornos relacionados con sustancias y trastornos adictivos". Primera conducta sin sustancia reconocida oficialmente como adicción
+
+2018
+
+Estados Unidos habilita apuestas deportivas online — mercado explota globalmente
+
+2018
+
+CIE-11 (OMS): incorpora trastorno por juego y trastorno por videojuegos
+
+2022
+
+Qatar 2022 — primer Mundial con apuestas online masivas en Argentina. Edad promedio de consulta clínica baja de 45+ años a 15-25 años
+
+2022
+
+Argentina: juego online legalizado en 20 de 24 provincias. Explosión publicitaria
+
+2023
+
+Brasil: casos de juego patológico en el sistema público de salud pasan de 108 a 1.200 en 5 años
+
+Nov. 2024
+
+Argentina: media sanción en Diputados — Ley de Prevención de Ludopatía y Regulación de Apuestas en Línea
+
+Criterios diagnósticos DSM-5 — Trastorno por Juego (312.31)
+
+Cuatro o más de los siguientes criterios en 12 meses:
+
+Necesidad de apostar cantidades crecientes para conseguir la excitación
+
+Irritabilidad al intentar reducir o abandonar el juego
+
+Esfuerzos repetidos fallidos para controlar el juego
+
+Mente ocupada en las apuestas de manera persistente
+
+Apuesta cuando siente desasosiego, ansiedad o depresión
+
+Vuelve a jugar para intentar recuperar pérdidas
+
+Miente para ocultar su implicación en el juego
+
+Ha puesto en riesgo relaciones, empleo o carrera académica
+
+Cuenta con otros para aliviar situación financiera provocada por el juego
+
+Por qué el juego online es cualitativamente distinto — características estructurales (Griffiths & Parke, 2002):
+
+Anonimato
+
+Acceso permanente 24/7 desde el celular
+
+Frecuencia de eventos muy elevada
+
+Dinero virtual sin peso emocional
+
+Entorno inmersivo
+
+Ausencia de barreras físicas
+
+El mecanismo neurobiológico central (Skinner, 1938; Schultz et al., 1997 Science): La recompensa variable e intermitente genera picos de dopamina mayores que la recompensa fija, y el pico ocurre antes de la recompensa — en la anticipación. Es la base del enganche en tragamonedas, slots y apuestas deportivas online.
+
+Diapositivas: Línea de tiempo visual + criterios DSM-5 en recuadro destacado + características estructurales juego online
+
+BLOQUE 3 — FACTORES DE VULNERABILIDAD (10 min)
+
+Dinámica 1 — "El adolescente en riesgo"
+
+Describir el perfil sin nombrarlo, pedir que lo reconozcan internamente:
+
+Varón, 14-20 años, impulsivo, baja tolerancia a la frustración, estado de ánimo disfórico o inestable, búsqueda intensa de sensaciones, baja autoestima. Entorno familiar con escasa supervisión o antecedentes de juego. Acceso irrestricto al celular y billetera virtual. Grupo de pares que apuesta.
+
+Factores individuales
+
+Estado de ánimo disfórico
+
+Baja tolerancia al malestar físico o psíquico
+
+Impulsividad
+
+Búsqueda intensa de sensaciones
+
+Baja autoestima
+
+Estilos de afrontamiento inadecuados
+
+Inestabilidad afectiva
+
+(Fuente: Programa CASS, conferencia original 2009 — Lic. Alejandro G. Sánchez)
+
+Factores psicosociales
+
+Características familiares desfavorables
+
+Presión del grupo de pares
+
+Acceso fácil y sin restricciones al objeto adictivo
+
+Recompensas inmediatas disponibles
+
+Estrés crónico
+
+Sensación de vacío existencial
+
+Factor nuevo — el entorno digital como factor de riesgo en sí mismo
+
+(Bilinkis, 2024; Fogg, 2003; Alter, 2017)
+
+Las plataformas están diseñadas para maximizar retención:
+
+Scroll infinito
+
+Recompensa variable e intermitente
+
+Algoritmos que aprenden vulnerabilidades individuales
+
+Notificaciones activadas por defecto
+
+"No es falta de voluntad. Es diseño."
+
+El cerebro adolescente como factor neurobiológico
+
+(Casey, Jones & Hare, 2008; Steinberg, 2008) El córtex prefrontal — zona que regula impulsos y evalúa consecuencias a largo plazo — completa su maduración alrededor de los 25 años. El sistema de recompensa, en cambio, está hiperactivo en la adolescencia. Esta combinación genera vulnerabilidad biológica documentada.
+
+Factores protectores
+
+Autoestima adecuada
+
+Vínculos familiares con supervisión y comunicación
+
+Actividades recreativas alternativas
+
+Adultos referentes presentes y disponibles
+
+Habilidades sociales desarrolladas
+
+Diapositivas: Dos columnas factores de riesgo/protectores + pirámide del perfil vulnerable + "No es falta de voluntad. Es diseño."
+
+BLOQUE 4 — DATOS EPIDEMIOLÓGICOS: ESPAÑA, ARGENTINA Y LATINOAMÉRICA (incluido en detección — 15 min)
+
+Datos España — OEDA 2024 (fuente más rigurosa disponible en español)
+
+Población general 15-64 años (EDADES 2024, n=26.878):
+
+5,5% jugó online en últimos 12 meses
+
+Hombres 8,2% vs mujeres 2,7%
+
+Juego online presenta prevalencia de juego problemático 4 veces superior al presencial (18,4% vs 4,3%)
+
+Los juegos tipo III —apuestas deportivas y slots— tienen 5 veces más probabilidad de generar juego problemático que loterías
+
+Entre jugadores online con juego problemático, 9,7% juega diariamente
+
+Apuesta máxima en jugadores online con trastorno: 2.606 € en un día; deuda media al inicio de tratamiento: 26.546 €
+
+Estudiantes 14-18 años (ESTUDES 2023, n=42.208):
+
+10,7% jugó online en últimos 12 meses — máximo histórico de la serie
+
+Hombres 17,1% vs mujeres 4,3%
+
+Edad de inicio: 14,7 años online — 14,8 años presencial
+
+4,0% posible juego problemático (Lie/Bet) — 6,0% en hombres
+
+Aumenta con la edad: 8,3% en estudiantes de 18 años
+
+Estudiantes con juego problemático: cannabis 40,7%, binge drinking 57,7%, mayor consumo de tabaco
+
+31,5% gastó más de 60€ en un solo día de juego online
+
+Perfil sociodemográfico de admitidos a tratamiento por juego (España 2022):
+
+90,2% hombres
+
+Edad media: 38,5 años
+
+Edad de inicio: 26,2 años
+
+20,2% patología dual
+
+Consecuencias principales: problemas económicos (28,1%), conflictos familiares (26,5%), problemas de salud (16,8%)
+
+Fuente para diapositiva:
+
+Observatorio Español de las Drogas y las Adicciones (OEDA). Informe sobre Adicciones Comportamentales y Otros Trastornos Adictivos 2024. Madrid: Ministerio de Sanidad. DGPNSD, 2024.
+
+Datos Argentina
+
+Observatorio de Adicciones y Consumos Problemáticos (Defensoría PBA): 30% de la población tiene alguna relación con apuestas. 12,5% de jóvenes 15-24 años apostó online.
+
+Informe "Apostar no es un juego" 2024 (Defensoría del Pueblo PBA): Investigación en 15-29 años. El 60% de adolescentes está expuesto a plataformas de apuestas. Edad promedio de inicio: 13-14 años.
+
+SEDRONAR — Línea 141: Consultas por juego compulsivo crecieron 250% entre 2023 y 2024. 2025 fue el año con más consultas registradas.
+
+Cruz Roja Argentina 2025 (n=11.400 estudiantes, 16 provincias): 60% de adolescentes expuesto. 69% reportó ansiedad. 47-49% alteraciones del sueño y caída en rendimiento escolar. 12% quedó endeudado.
+
+SEDRONAR universitarios 2023: 23,3% apostó al menos una vez en el último año. 1 de cada 5 estaba "preocupado" por su manera de apostar.
+
+Revista Salud Pública PBA 2024: "Apuestas online en Argentina: Perfil sociodemográfico, patrones de participación y desigualdades sociales" — primera investigación epidemiológica argentina con metodología comparable a OEDA. Disponible en: saludpublica.ms.gba.gov.ar
+
+Datos regionales — Latinoamérica
+
+Brasil — el caso más documentado de la región:
+
+Casos de juego patológico atendidos por el sistema público de salud (SUS): de 108 a 1.200 entre 2018 y 2023 — aumento del 1.011%
+
+En agosto de 2024, beneficiarios del programa Bolsa Família destinaron 3.000 millones de reales a plataformas de apuestas vía PIX — 1 de cada 5 reales transferidos por el Estado
+
+Ley 14.790/2023: regulación del mercado de apuestas — primer marco regulatorio integral de la región
+
+Contexto latinoamericano general: La literatura científica disponible para América Latina es escasa y metodológicamente heterogénea, lo que hace que los datos españoles del OEDA 2024 sean la referencia más sólida disponible en habla hispana para extrapolar tendencias. Los patrones estructurales —mayor vulnerabilidad masculina, inicio en adolescencia, relación con comorbilidad de sustancias— son consistentes con la evidencia internacional.
+
+BLOQUE 5 — DETECCIÓN: SEÑALES E INSTRUMENTOS (continuación del bloque 4 — dentro de los 15 min)
+
+Señales según ámbito
+
+Lo que ve el docente:
+
+Caída del rendimiento académico sin causa aparente
+
+Ausentismo o llegadas tarde recurrentes
+
+Distracción persistente, especialmente con el celular
+
+Cambios de humor inexplicables
+
+Grupos que comparten resultados o códigos de apuestas
+
+Pedidos de dinero a compañeros
+
+Desinterés progresivo por actividades anteriores
+
+Lo que ve el profesional de salud:
+
+Alteraciones del sueño sin causa orgánica
+
+Ansiedad o irritabilidad sin causa aparente
+
+Consultas por deudas o conflictos familiares vinculados al dinero
+
+Movimientos inusuales en cuentas bancarias mencionados por la familia
+
+Minimización o negación cuando se pregunta por el juego
+
+La frase "estoy por recuperar lo que perdí"
+
+Patología dual: el juego como síntoma de fondo ante una consulta por otra causa
+
+(Caso clínico ilustrativo — Diego, 21 años — ver desarrollo en guión)
+
+Instrumentos validados
+
+SOGS — South Oaks Gambling Screen (Lesieur & Blume, 1987 — American Journal of Psychiatry, 144(9), 1184-1188) 20 ítems. Punto de corte: 5 o más = juego problemático probable. Versión en español disponible. 5 minutos de administración.
+
+Lie/Bet — instrumento de cribado ultracorto (Johnson et al., 1997 — Psychol Rep, 80, 83-88) Solo 2 preguntas:
+
+¿Alguna vez ha sentido la necesidad de apostar cantidades de dinero cada vez mayores?
+
+¿Ha mentido alguna vez a personas importantes en su vida sobre cuánto juega?
+
+Una respuesta afirmativa = cribado positivo. Usado en la encuesta ESTUDES para población 14-18 años. Ideal para docentes y médicos de cabecera.
+
+Criterios DSM-5 como guía de entrevista clínica (APA, 2013) Los 9 criterios usados como preguntas de exploración. No requiere formación especializada para su uso orientativo.
+
+Pregunta de tamizaje rápido para cualquier profesional:
+
+"¿Jugás a las apuestas online? ¿Con qué frecuencia? ¿Alguna vez sentiste que gastaste más de lo que querías?"
+
+BLOQUE 6 — INTERVENCIÓN Y DERIVACIÓN (12 min)
+
+La trampa de la confrontación
+
+(Miller & Rollnick, 1999)
+
+"La diferencia entre obligar y manipular es que cuando te obligan te das cuenta. Cuando te manipulan sentís que sos el que toma las decisiones."
+
+El error más frecuente: asumir la postura pro-cambio frente a un paciente ambivalente genera que este defienda el statu quo. El adolescente que dice "no tengo un problema" no está mintiendo — está respondiendo a la presión con el lado opuesto de su ambivalencia.
+
+La resistencia no está en el paciente. Está en la estrategia.
+
+Modelo de etapas de cambio (Prochaska & DiClemente, 1983)
+
+Etapa
+
+Tarea del profesional
+
+Precontemplación
+
+Aumentar la duda. Que perciba los riesgos sin confrontar
+
+Contemplación
+
+Inclinar la balanza. Explorar ambivalencia
+
+Determinación
+
+Ayudar a encontrar el mejor curso de acción
+
+Acción
+
+Acompañar los pasos concretos
+
+Mantenimiento
+
+Prevención de recaídas
+
+Recaída
+
+Renovar el proceso sin desmoralización
+
+La recaída no es el fracaso — es una etapa normal del proceso. (Miller & Rollnick, 1999): los fumadores giran la rueda entre 3 y 7 veces antes del cambio estable. El modelo es análogo para el juego patológico.
+
+FRAMES — Intervención breve para no especializados
+
+(Hodgins, Currie & el-Guebaly, 2001 — Journal of Consulting and Clinical Psychology, 69(1), 50-57)
+
+Letra
+
+Componente
+
+En la práctica
+
+F
+
+Feedback
+
+Información personalizada sobre la situación
+
+R
+
+Responsibility
+
+Énfasis en la responsabilidad personal del cambio
+
+A
+
+Advice
+
+Consejo claro de que el cambio es necesario
+
+M
+
+Menu
+
+Alternativas disponibles, no una sola opción
+
+E
+
+Empathy
+
+Estilo empático, no confrontativo
+
+S
+
+Self-efficacy
+
+Fomentar la creencia de que el cambio es posible
+
+Una intervención de 15-20 minutos con estos seis elementos tiene evidencia de efectividad comparable a tratamientos más extensos en etapas tempranas.
+
+Efectividad de la EM en juego patológico
+
+Yakovenko et al. (2015) — meta-análisis con 730 participantes: reducción significativa de frecuencia de juego hasta 12 meses post-tratamiento
+
+García-Caballero et al. (2018) — Adicciones 30(3): EM+TCC con reducción significativa p<.000 en problemas de juego, impulsividad y calidad de vida
+
+Josephson et al. (2016) — PeerJ: pacientes con juego + consumo riesgoso de alcohol se benefician más de EM que de TCC grupal
+
+Forman & Boughter (2024): EM+TCC superior a TCC sola. EM sola efectiva en etapas tempranas y casos leves/moderados
+
+La conversación concreta — cómo preguntar
+
+"¿Jugás a las apuestas online? ¿Con qué frecuencia? ¿Alguna vez sentiste que gastaste más de lo que querías?"
+
+Tres preguntas en ese orden: abren sin acusar, permiten evaluar nivel de conciencia del problema.
+
+Lo que puede hacer cada rol
+
+El docente: No diagnostica. Sí puede: nombrar lo que observa sin acusar, comunicar a la familia con información concreta, derivar al gabinete, registrar los cambios observados.
+
+El profesional de salud: Puede aplicar Lie/Bet o usar DSM-5 como guía. Puede dar psicoeducación básica. Puede derivar. Debe conocer los recursos disponibles en la región.
+
+Red de derivación — región Balcarce/Mar del Plata
+
+Recurso
+
+Datos
+
+Línea 141 — SEDRONAR
+
+Gratuita · confidencial · 24hs · todo el país
+
+Programa CASS — Mar del Plata
+
+Consultorios FADE · referencia regional
+
+SEMDA — Mar del Plata
+
+Av. Jara 1661 · (0223) 473-2037
+
+Casa Caracol — SEDRONAR territorial
+
+Ituzaingó 8055 · (0223) 478-6384
+
+CPA Mar del Plata
+
+Centro Provincial de Atención
+
+HIGA Mar del Plata
+
+Servicio de Salud Mental · (0223) 499-9300
+
+BLOQUE 7 — CIERRE (8 min con preguntas)
+
+Frase de cierre:
+
+"Ustedes no necesitan ser especialistas en adicciones para hacer algo. Necesitan saber reconocer una señal, saber hacer una pregunta y saber a quién derivar. Eso es exactamente lo que trabajamos hoy. En Balcarce, ustedes son el primer eslabón de una cadena que puede cambiarle la vida a un adolescente. Gracias."
+
+Datos de contacto en pantalla hasta el final: WhatsApp Programa CASS + mail + QR web
+
+REFERENCIAS BIBLIOGRÁFICAS — para última diapositiva
+
+APA (2013). DSM-5. Washington DC. Bilinkis, S. (2024). "Apuestas online: el método infalible para perder plata y más". Futuro en Construcción T13E10. Casey, B. J., Jones, R. M., & Hare, T. A. (2008). Annals NY Academy of Sciences, 1124, 111-126. Cruz Roja Argentina (2025). Encuesta nacional sobre apuestas online en adolescentes. Fogg, B. J. (2003). Persuasive Technology. Morgan Kaufmann. Forman, D. P., & Boughter, J. R. (2024). Meta-análisis EM juego patológico. ResearchGate. García-Caballero, A. et al. (2018). Adicciones, 30(3), 219-224. Griffiths, M. D., & Parke, J. (2002). Social Science Computer Review, 20(3), 312-320. Hodgins, D. C., Currie, S. R., & el-Guebaly, N. (2001). Journal of Consulting and Clinical Psychology, 69(1), 50-57. Johnson, E. E. et al. (1997). Lie/Bet questionnaire. Psychol Rep, 80, 83-88. Josephson, H. et al. (2016). PeerJ, e1899. Lesieur, H. R., & Blume, S. B. (1987). SOGS. American Journal of Psychiatry, 144(9), 1184-1188. Miller, W. R., & Rollnick, S. (1999). La entrevista motivacional. Barcelona: Paidós. OEDA (2024). Informe sobre Adicciones Comportamentales y Otros Trastornos Adictivos 2024. Madrid: Ministerio de Sanidad. Observatorio de Adicciones PBA (2024). Informe ludopatía en jóvenes. Defensoría del Pueblo PBA. Prochaska, J. O., & DiClemente, C. C. (1983). Journal of Consulting and Clinical Psychology, 51(3), 390-395. Schultz, W., Dayan, P., & Montague, P. R. (1997). Science, 275(5306), 1593-1599. SEDRONAR (2023). Encuesta consumos problemáticos universitarios. Skinner, B. F. (1938). The Behavior of Organisms. Nueva York: Appleton-Century-Crofts. Steinberg, L. (2008). Developmental Review, 28(1), 78-106. Yakovenko, I. et al. (2015). Addictive Behaviors, 43, 72-82.

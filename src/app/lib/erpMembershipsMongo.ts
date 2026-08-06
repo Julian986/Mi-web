@@ -50,6 +50,7 @@ function toMembership(doc: ErpMembershipDoc | null, month: string): ErpMembershi
     month: doc.month,
     gimnasio: normalizeService(doc.gimnasio),
     natacion: normalizeService(doc.natacion),
+    cursor: normalizeService(doc.cursor),
   };
 }
 
@@ -96,6 +97,7 @@ export async function upsertErpMembershipMonth(
         month: membership.month,
         gimnasio: membership.gimnasio,
         natacion: membership.natacion,
+        cursor: membership.cursor,
         updatedAt: now,
       },
       $setOnInsert: { createdAt: now },
