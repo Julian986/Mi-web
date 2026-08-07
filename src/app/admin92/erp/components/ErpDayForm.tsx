@@ -498,7 +498,7 @@ export default function ErpDayForm({
                 setPasteResult(null);
               }}
               rows={6}
-              placeholder={`Software development (1:19)\n\nERP mejora view services → 0:38:00\nAni → 0:06:33\n\nSaaS (2:28)\n\nSaaS - TDD → 1:19:15`}
+              placeholder={`**SaaS — 0:56 hs**\n\n- saas - La evolución del Frontend → 0:22:23\n- saas - genteleman escalando → 0:33:49\n\n**Software development — 0:42 hs**\n\n- erpp mejora → 0:20:29`}
               className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 font-mono text-xs leading-relaxed text-slate-800"
             />
           </label>

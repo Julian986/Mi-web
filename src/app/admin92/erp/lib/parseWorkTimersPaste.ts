@@ -21,7 +21,8 @@ export type ParseWorkTimersPasteResult = {
   summary: { categories: number; timers: number };
 };
 
-const ARROW_RE = /\s*(?:→|->|—|–)\s*/;
+/** Flechas de timer (no incluir — : se usa en encabezados “SaaS — 0:56 hs”) */
+const TIMER_ARROW_RE = /\s*(?:→|->)\s*/;
 
 function normalizeLabel(s: string): string {
   return s
@@ -36,9 +37,26 @@ const CATEGORY_BY_LABEL = new Map(
   WORK_CATEGORY_META.map((c) => [normalizeLabel(c.name), c.key]),
 );
 
-/** Parsea H:MM:SS, H:MM o M:SS-ish → segundos */
+/** Quita markdown, bullets y ruido típico del pegado */
+export function cleanPasteLine(line: string): string {
+  let s = line.trim();
+  if (!s) return "";
+  // **bold** envolviendo toda la línea
+  if (s.startsWith("**") && s.endsWith("**") && s.length > 4) {
+    s = s.slice(2, -2).trim();
+  }
+  s = s.replace(/^#+\s*/, "");
+  s = s.replace(/^[-*•]\s+/, "");
+  return s.trim();
+}
+
+function stripDurationSuffix(raw: string): string {
+  return raw.replace(/\s*hs\.?\s*$/i, "").trim();
+}
+
+/** Parsea H:MM:SS, H:MM o decimal → segundos */
 export function parseClockDurationToSeconds(raw: string): number | null {
-  const s = raw.trim().replace(",", ".");
+  const s = stripDurationSuffix(raw).replace(",", ".");
   if (!s) return null;
   if (/^\d+(\.\d+)?$/.test(s)) {
     const hours = Number(s);
@@ -59,33 +77,92 @@ export function parseClockDurationToSeconds(raw: string): number | null {
   return h * 3600 + m * 60;
 }
 
+function lookupCategory(namePart: string): WorkCategoryKey | null {
+  return CATEGORY_BY_LABEL.get(normalizeLabel(namePart)) ?? null;
+}
+
+/**
+ * Encabezados soportados:
+ * - Software development (1:19)
+ * - SaaS — 0:56 hs
+ * - **Planificación — 0:26 hs**
+ * - Branding / Marketing
+ */
 function matchCategoryHeader(
   line: string,
 ): { key: WorkCategoryKey; headerSeconds: number | null } | null {
-  const trimmed = line.trim();
+  const trimmed = cleanPasteLine(line);
   if (!trimmed) return null;
 
+  // Name (0:56) / Name (0:56 hs)
   const paren = trimmed.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-  const namePart = (paren ? paren[1] : trimmed).trim();
-  const headerRaw = paren ? paren[2].trim() : null;
-  const key = CATEGORY_BY_LABEL.get(normalizeLabel(namePart));
-  if (!key) return null;
-
-  let headerSeconds: number | null = null;
-  if (headerRaw) {
-    headerSeconds = parseClockDurationToSeconds(headerRaw);
+  if (paren) {
+    const key = lookupCategory(paren[1]);
+    if (key) {
+      return {
+        key,
+        headerSeconds: parseClockDurationToSeconds(paren[2]),
+      };
+    }
   }
-  return { key, headerSeconds };
+
+  // Name — 0:56 hs  /  Name – 0:56
+  const emDash = trimmed.match(/^(.*?)\s*[—–]\s*(.+)$/);
+  if (emDash) {
+    const key = lookupCategory(emDash[1]);
+    if (key) {
+      return {
+        key,
+        headerSeconds: parseClockDurationToSeconds(emDash[2]),
+      };
+    }
+  }
+
+  // Name - 0:56  (guión solo si la derecha parece duración)
+  const hyphen = trimmed.match(/^(.*?)\s+-\s+(\d+:\d{1,2}(?::\d{1,2})?(?:\s*hs\.?)?)\s*$/i);
+  if (hyphen) {
+    const key = lookupCategory(hyphen[1]);
+    if (key) {
+      return {
+        key,
+        headerSeconds: parseClockDurationToSeconds(hyphen[2]),
+      };
+    }
+  }
+
+  // Solo el nombre de la categoría
+  const keyAlone = lookupCategory(trimmed);
+  if (keyAlone) {
+    return { key: keyAlone, headerSeconds: null };
+  }
+
+  return null;
 }
 
+/**
+ * Timers: "Nombre → 0:22:23" (también ->).
+ * Acepta bullet "- nombre → …".
+ */
 function parseTimerLine(line: string): ErpWorkTimer | { error: string } | null {
-  const trimmed = line.trim();
+  const trimmed = cleanPasteLine(line);
   if (!trimmed) return null;
 
-  const split = trimmed.split(ARROW_RE);
+  // Si parece encabezado de categoría, no es timer
+  if (matchCategoryHeader(trimmed)) return null;
+
+  const split = trimmed.split(TIMER_ARROW_RE);
   if (split.length < 2) {
-    return { error: `Línea sin duración (falta →): “${trimmed.slice(0, 60)}”` };
+    // Fallback: em dash solo si la derecha es claramente H:MM(:SS)
+    const em = trimmed.match(/^(.*?)\s*[—–]\s*(\d+:\d{1,2}(?::\d{1,2})?)\s*$/);
+    if (!em) return null;
+    const name = em[1].trim();
+    const seconds = parseClockDurationToSeconds(em[2]);
+    if (!name || seconds === null) return null;
+    // No tratar como timer si el nombre es una categoría del ERP
+    if (lookupCategory(name)) return null;
+    return { name: name.slice(0, 200), seconds };
   }
+
   const durationRaw = split[split.length - 1].trim();
   const name = split.slice(0, -1).join(" → ").trim();
   if (!name) return { error: `Timer sin nombre: “${trimmed.slice(0, 60)}”` };
@@ -97,12 +174,7 @@ function parseTimerLine(line: string): ErpWorkTimer | { error: string } | null {
 }
 
 /**
- * Parsea un bloque pegado:
- *
- * Software development (1:19)
- *
- * ERP mejora view services → 0:38:00
- * Ani → 0:06:33
+ * Parsea un bloque pegado (formato clásico o markdown del día a día).
  */
 export function parseWorkTimersPaste(text: string): ParseWorkTimersPasteResult {
   const workTimers = emptyWorkTimers();
@@ -181,7 +253,7 @@ export function parseWorkTimersPaste(text: string): ParseWorkTimersPasteResult {
     }
 
     warnings.push(
-      `Línea no reconocida: “${line.slice(0, 80)}”. Usá “Categoría (total)” o “Nombre → H:MM:SS”.`,
+      `Línea no reconocida: “${cleanPasteLine(line).slice(0, 80)}”. Usá “Categoría — 0:56 hs” o “Nombre → H:MM:SS”.`,
     );
   }
   flushCategory();
