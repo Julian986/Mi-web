@@ -19,6 +19,7 @@ import {
   normalizeWorkTimers,
   emptyWorkTimers,
   sumWorkHours,
+  effectiveTrainingMinutes,
   WORK_CATEGORY_META,
   TRAINING_CATEGORY_META,
   type ErpDayLog,
@@ -258,7 +259,7 @@ export function computePeriodStats(
         const session = log.training[key];
         if (!isTrainingDone(session)) return;
         trainingByCategory[key] += 1;
-        const mins = session.minutes ?? 0;
+        const mins = effectiveTrainingMinutes(key, session);
         if (mins > 0) {
           trainingMinutesByCategory[key] += mins;
           trainingMinutes += mins;

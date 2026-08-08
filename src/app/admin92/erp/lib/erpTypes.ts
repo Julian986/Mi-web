@@ -315,6 +315,20 @@ export function emptyTrainingSession(done = false): ErpTrainingSession {
   return { done, minutes: null, notes: "" };
 }
 
+/** Natación siempre dura 1 hora fija */
+export const NATACION_FIXED_MINUTES = 60;
+
+/** Minutos efectivos de una sesión (natación = siempre 60 si está hecha) */
+export function effectiveTrainingMinutes(
+  key: TrainingCategoryKey,
+  session: ErpTrainingSession | boolean | undefined,
+): number {
+  if (!isTrainingDone(session)) return 0;
+  if (key === "natacion") return NATACION_FIXED_MINUTES;
+  if (typeof session === "boolean") return 0;
+  return session.minutes ?? 0;
+}
+
 export const EMPTY_TRAINING: ErpTraining = {
   gimnasio: emptyTrainingSession(),
   natacion: emptyTrainingSession(),
@@ -454,12 +468,22 @@ export function normalizeTraining(raw: unknown): ErpTraining {
   const asRecord = (raw ?? {}) as Record<string, unknown>;
   const one = (key: TrainingCategoryKey): ErpTrainingSession => {
     const v = asRecord[key];
-    if (typeof v === "boolean") return emptyTrainingSession(v);
+    if (typeof v === "boolean") {
+      if (!v) return emptyTrainingSession(false);
+      return {
+        done: true,
+        minutes: key === "natacion" ? NATACION_FIXED_MINUTES : null,
+        notes: "",
+      };
+    }
     if (v && typeof v === "object") {
       const o = v as Partial<ErpTrainingSession>;
+      const done = Boolean(o.done);
+      let minutes = typeof o.minutes === "number" ? o.minutes : null;
+      if (key === "natacion" && done) minutes = NATACION_FIXED_MINUTES;
       return {
-        done: Boolean(o.done),
-        minutes: typeof o.minutes === "number" ? o.minutes : null,
+        done,
+        minutes,
         notes: typeof o.notes === "string" ? o.notes : "",
       };
     }

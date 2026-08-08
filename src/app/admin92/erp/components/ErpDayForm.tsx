@@ -27,6 +27,7 @@ import {
   formatMinutesAsHm,
   MEAL_META,
   minutesBetweenTimes,
+  NATACION_FIXED_MINUTES,
   normalizeFood,
   normalizeTraining,
   normalizeWork,
@@ -250,13 +251,22 @@ export default function ErpDayForm({
       const nextDone = !cur.done;
       if (!nextDone) {
         setTrainingText((text) => ({ ...text, [key]: "" }));
+      } else if (key === "natacion") {
+        setTrainingText((text) => ({
+          ...text,
+          natacion: formatMinutesAsHm(NATACION_FIXED_MINUTES),
+        }));
       }
       return {
         ...prev,
         training: {
           ...prev.training,
           [key]: nextDone
-            ? { ...cur, done: true }
+            ? {
+                ...cur,
+                done: true,
+                ...(key === "natacion" ? { minutes: NATACION_FIXED_MINUTES } : {}),
+              }
             : emptyTrainingSession(false),
         },
       };
@@ -321,6 +331,13 @@ export default function ErpDayForm({
     const nextTraining = normalizeTraining(draft.training);
     (Object.keys(trainingText) as TrainingCategoryKey[]).forEach((key) => {
       if (!nextTraining[key].done) return;
+      if (key === "natacion") {
+        nextTraining[key] = {
+          ...nextTraining[key],
+          minutes: NATACION_FIXED_MINUTES,
+        };
+        return;
+      }
       const trimmed = trainingText[key].trim();
       if (trimmed === "") {
         nextTraining[key] = { ...nextTraining[key], minutes: null };
@@ -640,24 +657,34 @@ export default function ErpDayForm({
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-[120px_1fr]">
                     <label className="text-[11px] font-medium text-slate-600">
                       Duración
-                      <span className="font-normal text-slate-400"> · opcional</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        placeholder="0:00"
-                        value={trainingText[key]}
-                        onChange={(e) =>
-                          setTrainingText((prev) => ({
-                            ...prev,
-                            [key]: e.target.value,
-                          }))
-                        }
-                        onBlur={(e) => commitTrainingDuration(key, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") e.currentTarget.blur();
-                        }}
-                        className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-sm"
-                      />
+                      {key === "natacion" ? (
+                        <span className="font-normal text-slate-400"> · fija</span>
+                      ) : (
+                        <span className="font-normal text-slate-400"> · opcional</span>
+                      )}
+                      {key === "natacion" ? (
+                        <p className="mt-1 flex h-[34px] items-center rounded-lg border border-slate-200 bg-slate-50 px-2.5 font-mono text-sm text-slate-700">
+                          1:00
+                        </p>
+                      ) : (
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0:00"
+                          value={trainingText[key]}
+                          onChange={(e) =>
+                            setTrainingText((prev) => ({
+                              ...prev,
+                              [key]: e.target.value,
+                            }))
+                          }
+                          onBlur={(e) => commitTrainingDuration(key, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") e.currentTarget.blur();
+                          }}
+                          className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-mono text-sm"
+                        />
+                      )}
                     </label>
                     <label className="text-[11px] font-medium text-slate-600">
                       {key === "casa" ? "Detalle / series" : "Detalle"}
@@ -666,7 +693,9 @@ export default function ErpDayForm({
                         placeholder={
                           key === "casa"
                             ? "3 series bíceps, 2 abs"
-                            : "Ej. piernas, espalda…"
+                            : key === "natacion"
+                              ? "Ej. técnica, series…"
+                              : "Ej. piernas, espalda…"
                         }
                         value={session.notes ?? ""}
                         onChange={(e) => patchTraining(key, { notes: e.target.value })}

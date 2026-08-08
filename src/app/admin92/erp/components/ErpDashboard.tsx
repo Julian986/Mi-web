@@ -399,6 +399,7 @@ function paidDayLabel(paidOn: string | null): string {
 function TrainingKpiCard({
   item,
   compareLabel,
+  trainingBreakdown,
   membershipMonth,
   membershipMonths,
   membershipsByMonth,
@@ -409,6 +410,13 @@ function TrainingKpiCard({
 }: {
   item: KpiView;
   compareLabel: string;
+  trainingBreakdown: {
+    key: "gimnasio" | "natacion" | "casa";
+    name: string;
+    color: string;
+    days: number;
+    minutes: number;
+  }[];
   membershipMonth: string;
   membershipMonths: string[];
   membershipsByMonth: Record<string, ErpMembershipMonth>;
@@ -422,6 +430,12 @@ function TrainingKpiCard({
   const Icon = kpiIcons[item.kind];
   const change = item.change;
   const improved = change !== null && change >= 0;
+  const activeTrainingTypes = trainingBreakdown.filter((c) => c.days > 0);
+  const trainingTypeShort: Record<"gimnasio" | "natacion" | "casa", string> = {
+    gimnasio: "Gimnasio",
+    natacion: "Natación",
+    casa: "Casa",
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -652,6 +666,33 @@ function TrainingKpiCard({
         <strong className="text-3xl font-bold tracking-tight text-slate-950">{item.value}</strong>
         <span className="text-sm font-semibold text-slate-400">{item.unit}</span>
       </div>
+
+      {activeTrainingTypes.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {activeTrainingTypes.map((cat) => {
+            const TypeIcon = trainingIcons[cat.key];
+            return (
+              <span
+                key={cat.key}
+                title={
+                  cat.minutes > 0
+                    ? `${cat.name}: ${cat.days} ${cat.days === 1 ? "día" : "días"} · ${formatMinutesAsHm(cat.minutes)}`
+                    : `${cat.name}: ${cat.days} ${cat.days === 1 ? "día" : "días"}`
+                }
+                className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold"
+                style={{
+                  backgroundColor: `${cat.color}14`,
+                  color: cat.color,
+                }}
+              >
+                <TypeIcon className="h-3 w-3 shrink-0" aria-hidden />
+                {trainingTypeShort[cat.key]}
+                <span className="opacity-80">{cat.days}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       <div className="mt-3 flex items-center justify-between gap-2">
         <p className="min-w-0 truncate text-xs text-slate-400">{compareLabel}</p>
@@ -885,6 +926,7 @@ export default function ErpDashboard({
                 key={item.label}
                 item={item}
                 compareLabel={compareLabel}
+                trainingBreakdown={trainingCats}
                 membershipMonth={membershipMonth}
                 membershipMonths={membershipMonths}
                 membershipsByMonth={membershipsByMonth}
