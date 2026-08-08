@@ -325,7 +325,7 @@ export function effectiveTrainingMinutes(
 ): number {
   if (!isTrainingDone(session)) return 0;
   if (key === "natacion") return NATACION_FIXED_MINUTES;
-  if (typeof session === "boolean") return 0;
+  if (session == null || typeof session === "boolean") return 0;
   return session.minutes ?? 0;
 }
 
