@@ -11,6 +11,7 @@ import {
   LoaderCircle,
   Trash2,
   Waves,
+  X,
 } from "lucide-react";
 import {
   dayShortLabel,
@@ -359,7 +360,6 @@ export default function ErpDayForm({
       setDraft(savedLog);
       setWorkText(workTextsFromLog(savedLog));
       setTrainingText(trainingTextsFromLog(savedLog));
-      onClose();
     } catch {
       // El error lo muestra el contenedor.
     }
@@ -897,6 +897,16 @@ export default function ErpDayForm({
         >
           {saving && <LoaderCircle className="h-4 w-4 animate-spin" />}
           {saving ? "Guardando…" : "Guardar día"}
+        </button>
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving || loading}
+          aria-label="Cerrar sin guardar"
+          title="Cerrar sin guardar"
+          className="inline-flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm hover:bg-slate-50 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+        >
+          <X className="h-4 w-4" />
         </button>
         {existing && (
           <button
