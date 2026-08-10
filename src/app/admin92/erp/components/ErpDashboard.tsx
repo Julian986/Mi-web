@@ -380,6 +380,9 @@ function KpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }
         <strong className="text-3xl font-bold tracking-tight text-slate-950">{item.value}</strong>
         <span className="text-sm font-semibold text-slate-400">{item.unit}</span>
       </div>
+      {item.detail ? (
+        <p className="mt-2 text-xs font-semibold text-blue-700">{item.detail}</p>
+      ) : null}
       <p className="mt-3 text-xs text-slate-400">{compareLabel}</p>
     </article>
   );

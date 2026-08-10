@@ -24,6 +24,7 @@ import {
   emptyMeal,
   emptyTrainingSession,
   emptyWorkTimers,
+  ENGLISH_FIXED_MINUTES,
   formatHoursAsHm,
   formatMinutesAsHm,
   MEAL_META,
@@ -35,7 +36,6 @@ import {
   normalizeWorkTimers,
   parseDurationToHours,
   parseDurationToMinutes,
-  parseMinutes,
   sumWorkHours,
   sumWorkTimerSeconds,
   WORK_CATEGORY_META,
@@ -95,7 +95,13 @@ function cloneLog(log: ErpDayLog): ErpDayLog {
       natacion: { ...training.natacion },
       casa: { ...training.casa },
     },
-    english: { ...(log.english ?? emptyTrainingSession()) },
+    english: (() => {
+      const english = log.english ?? emptyTrainingSession();
+      return {
+        ...english,
+        minutes: english.done ? ENGLISH_FIXED_MINUTES : english.minutes,
+      };
+    })(),
     creatine: Boolean(log.creatine),
     food: {
       desayuno: { ...food.desayuno },
@@ -279,7 +285,7 @@ export default function ErpDayForm({
       ...prev,
       english: prev.english.done
         ? emptyTrainingSession(false)
-        : { ...prev.english, done: true },
+        : { ...prev.english, done: true, minutes: ENGLISH_FIXED_MINUTES },
     }));
   };
 
@@ -354,6 +360,10 @@ export default function ErpDayForm({
       date: selectedDate,
       work: nextWork,
       training: nextTraining,
+      english: {
+        ...draft.english,
+        minutes: draft.english.done ? ENGLISH_FIXED_MINUTES : null,
+      },
     };
     try {
       const savedLog = await onSave(log);
@@ -815,24 +825,11 @@ export default function ErpDayForm({
         {draft.english.done ? (
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-[110px_1fr]">
             <label className="text-[11px] font-medium text-slate-600">
-              Minutos
-              <input
-                type="text"
-                inputMode="numeric"
-                placeholder="30"
-                aria-label="Minutos de inglés"
-                value={draft.english.minutes ?? ""}
-                onChange={(event) => {
-                  const raw = event.target.value.trim();
-                  if (raw === "") {
-                    patchEnglish({ minutes: null });
-                    return;
-                  }
-                  const minutes = parseMinutes(raw);
-                  if (minutes !== null) patchEnglish({ minutes });
-                }}
-                className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-              />
+              Duración
+              <span className="font-normal text-slate-400"> · fija</span>
+              <p className="mt-1 flex h-[38px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3 font-mono text-sm text-slate-700">
+                1:00
+              </p>
             </label>
             <label className="text-[11px] font-medium text-slate-600">
               Detalle
@@ -848,7 +845,7 @@ export default function ErpDayForm({
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-emerald-200 bg-white/70 px-3 py-2 text-xs text-slate-500">
-            Si ese día hiciste inglés, podés anotar minutos y un detalle corto.
+            Si ese día hiciste inglés, marcá y opcionalmente agregá un detalle.
           </div>
         )}
       </section>

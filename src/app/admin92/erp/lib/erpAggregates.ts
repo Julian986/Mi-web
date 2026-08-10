@@ -20,6 +20,7 @@ import {
   emptyWorkTimers,
   sumWorkHours,
   effectiveTrainingMinutes,
+  effectiveEnglishMinutes,
   WORK_CATEGORY_META,
   TRAINING_CATEGORY_META,
   type ErpDayLog,
@@ -268,7 +269,7 @@ export function computePeriodStats(
 
       if (isTrainingDone(log.english)) {
         englishDays += 1;
-        englishMinutes += log.english.minutes ?? 0;
+        englishMinutes += effectiveEnglishMinutes(log.english);
       }
       if (log.creatine) creatineDays += 1;
     }
@@ -421,6 +422,8 @@ export type KpiView = {
   change: number | null;
   color: "blue" | "cyan" | "violet" | "emerald" | "indigo" | "amber";
   kind: "work" | "daily" | "training" | "english" | "creatine" | "sleep" | "food";
+  /** Línea secundaria compacta (ej. inicio de trabajo) */
+  detail?: string | null;
 };
 
 export function buildKpis(
@@ -436,6 +439,13 @@ export function buildKpis(
     current.foodMealsAvg !== null && previous?.foodMealsAvg != null
       ? pctChange(current.foodMealsAvg, previous.foodMealsAvg)
       : null;
+
+  const startedWorkLabel =
+    current.startedWorkAvgMinutes === null
+      ? null
+      : period === "day"
+        ? `Inicio · ${formatStartedWorkAvg(current)}`
+        : `Inicio promedio · ${formatStartedWorkAvg(current)}`;
 
   const dailyKpi =
     period === "day"
@@ -462,8 +472,9 @@ export function buildKpis(
       value: formatHoursAsHm(current.workHours),
       unit: "hs",
       change: previous ? pctChange(current.workHours, previous.workHours) : null,
-      color: "blue",
-      kind: "work",
+      color: "blue" as const,
+      kind: "work" as const,
+      detail: startedWorkLabel,
     },
     dailyKpi,
     {

@@ -318,6 +318,9 @@ export function emptyTrainingSession(done = false): ErpTrainingSession {
 /** Natación siempre dura 1 hora fija */
 export const NATACION_FIXED_MINUTES = 60;
 
+/** Inglés siempre dura 1 hora fija */
+export const ENGLISH_FIXED_MINUTES = 60;
+
 /** Minutos efectivos de una sesión (natación = siempre 60 si está hecha) */
 export function effectiveTrainingMinutes(
   key: TrainingCategoryKey,
@@ -327,6 +330,14 @@ export function effectiveTrainingMinutes(
   if (key === "natacion") return NATACION_FIXED_MINUTES;
   if (session == null || typeof session === "boolean") return 0;
   return session.minutes ?? 0;
+}
+
+/** Minutos efectivos de inglés (siempre 60 si está hecho) */
+export function effectiveEnglishMinutes(
+  session: ErpTrainingSession | boolean | undefined,
+): number {
+  if (!isTrainingDone(session)) return 0;
+  return ENGLISH_FIXED_MINUTES;
 }
 
 export const EMPTY_TRAINING: ErpTraining = {
@@ -671,7 +682,11 @@ export function validateErpDayLog(
     }
     english = {
       done: session.done,
-      minutes: typeof session.minutes === "number" ? session.minutes : null,
+      minutes: session.done
+        ? ENGLISH_FIXED_MINUTES
+        : typeof session.minutes === "number"
+          ? session.minutes
+          : null,
       notes: typeof session.notes === "string" ? session.notes.trim().slice(0, 1000) : "",
     };
   }
