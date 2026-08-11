@@ -516,7 +516,7 @@ export default function CuotaOperativaPanel({
                     }}
                     title="Texto de la tarea"
                     aria-label="Texto de la tarea"
-                    className={`min-w-[120px] flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-xs outline-none focus:border-slate-300 focus:bg-white disabled:opacity-50 ${
+                    className={`min-w-[120px] flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm outline-none focus:border-slate-300 focus:bg-white disabled:opacity-50 ${
                       t.done ? "text-slate-400 line-through" : "text-slate-800"
                     } ${t.fueraColaActiva ? "text-slate-500" : ""}`}
                   />
@@ -548,12 +548,14 @@ export default function CuotaOperativaPanel({
                     }}
                     title="Fecha pedido"
                     aria-label="Fecha pedido"
-                    className="rounded border border-slate-300 px-1.5 py-0.5 text-[11px] text-slate-700 cursor-pointer disabled:opacity-50"
+                    className="rounded border border-slate-300 px-2 py-1 text-sm text-slate-700 cursor-pointer disabled:opacity-50"
                   />
                 </span>
                 {t.done ? (
                   <span className="flex shrink-0 items-center gap-1">
-                    <span className="text-[10px] text-slate-400 w-7 text-right">Real.</span>
+                    <span className="text-[10px] text-slate-400 w-12 text-right">
+                      Entregado
+                    </span>
                     <input
                       type="date"
                       value={taskDisplayFechaRealizada(t)}
@@ -574,9 +576,9 @@ export default function CuotaOperativaPanel({
                           e.currentTarget.blur();
                         }
                       }}
-                      title="Fecha realizada"
-                      aria-label="Fecha realizada"
-                      className="rounded border border-green-200 bg-green-50/50 px-1.5 py-0.5 text-[11px] text-green-800 cursor-pointer disabled:opacity-50"
+                      title="Fecha entregado"
+                      aria-label="Fecha entregado"
+                      className="rounded border border-green-200 bg-green-50/50 px-2 py-1 text-sm text-green-800 cursor-pointer disabled:opacity-50"
                     />
                   </span>
                 ) : null}
@@ -607,11 +609,11 @@ export default function CuotaOperativaPanel({
           {pendingTaskComplete && (
             <div className="mt-2 flex flex-wrap items-end gap-2 rounded-md border border-amber-200 bg-amber-50/60 p-2">
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium text-amber-900 mb-1">Marcar tarea realizada</p>
+                <p className="text-xs font-medium text-amber-900 mb-1">Marcar tarea entregada</p>
                 <p className="text-xs text-slate-700 line-clamp-2">{pendingTaskComplete.text}</p>
               </div>
               <label className="text-xs text-slate-700">
-                Fecha realizada
+                Fecha entregado
                 <input
                   type="date"
                   value={pendingTaskComplete.fecha}
@@ -620,7 +622,7 @@ export default function CuotaOperativaPanel({
                       prev ? { ...prev, fecha: e.target.value } : prev,
                     )
                   }
-                  className="mt-1 block rounded border border-slate-300 px-2 py-1 text-xs"
+                  className="mt-1 block rounded border border-slate-300 px-2 py-1 text-sm"
                 />
               </label>
               <button

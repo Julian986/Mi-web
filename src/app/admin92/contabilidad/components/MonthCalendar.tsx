@@ -90,6 +90,8 @@ export default function MonthCalendar({
   const [showLegend, setShowLegend] = useState(false);
   const [desarrollosOpen, setDesarrollosOpen] = useState(false);
   const [desarrollosCount, setDesarrollosCount] = useState(0);
+  /** fechaCobro50 de desarrollos activos (un punto por desarrollo en el calendario) */
+  const [desarrolloFechas, setDesarrolloFechas] = useState<string[]>([]);
 
   useEffect(() => {
     setClientToday(todayYmd());
@@ -101,7 +103,16 @@ export default function MonthCalendar({
       const res = await fetch("/api/admin/desarrollos-50");
       const data = await res.json();
       if (!res.ok) return;
-      setDesarrollosCount(Array.isArray(data.desarrollos) ? data.desarrollos.length : 0);
+      const list = Array.isArray(data.desarrollos) ? data.desarrollos : [];
+      setDesarrollosCount(list.length);
+      setDesarrolloFechas(
+        list
+          .map((d: { fechaCobro50?: string }) => d.fechaCobro50)
+          .filter(
+            (f: string | undefined): f is string =>
+              typeof f === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f),
+          ),
+      );
     } catch {
       /* ignore */
     }
@@ -166,6 +177,10 @@ export default function MonthCalendar({
           const isSelected = selectedDate === date;
           const isToday = clientToday !== null && date === clientToday;
           const hasCuotas = (dayMarkers?.cuotas.length ?? 0) > 0;
+          const desarrollosDelDia = desarrolloFechas.filter((f) => f === date);
+          const hasDesarrollos = desarrollosDelDia.length > 0;
+          const showDots =
+            Boolean(dayMarkers?.inversion) || hasCuotas || hasDesarrollos;
 
           return (
             <button
@@ -183,16 +198,24 @@ export default function MonthCalendar({
               }`}
             >
               <span>{parseInt(date.slice(8, 10), 10)}</span>
-              {dayMarkers && (dayMarkers.inversion || hasCuotas) && (
+              {showDots && (
                 <span className="mt-0.5 flex max-w-full flex-wrap items-center justify-center gap-0.5 px-0.5">
-                  {dayMarkers.inversion && (
+                  {dayMarkers?.inversion && (
                     <span
                       className="h-1 w-1 shrink-0 rounded-full"
                       style={{ backgroundColor: MARKER_COLORS.inversion }}
                     />
                   )}
-                  {dayMarkers.cuotas.map((dot, idx) => (
+                  {dayMarkers?.cuotas.map((dot, idx) => (
                     <CuotaCalendarDot key={idx} estado={dot.estado} border={dot.border} />
+                  ))}
+                  {desarrollosDelDia.map((_, idx) => (
+                    <span
+                      key={`d50-${idx}`}
+                      className="h-1 w-1 shrink-0 rounded-full"
+                      style={{ backgroundColor: MARKER_COLORS.desarrollo50 }}
+                      title="Desarrollo 50%"
+                    />
                   ))}
                 </span>
               )}
