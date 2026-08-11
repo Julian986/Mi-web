@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard, PenLine } from "lucide-react";
 import ErpDashboard from "@/app/admin92/erp/components/ErpDashboard";
 import ErpDayForm from "@/app/admin92/erp/components/ErpDayForm";
+import ErpLiveTimer from "@/app/admin92/erp/components/ErpLiveTimer";
 import {
   buildKpis,
   buildWeekCompareRows,
@@ -19,8 +20,12 @@ import {
   weekDates,
   type ErpPeriod,
 } from "@/app/admin92/erp/lib/erpAggregates";
-import type { ErpDayLog, ErpMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
-import { emptyMembershipMonth } from "@/app/admin92/erp/lib/erpTypes";
+import {
+  emptyDayLog,
+  emptyMembershipMonth,
+  type ErpDayLog,
+  type ErpMembershipMonth,
+} from "@/app/admin92/erp/lib/erpTypes";
 import {
   getMonthKeySafe,
   shiftDate,
@@ -44,6 +49,8 @@ export default function ErpPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [timerSaving, setTimerSaving] = useState(false);
+  const [workEditSaving, setWorkEditSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [titleExpanded, setTitleExpanded] = useState(false);
   const [membershipSaving, setMembershipSaving] = useState(false);
@@ -300,6 +307,65 @@ export default function ErpPage() {
     }
   };
 
+  const today = todayYmd();
+  const todayLog = useMemo(() => {
+    return dayLogs.find((log) => log.date === today) ?? emptyDayLog(today);
+  }, [dayLogs, today]);
+
+  const workEditLog = useMemo(() => {
+    if (period === "day") {
+      return dayLogs.find((log) => log.date === selectedDate) ?? emptyDayLog(selectedDate);
+    }
+    if (dates.includes(today)) {
+      return dayLogs.find((log) => log.date === today) ?? emptyDayLog(today);
+    }
+    const sorted = [...currentLogs].sort((a, b) => b.date.localeCompare(a.date));
+    if (sorted[0]) return sorted[0];
+    return emptyDayLog(dates[dates.length - 1] ?? selectedDate);
+  }, [period, selectedDate, dayLogs, dates, today, currentLogs]);
+
+  const handlePersistWorkEditLog = async (log: ErpDayLog): Promise<void> => {
+    setWorkEditSaving(true);
+    try {
+      const response = await fetch(`/api/admin/erp-logs/${log.date}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(log),
+      });
+      const data = (await response.json()) as {
+        log?: ErpDayLog;
+        error?: string;
+      };
+      if (!response.ok || !data.log) {
+        throw new Error(data.error || "No se pudo guardar el desglose.");
+      }
+      upsertLocalLog(data.log);
+    } finally {
+      setWorkEditSaving(false);
+    }
+  };
+
+  const handlePersistLiveTimer = async (log: ErpDayLog): Promise<void> => {
+    setTimerSaving(true);
+    try {
+      const response = await fetch(`/api/admin/erp-logs/${log.date}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(log),
+      });
+      const data = (await response.json()) as {
+        log?: ErpDayLog;
+        error?: string;
+      };
+      if (!response.ok || !data.log) {
+        throw new Error(data.error || "No se pudo guardar el timer.");
+      }
+      upsertLocalLog(data.log);
+    } finally {
+      setTimerSaving(false);
+    }
+  };
+
   const handleDeleteDay = async (date: string): Promise<void> => {
     setSaving(true);
     setSaveError(null);
@@ -391,6 +457,15 @@ export default function ErpPage() {
           </div>
         )}
 
+        <div className="mb-6">
+          <ErpLiveTimer
+            todayLog={todayLog}
+            dayLogs={dayLogs}
+            onPersist={handlePersistLiveTimer}
+            persisting={timerSaving}
+          />
+        </div>
+
         {view === "dashboard" ? (
           <>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -461,6 +536,9 @@ export default function ErpPage() {
               kpis={kpis}
               focusLog={focusLog}
               periodLogs={currentLogs}
+              workEditLog={workEditLog}
+              onPersistWorkEditLog={handlePersistWorkEditLog}
+              workEditSaving={workEditSaving}
               loading={loading}
               hasData={currentLogs.length > 0}
               membershipMonth={editMembershipMonth}

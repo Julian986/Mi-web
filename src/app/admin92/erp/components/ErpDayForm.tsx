@@ -89,6 +89,7 @@ function cloneLog(log: ErpDayLog): ErpDayLog {
       planificacion: [...workTimers.planificacion],
       branding: [...workTimers.branding],
       itNews: [...workTimers.itNews],
+      stremear: [...workTimers.stremear],
     },
     training: {
       gimnasio: { ...training.gimnasio },
@@ -102,6 +103,12 @@ function cloneLog(log: ErpDayLog): ErpDayLog {
         minutes: english.done ? ENGLISH_FIXED_MINUTES : english.minutes,
       };
     })(),
+    activeWorkTimer: log.activeWorkTimer
+      ? {
+          ...log.activeWorkTimer,
+          items: [...(log.activeWorkTimer.items ?? [])],
+        }
+      : null,
     creatine: Boolean(log.creatine),
     food: {
       desayuno: { ...food.desayuno },
@@ -119,6 +126,7 @@ function workTextsFromLog(log: ErpDayLog): Record<WorkCategoryKey, string> {
     planificacion: formatHoursAsHm(log.work.planificacion),
     branding: formatHoursAsHm(log.work.branding),
     itNews: formatHoursAsHm(log.work.itNews ?? 0),
+    stremear: formatHoursAsHm(log.work.stremear ?? 0),
   };
 }
 
@@ -355,6 +363,10 @@ export default function ErpDayForm({
         nextTraining[key] = { ...nextTraining[key], minutes: mins };
       }
     });
+    const liveActive =
+      dayLogs.find((l) => l.date === selectedDate)?.activeWorkTimer ??
+      draft.activeWorkTimer ??
+      null;
     const log: ErpDayLog = {
       ...draft,
       date: selectedDate,
@@ -364,6 +376,7 @@ export default function ErpDayForm({
         ...draft.english,
         minutes: draft.english.done ? ENGLISH_FIXED_MINUTES : null,
       },
+      activeWorkTimer: liveActive,
     };
     try {
       const savedLog = await onSave(log);

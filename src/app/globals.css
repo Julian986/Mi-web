@@ -110,3 +110,77 @@ body.font-loaded {
     opacity: 0.95;
   }
 }
+
+/* Timer live activo: borde rosa/magenta animado */
+.erp-timer-active-shell {
+  position: relative;
+  border-radius: 1rem;
+  padding: 1.5px;
+  background: linear-gradient(
+    120deg,
+    #fb7185,
+    #f472b6,
+    #e879f9,
+    #c084fc,
+    #f472b6,
+    #fb7185
+  );
+  background-size: 300% 300%;
+  animation: erp-timer-border-flow 4s ease infinite;
+  box-shadow:
+    0 0 0 1px rgba(244, 114, 182, 0.15),
+    0 0 22px rgba(244, 114, 182, 0.28),
+    0 0 48px rgba(232, 121, 249, 0.16);
+}
+
+.erp-timer-active-shell::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 1.25rem;
+  background: radial-gradient(
+    ellipse at 30% 40%,
+    rgba(244, 114, 182, 0.22),
+    transparent 55%
+  );
+  animation: erp-timer-aura 3.2s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.erp-timer-active-inner {
+  position: relative;
+  border-radius: calc(1rem - 1px);
+  background: linear-gradient(160deg, #fff7fb 0%, #ffffff 42%, #fcf5ff 100%);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.05);
+}
+
+@keyframes erp-timer-border-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes erp-timer-aura {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erp-timer-active-shell,
+  .erp-timer-active-shell::before {
+    animation: none;
+  }
+}

@@ -210,6 +210,18 @@ export function computePeriodStats(
     planificacion: new Map(),
     branding: new Map(),
     itNews: new Map(),
+    stremear: new Map(),
+  };
+  const workTimerItemsByName: Record<
+    WorkCategoryKey,
+    Map<string, NonNullable<ErpWorkTimer["items"]>>
+  > = {
+    software: new Map(),
+    saas: new Map(),
+    planificacion: new Map(),
+    branding: new Map(),
+    itNews: new Map(),
+    stremear: new Map(),
   };
   const trainingByCategory = { gimnasio: 0, natacion: 0, casa: 0 };
   const trainingMinutesByCategory = { gimnasio: 0, natacion: 0, casa: 0 };
@@ -239,6 +251,13 @@ export function computePeriodStats(
         for (const timer of dayTimers[key]) {
           const map = workTimerSecondsByName[key];
           map.set(timer.name, (map.get(timer.name) ?? 0) + timer.seconds);
+          if (timer.items && timer.items.length > 0) {
+            const itemsMap = workTimerItemsByName[key];
+            const prev = itemsMap.get(timer.name) ?? [];
+            const byId = new Map(prev.map((i) => [i.id, i]));
+            for (const item of timer.items) byId.set(item.id, item);
+            itemsMap.set(timer.name, [...byId.values()]);
+          }
         }
       }
       if (log.sleepHours !== null && log.sleepHours !== undefined) {
@@ -376,7 +395,14 @@ export function computePeriodStats(
   const workTimersByCategory = emptyWorkTimers();
   for (const key of Object.keys(workTimerSecondsByName) as WorkCategoryKey[]) {
     workTimersByCategory[key] = [...workTimerSecondsByName[key].entries()]
-      .map(([name, seconds]) => ({ name, seconds }))
+      .map(([name, seconds]) => {
+        const items = workTimerItemsByName[key].get(name);
+        return {
+          name,
+          seconds,
+          ...(items && items.length > 0 ? { items } : {}),
+        };
+      })
       .sort((a, b) => b.seconds - a.seconds);
   }
 

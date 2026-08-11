@@ -22,6 +22,7 @@ import {
   Moon,
   Newspaper,
   Play,
+  Radio,
   Salad,
   Sparkles,
   StickyNote,
@@ -49,15 +50,15 @@ import {
   periodCompareLabel,
   periodTitle,
   trainingCategoryCards,
-  workCategoryBars,
   WORK_CATEGORY_META,
   type ErpPeriod,
   type KpiView,
   type PeriodStats,
   type WeekCompareRow,
 } from "@/app/admin92/erp/lib/erpAggregates";
-import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, type ErpDayLog, type ErpMembershipMonth, type ErpMembershipServiceKey, type ErpWorkTimer, type WorkCategoryKey } from "@/app/admin92/erp/lib/erpTypes";
+import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, sumWorkHours, type ErpDayLog, type ErpMembershipMonth, type ErpMembershipServiceKey, type WorkCategoryKey } from "@/app/admin92/erp/lib/erpTypes";
 import { formatCurrency, formatLocalDate, formatMonthLabel, MONTH_NAMES, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
+import WorkCategoriesEditor from "@/app/admin92/erp/components/WorkCategoriesEditor";
 
 const MEMBERSHIP_SERVICES: {
   key: ErpMembershipServiceKey;
@@ -68,101 +69,6 @@ const MEMBERSHIP_SERVICES: {
   { key: "natacion", label: "Natación", tag: "N" },
   { key: "cursor", label: "Cursor", tag: "C" },
 ];
-
-type WorkCategoryBar = {
-  key: WorkCategoryKey;
-  name: string;
-  color: string;
-  hours: number;
-  timers: ErpWorkTimer[];
-};
-
-function WorkCategoriesAccordion({
-  categories,
-  workTotal,
-  icons,
-}: {
-  categories: WorkCategoryBar[];
-  workTotal: number;
-  icons: Record<WorkCategoryKey, ComponentType<{ className?: string }>>;
-}) {
-  const [expanded, setExpanded] = useState<Partial<Record<WorkCategoryKey, boolean>>>(
-    {},
-  );
-
-  const toggle = (key: WorkCategoryKey) => {
-    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  return (
-    <div className="space-y-3">
-      {categories.map((cat) => {
-        const Icon = icons[cat.key];
-        const pct = workTotal > 0 ? Math.round((cat.hours / workTotal) * 100) : 0;
-        const open = Boolean(expanded[cat.key]);
-        return (
-          <div key={cat.key}>
-            <button
-              type="button"
-              onClick={() => toggle(cat.key)}
-              aria-expanded={open}
-              className="group w-full cursor-pointer rounded-lg text-left transition hover:bg-slate-50/80"
-            >
-              <div className="mb-1.5 flex items-center justify-between gap-2 px-1 py-0.5">
-                <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-slate-700">
-                  {open ? (
-                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                  ) : (
-                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                  )}
-                  <Icon className="h-4 w-4 shrink-0 text-slate-400" />
-                  <span className="truncate">{cat.name}</span>
-                </span>
-                <span className="shrink-0 text-sm font-bold text-slate-950">
-                  {formatHoursAsHm(cat.hours)} hs
-                  <span className="ml-1.5 text-xs font-semibold text-slate-400">{pct}%</span>
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${pct}%`, backgroundColor: cat.color }}
-                />
-              </div>
-            </button>
-            <div
-              className="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
-              style={{
-                gridTemplateRows: open ? "1fr" : "0fr",
-                opacity: open ? 1 : 0,
-              }}
-            >
-              <div className="overflow-hidden">
-                <ul className="mt-2 space-y-1.5 border-l-2 border-slate-100 pl-3 ml-2">
-                  {cat.timers.length === 0 ? (
-                    <li className="text-xs text-slate-400">Sin desglose de timers</li>
-                  ) : (
-                    cat.timers.map((timer) => (
-                      <li
-                        key={`${cat.key}-${timer.name}`}
-                        className="flex items-center justify-between gap-3 text-xs text-slate-600"
-                      >
-                        <span className="min-w-0 truncate">{timer.name}</span>
-                        <span className="shrink-0 font-mono font-semibold text-slate-800">
-                          {formatHoursAsHm(timer.seconds / 3600)}
-                        </span>
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 const colorClasses = {
   blue: "bg-blue-50 text-blue-600 ring-blue-100",
@@ -189,6 +95,7 @@ const workIcons = {
   planificacion: Target,
   branding: Megaphone,
   itNews: Newspaper,
+  stremear: Radio,
 } as const;
 
 const trainingIcons = {
@@ -220,6 +127,9 @@ type Props = {
   kpis: KpiView[];
   focusLog: ErpDayLog | undefined;
   periodLogs: ErpDayLog[];
+  workEditLog: ErpDayLog;
+  onPersistWorkEditLog: (log: ErpDayLog) => Promise<void>;
+  workEditSaving?: boolean;
   loading: boolean;
   hasData: boolean;
   membershipMonth: string;
@@ -796,6 +706,9 @@ export default function ErpDashboard({
   kpis,
   focusLog,
   periodLogs,
+  workEditLog,
+  onPersistWorkEditLog,
+  workEditSaving = false,
   loading,
   hasData,
   membershipMonth,
@@ -808,7 +721,6 @@ export default function ErpDashboard({
   weekCompare,
 }: Props) {
   const [chartsReady, setChartsReady] = useState(false);
-  const workCats = workCategoryBars(current);
   const trainingCats = trainingCategoryCards(current);
   const workTotal = current.workHours;
   const trainingTotal = current.trainingDays;
@@ -893,6 +805,28 @@ export default function ErpDashboard({
 
   return (
     <div className="space-y-6">
+      <section>
+        <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-base font-bold text-slate-950">Categorías de trabajo</h2>
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Editá nombres, tiempos e ítems · click en un timer
+              </p>
+            </div>
+            <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+              {formatHoursAsHm(sumWorkHours(workEditLog.work))} hs
+            </span>
+          </div>
+          <WorkCategoriesEditor
+            editLog={workEditLog}
+            onPersist={onPersistWorkEditLog}
+            persisting={workEditSaving}
+            icons={workIcons}
+          />
+        </article>
+      </section>
+
       <section>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
@@ -1124,24 +1058,7 @@ export default function ErpDashboard({
         </section>
       )}
 
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-950">Categorías de trabajo</h2>
-              <p className="mt-1 text-xs text-slate-400">Desglose de horas trabajadas</p>
-            </div>
-            <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-              {formatHoursAsHm(workTotal)} hs
-            </span>
-          </div>
-          <WorkCategoriesAccordion
-            categories={workCats}
-            workTotal={workTotal}
-            icons={workIcons}
-          />
-        </article>
-
+      <section>
         <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>

@@ -4,13 +4,31 @@ export type ErpWorkHours = {
   planificacion: number;
   branding: number;
   itNews: number;
+  stremear: number;
 };
 
 /** Timer individual dentro de una categoría de trabajo */
+export type ErpWorkTimerItem = {
+  id: string;
+  text: string;
+  done: boolean;
+};
+
 export type ErpWorkTimer = {
   name: string;
-  /** Duración en segundos (desde H:MM:SS del paste) */
+  /** Duración en segundos (desde H:MM:SS del paste o timer live) */
   seconds: number;
+  /** Checklist / ramas bajo este timer (ej. Analia → conectar wpp) */
+  items?: ErpWorkTimerItem[];
+};
+
+/** Timer en curso (uno solo por día) */
+export type ErpActiveWorkTimer = {
+  category: WorkCategoryKey;
+  name: string;
+  /** ISO: inicio del tramo actual */
+  startedAt: string;
+  items: ErpWorkTimerItem[];
 };
 
 /** Sesión de entrenamiento: done + minutos opcionales + notas (series, etc.) */
@@ -46,6 +64,8 @@ export type ErpDayLog = {
   work: ErpWorkHours;
   /** Desglose de timers por categoría; docs viejos → vacíos */
   workTimers: ErpWorkTimers;
+  /** Timer live en curso (máx. uno); null/undefined = ninguno */
+  activeWorkTimer?: ErpActiveWorkTimer | null;
   training: ErpTraining;
   /** Práctica de inglés, separada del entrenamiento físico */
   english: ErpTrainingSession;
@@ -237,6 +257,7 @@ export const WORK_CATEGORY_META: {
   { key: "planificacion", name: "Planificación", shortLabel: "Planificación", color: "#0891b2" },
   { key: "branding", name: "Branding / Marketing", shortLabel: "Branding", color: "#ea580c" },
   { key: "itNews", name: "IT News", shortLabel: "IT News", color: "#0f766e" },
+  { key: "stremear", name: "Stremear", shortLabel: "Stremear", color: "#db2777" },
 ];
 
 export const TRAINING_CATEGORY_META: {
@@ -255,6 +276,7 @@ export const EMPTY_WORK: ErpWorkHours = {
   planificacion: 0,
   branding: 0,
   itNews: 0,
+  stremear: 0,
 };
 
 export function emptyWorkTimers(): ErpWorkTimers {
@@ -264,7 +286,155 @@ export function emptyWorkTimers(): ErpWorkTimers {
     planificacion: [],
     branding: [],
     itNews: [],
+    stremear: [],
   };
+}
+
+export function newWorkTimerItemId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `item-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export function normalizeWorkTimerItems(raw: unknown): ErpWorkTimerItem[] {
+  if (!Array.isArray(raw)) return [];
+  const items: ErpWorkTimerItem[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const row = entry as Record<string, unknown>;
+    const text = typeof row.text === "string" ? row.text.trim().slice(0, 300) : "";
+    if (!text) continue;
+    const id =
+      typeof row.id === "string" && row.id.trim()
+        ? row.id.trim().slice(0, 80)
+        : newWorkTimerItemId();
+    items.push({ id, text, done: Boolean(row.done) });
+  }
+  return items.slice(0, 40);
+}
+
+export function normalizeActiveWorkTimer(raw: unknown): ErpActiveWorkTimer | null {
+  if (raw == null) return null;
+  if (!raw || typeof raw !== "object") return null;
+  const row = raw as Record<string, unknown>;
+  const category = row.category;
+  if (
+    category !== "software" &&
+    category !== "saas" &&
+    category !== "planificacion" &&
+    category !== "branding" &&
+    category !== "itNews" &&
+    category !== "stremear"
+  ) {
+    return null;
+  }
+  const name = typeof row.name === "string" ? row.name.trim().slice(0, 200) : "";
+  const startedAt = typeof row.startedAt === "string" ? row.startedAt : "";
+  if (!startedAt || Number.isNaN(Date.parse(startedAt))) return null;
+  return {
+    category,
+    name,
+    startedAt,
+    items: normalizeWorkTimerItems(row.items),
+  };
+}
+
+export function elapsedActiveSeconds(
+  active: ErpActiveWorkTimer,
+  nowMs: number = Date.now(),
+): number {
+  const start = Date.parse(active.startedAt);
+  if (!Number.isFinite(start)) return 0;
+  return Math.max(0, Math.floor((nowMs - start) / 1000));
+}
+
+function mergeWorkTimerItems(
+  existing: ErpWorkTimerItem[] | undefined,
+  incoming: ErpWorkTimerItem[],
+): ErpWorkTimerItem[] {
+  const byId = new Map<string, ErpWorkTimerItem>();
+  for (const item of existing ?? []) byId.set(item.id, item);
+  for (const item of incoming) {
+    const prev = byId.get(item.id);
+    byId.set(item.id, prev ? { ...prev, ...item, text: item.text || prev.text } : item);
+  }
+  return [...byId.values()].slice(0, 40);
+}
+
+/** Nombre por defecto si el timer live se detiene sin título */
+export const UNNAMED_WORK_TIMER = "Sin nombre";
+
+export function resolveWorkTimerName(name: string): string {
+  const trimmed = name.trim().slice(0, 200);
+  return trimmed || UNNAMED_WORK_TIMER;
+}
+
+/** Detiene el timer activo y acumula segundos + items en workTimers del día. */
+export function stopActiveWorkTimerOnLog(
+  log: ErpDayLog,
+  nowMs: number = Date.now(),
+): ErpDayLog {
+  const active = normalizeActiveWorkTimer(log.activeWorkTimer ?? null);
+  if (!active) return { ...log, activeWorkTimer: null };
+
+  const elapsed = elapsedActiveSeconds(active, nowMs);
+  const resolvedName = resolveWorkTimerName(active.name);
+  const workTimers = normalizeWorkTimers(log.workTimers);
+  const list = [...workTimers[active.category]];
+  const idx = list.findIndex(
+    (t) => t.name.trim().toLowerCase() === resolvedName.toLowerCase(),
+  );
+  if (idx >= 0) {
+    const prev = list[idx];
+    list[idx] = {
+      name: prev.name,
+      seconds: prev.seconds + elapsed,
+      items: mergeWorkTimerItems(prev.items, active.items),
+    };
+  } else {
+    list.push({
+      name: resolvedName,
+      seconds: elapsed,
+      items: active.items,
+    });
+  }
+  workTimers[active.category] = list;
+
+  const work = normalizeWork(log.work);
+  work[active.category] = (work[active.category] ?? 0) + elapsed / 3600;
+
+  return {
+    ...log,
+    work,
+    workTimers,
+    activeWorkTimer: null,
+  };
+}
+
+export function startActiveWorkTimerOnLog(
+  log: ErpDayLog,
+  category: WorkCategoryKey,
+  name: string,
+  nowMs: number = Date.now(),
+): ErpDayLog {
+  const trimmed = name.trim().slice(0, 200);
+  let next = log.activeWorkTimer ? stopActiveWorkTimerOnLog(log, nowMs) : log;
+  const existing = trimmed
+    ? normalizeWorkTimers(next.workTimers)[category].find(
+        (t) => t.name.trim().toLowerCase() === trimmed.toLowerCase(),
+      )
+    : undefined;
+  next = {
+    ...next,
+    activeWorkTimer: {
+      category,
+      name: existing?.name ?? trimmed,
+      startedAt: new Date(nowMs).toISOString(),
+      items: existing?.items ? [...existing.items] : [],
+    },
+  };
+  return next;
 }
 
 export function normalizeWorkTimers(raw: unknown): ErpWorkTimers {
@@ -281,7 +451,12 @@ export function normalizeWorkTimers(raw: unknown): ErpWorkTimers {
       const name = typeof entry.name === "string" ? entry.name.trim().slice(0, 200) : "";
       const seconds = Number(entry.seconds);
       if (!name || !Number.isFinite(seconds) || seconds < 0) continue;
-      timers.push({ name, seconds: Math.round(seconds) });
+      const items = normalizeWorkTimerItems(entry.items);
+      timers.push({
+        name,
+        seconds: Math.round(seconds),
+        ...(items.length > 0 ? { items } : {}),
+      });
     }
     base[key] = timers;
   }
@@ -352,6 +527,7 @@ export function emptyDayLog(date: string): ErpDayLog {
     alarm: { rangAt: null, snoozedTimes: null, startedWorkAt: null },
     work: { ...EMPTY_WORK },
     workTimers: emptyWorkTimers(),
+    activeWorkTimer: null,
     training: {
       gimnasio: emptyTrainingSession(),
       natacion: emptyTrainingSession(),
@@ -610,12 +786,30 @@ export function validateErpDayLog(
         if (!Number.isFinite(seconds) || seconds < 0) {
           return { ok: false, error: `La duración de un timer en ${key} es inválida` };
         }
+        const items = normalizeWorkTimerItems(entry.items);
+        if (entry.items !== undefined && !Array.isArray(entry.items)) {
+          return { ok: false, error: `Los ítems de un timer en ${key} son inválidos` };
+        }
         timers.push({
           name: entry.name.trim().slice(0, 200),
           seconds: Math.round(seconds),
+          ...(items.length > 0 ? { items } : {}),
         });
       }
       workTimers[key] = timers;
+    }
+  }
+
+  let activeWorkTimer: ErpActiveWorkTimer | null = null;
+  if (value.activeWorkTimer !== undefined) {
+    if (value.activeWorkTimer === null) {
+      activeWorkTimer = null;
+    } else {
+      const parsed = normalizeActiveWorkTimer(value.activeWorkTimer);
+      if (!parsed) {
+        return { ok: false, error: "El timer activo es inválido" };
+      }
+      activeWorkTimer = parsed;
     }
   }
 
@@ -753,6 +947,7 @@ export function validateErpDayLog(
       alarm: { rangAt, snoozedTimes, startedWorkAt },
       work,
       workTimers,
+      activeWorkTimer,
       training,
       english,
       creatine,
