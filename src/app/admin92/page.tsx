@@ -10,8 +10,14 @@ import { formatRecordatorioMensaje, MENSAJE_ESTADISTICAS, MENSAJE_RECORDATORIO_P
 import HerramientasPanel from "@/app/admin92/contabilidad/components/HerramientasPanel";
 import CuotaNotaEditor from "@/app/admin92/contabilidad/components/CuotaNotaEditor";
 import CuotaOperativaPanel from "@/app/admin92/contabilidad/components/CuotaOperativaPanel";
+import Desarrollo50TasksBlock from "@/app/admin92/contabilidad/components/Desarrollo50TasksBlock";
 import CambiosPendientesSidebar from "@/app/admin92/contabilidad/components/CambiosPendientesSidebar";
 import ConfirmarPagoCobro from "@/app/admin92/contabilidad/components/ConfirmarPagoCobro";
+import {
+  mapDesarrollo50Doc,
+  sortDesarrollos50,
+  type Desarrollo50Item,
+} from "@/app/admin92/contabilidad/lib/desarrollos50";
 import {
   buildTareasCambioDelMes,
   getMesesConCambiosAtrasados,
@@ -204,6 +210,8 @@ function Admin92PageContent() {
   const [cobros, setCobros] = useState<Cobro[]>([]);
   const [cobroLoading, setCobroLoading] = useState(false);
   const [cobroError, setCobroError] = useState("");
+  const [desarrollos50, setDesarrollos50] = useState<Desarrollo50Item[]>([]);
+  const [desarrollosRefreshKey, setDesarrollosRefreshKey] = useState(0);
   const [cobroSubmitting, setCobroSubmitting] = useState(false);
   const [cobroFormMode, setCobroFormMode] = useState<"single" | "recurrent" | "actions">("single");
   const [showSingleCobroForm, setShowSingleCobroForm] = useState(false);
@@ -375,6 +383,21 @@ function Admin92PageContent() {
     }
   };
 
+  const fetchDesarrollos50 = async () => {
+    try {
+      const res = await fetch("/api/admin/desarrollos-50");
+      const data = await res.json();
+      if (!res.ok) return;
+      const list = Array.isArray(data.desarrollos)
+        ? sortDesarrollos50(data.desarrollos.map(mapDesarrollo50Doc))
+        : [];
+      setDesarrollos50(list);
+      setDesarrollosRefreshKey((k) => k + 1);
+    } catch {
+      /* silencioso */
+    }
+  };
+
   const fetchProyectos = async () => {
     try {
       const res = await fetch("/api/admin/proyectos", { method: "GET" });
@@ -404,6 +427,7 @@ function Admin92PageContent() {
     if (activeTab === "contabilidad") {
       fetchRecords();
       fetchCobros();
+      fetchDesarrollos50();
       fetchProyectos();
     }
   }, [activeTab]);
@@ -639,6 +663,11 @@ function Admin92PageContent() {
       return a.clientName.localeCompare(b.clientName);
     });
   }, [cobros, selectedDate]);
+
+  const dayDesarrollos50 = useMemo(() => {
+    if (!selectedDate) return [];
+    return desarrollos50.filter((d) => d.fechaCobro50 === selectedDate);
+  }, [desarrollos50, selectedDate]);
 
   const cuotaEsperadaLabel = (c: Cobro) =>
     c.servicio ? `${c.clientName} (${c.servicio}) - Cuota` : `${c.clientName} - Cuota`;
@@ -1752,7 +1781,11 @@ function Admin92PageContent() {
                 selectedDate={selectedDate}
                 markers={calendarMarkers}
                 cuotasDelMes={cobrosEnMes.length}
-                onDesarrollosAccountingChange={fetchRecords}
+                desarrollosRefreshKey={desarrollosRefreshKey}
+                onDesarrollosAccountingChange={() => {
+                  fetchRecords();
+                  void fetchDesarrollos50();
+                }}
                 onSelectDate={(date) => {
                   setFocusedCobroId(null);
                   setSelectedDate((prev) => (prev === date ? null : date));
@@ -1928,15 +1961,53 @@ function Admin92PageContent() {
 
               {accLoading && records.length === 0 && cobroLoading && cobros.length === 0 ? (
                 <p className="text-slate-600 py-8 text-center">Cargando...</p>
-              ) : dayRecords.length === 0 && dayCuotas.length === 0 ? (
+              ) : dayRecords.length === 0 && dayCuotas.length === 0 && dayDesarrollos50.length === 0 ? (
                 <p className="text-slate-600 py-8 text-center">
                   {selectedDate
-                    ? "No hay movimientos ni cuotas este día."
+                    ? "No hay movimientos, cuotas ni desarrollos 50% este día."
                     : `No hay registros para ${formatMonthLabel(contabilidadMonth)}.`}
                 </p>
               ) : (
                 <div className="space-y-6">
                   {/* Cuotas del mes ocultas; solo detalle del día al clic en el calendario */}
+                  {selectedDate && dayDesarrollos50.length > 0 && (
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-3">
+                        Desarrollos 50% del día
+                      </h3>
+                      <div className="space-y-2">
+                        {dayDesarrollos50.map((d) => (
+                          <div
+                            key={d.id}
+                            className="rounded-xl border border-sky-200 bg-sky-50/40 p-3"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-slate-900">
+                                  {d.clientName}
+                                  <span className="font-normal text-slate-500"> — {d.name}</span>
+                                </p>
+                                <p className="text-xs text-slate-600 mt-0.5">
+                                  {d.type !== "—" ? `${d.type} · ` : ""}
+                                  1.er 50%
+                                  {d.montoCobrado50 !== undefined
+                                    ? ` · $${d.montoCobrado50.toLocaleString("es-AR")} ARS`
+                                    : ""}
+                                </p>
+                              </div>
+                              <span className="shrink-0 rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-800">
+                                Desarrollo 50%
+                              </span>
+                            </div>
+                            <Desarrollo50TasksBlock
+                              desarrollo={d}
+                              onUpdated={() => void fetchDesarrollos50()}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {selectedDate && dayCuotas.length > 0 && (
                     <div>
                       <h3 className="text-sm font-semibold text-slate-800 mb-3">Cuotas del día</h3>

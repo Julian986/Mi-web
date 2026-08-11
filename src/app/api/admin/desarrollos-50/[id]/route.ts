@@ -51,6 +51,47 @@ export async function PATCH(
     if (body.activo !== undefined) {
       patch.activo = Boolean(body.activo);
     }
+    if (body.cambioPendiente !== undefined) {
+      patch.cambioPendiente = Boolean(body.cambioPendiente);
+    }
+    if (body.solicitudTasks !== undefined) {
+      if (!Array.isArray(body.solicitudTasks)) {
+        return NextResponse.json(
+          { error: "solicitudTasks debe ser un array" },
+          { status: 400 },
+        );
+      }
+      patch.solicitudTasks = body.solicitudTasks
+        .map(
+          (t: {
+            id?: string;
+            text?: string;
+            done?: boolean;
+            createdAt?: string;
+            fueraColaActiva?: boolean;
+            fechaRealizada?: string;
+          }) => {
+            const created =
+              t.createdAt && /^\d{4}-\d{2}-\d{2}$/.test(String(t.createdAt))
+                ? String(t.createdAt)
+                : undefined;
+            const realizada =
+              t.fechaRealizada && /^\d{4}-\d{2}-\d{2}$/.test(String(t.fechaRealizada))
+                ? String(t.fechaRealizada)
+                : undefined;
+            const done = Boolean(t.done);
+            return {
+              id: String(t.id || "").trim() || `t_${Date.now()}`,
+              text: String(t.text || "").trim(),
+              done,
+              ...(created ? { createdAt: created } : {}),
+              ...(t.fueraColaActiva ? { fueraColaActiva: true } : {}),
+              ...(done && realizada ? { fechaRealizada: realizada } : {}),
+            };
+          },
+        )
+        .filter((t: { text: string }) => t.text.length > 0);
+    }
 
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: "Nada que actualizar" }, { status: 400 });

@@ -31,6 +31,8 @@ type Props = {
   selectedDate: string | null;
   markers: CalendarMarkers;
   cuotasDelMes?: number;
+  /** Incrementar para forzar refresh de puntos/contador de desarrollos */
+  desarrollosRefreshKey?: number;
   onDesarrollosAccountingChange?: () => void;
   onSelectDate: (date: string) => void;
   onPrevMonth: () => void;
@@ -81,6 +83,7 @@ export default function MonthCalendar({
   selectedDate,
   markers,
   cuotasDelMes = 0,
+  desarrollosRefreshKey = 0,
   onDesarrollosAccountingChange,
   onSelectDate,
   onPrevMonth,
@@ -90,8 +93,10 @@ export default function MonthCalendar({
   const [showLegend, setShowLegend] = useState(false);
   const [desarrollosOpen, setDesarrollosOpen] = useState(false);
   const [desarrollosCount, setDesarrollosCount] = useState(0);
-  /** fechaCobro50 de desarrollos activos (un punto por desarrollo en el calendario) */
-  const [desarrolloFechas, setDesarrolloFechas] = useState<string[]>([]);
+  /** Markers de desarrollos activos para el calendario (fecha + borde cambio) */
+  const [desarrolloDots, setDesarrolloDots] = useState<
+    { fechaCobro50: string; cambioPendiente: boolean }[]
+  >([]);
 
   useEffect(() => {
     setClientToday(todayYmd());
@@ -105,12 +110,15 @@ export default function MonthCalendar({
       if (!res.ok) return;
       const list = Array.isArray(data.desarrollos) ? data.desarrollos : [];
       setDesarrollosCount(list.length);
-      setDesarrolloFechas(
+      setDesarrolloDots(
         list
-          .map((d: { fechaCobro50?: string }) => d.fechaCobro50)
+          .map((d: { fechaCobro50?: string; cambioPendiente?: boolean }) => ({
+            fechaCobro50: d.fechaCobro50,
+            cambioPendiente: Boolean(d.cambioPendiente),
+          }))
           .filter(
-            (f: string | undefined): f is string =>
-              typeof f === "string" && /^\d{4}-\d{2}-\d{2}$/.test(f),
+            (d: { fechaCobro50?: string }): d is { fechaCobro50: string; cambioPendiente: boolean } =>
+              typeof d.fechaCobro50 === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.fechaCobro50),
           ),
       );
     } catch {
@@ -120,7 +128,7 @@ export default function MonthCalendar({
 
   useEffect(() => {
     void refreshDesarrollosCount();
-  }, [refreshDesarrollosCount]);
+  }, [refreshDesarrollosCount, desarrollosRefreshKey]);
 
   const handleDesarrollosAccountingChange = useCallback(() => {
     void refreshDesarrollosCount();
@@ -177,7 +185,7 @@ export default function MonthCalendar({
           const isSelected = selectedDate === date;
           const isToday = clientToday !== null && date === clientToday;
           const hasCuotas = (dayMarkers?.cuotas.length ?? 0) > 0;
-          const desarrollosDelDia = desarrolloFechas.filter((f) => f === date);
+          const desarrollosDelDia = desarrolloDots.filter((d) => d.fechaCobro50 === date);
           const hasDesarrollos = desarrollosDelDia.length > 0;
           const showDots =
             Boolean(dayMarkers?.inversion) || hasCuotas || hasDesarrollos;
@@ -209,12 +217,11 @@ export default function MonthCalendar({
                   {dayMarkers?.cuotas.map((dot, idx) => (
                     <CuotaCalendarDot key={idx} estado={dot.estado} border={dot.border} />
                   ))}
-                  {desarrollosDelDia.map((_, idx) => (
-                    <span
+                  {desarrollosDelDia.map((d, idx) => (
+                    <CuotaCalendarDot
                       key={`d50-${idx}`}
-                      className="h-1 w-1 shrink-0 rounded-full"
-                      style={{ backgroundColor: MARKER_COLORS.desarrollo50 }}
-                      title="Desarrollo 50%"
+                      estado="pagada"
+                      border={d.cambioPendiente ? "cambio" : "none"}
                     />
                   ))}
                 </span>

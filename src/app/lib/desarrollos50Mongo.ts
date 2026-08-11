@@ -1,5 +1,14 @@
 import { getMongoClient } from "@/app/lib/mongoClient";
 
+export type Desarrollo50SolicitudTask = {
+  id: string;
+  text: string;
+  done: boolean;
+  createdAt?: string;
+  fueraColaActiva?: boolean;
+  fechaRealizada?: string;
+};
+
 export type Desarrollo50Doc = {
   _id?: string;
   clientName: string;
@@ -12,6 +21,10 @@ export type Desarrollo50Doc = {
   montoCobrado50Final?: number;
   accountingRecordIdFinal?: string;
   activo: boolean;
+  /** Cambio pendiente (borde ámbar en calendario), igual que cuotas */
+  cambioPendiente?: boolean;
+  /** Tareas operativas del desarrollo (misma shape que cuotas) */
+  solicitudTasks?: Desarrollo50SolicitudTask[];
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -84,6 +97,8 @@ export async function updateDesarrollo50(
       | "montoCobrado50Final"
       | "accountingRecordIdFinal"
       | "activo"
+      | "cambioPendiente"
+      | "solicitudTasks"
     >
   >,
 ): Promise<boolean> {
@@ -95,7 +110,7 @@ export async function updateDesarrollo50(
     { _id: new ObjectId(id) },
     { $set: { ...patch, updatedAt: new Date() } },
   );
-  return result.modifiedCount > 0;
+  return result.matchedCount > 0;
 }
 
 export async function deleteDesarrollo50(id: string): Promise<boolean> {

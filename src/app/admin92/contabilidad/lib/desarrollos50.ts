@@ -1,3 +1,5 @@
+import type { SolicitudTask } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
+
 export type Desarrollo50Item = {
   id: string;
   clientName: string;
@@ -6,6 +8,13 @@ export type Desarrollo50Item = {
   fechaCobro50?: string;
   montoCobrado50?: number;
   accountingRecordId?: string;
+  cambioPendiente?: boolean;
+  solicitudTasks?: SolicitudTask[];
+};
+
+export type Desarrollo50DotMarker = {
+  fechaCobro50: string;
+  cambioPendiente: boolean;
 };
 
 export function mapDesarrollo50Doc(raw: {
@@ -17,6 +26,8 @@ export function mapDesarrollo50Doc(raw: {
   fechaCobro50?: string;
   montoCobrado50?: number;
   accountingRecordId?: string;
+  cambioPendiente?: boolean;
+  solicitudTasks?: SolicitudTask[];
 }): Desarrollo50Item {
   return {
     id: raw._id ?? raw.id ?? "",
@@ -26,6 +37,8 @@ export function mapDesarrollo50Doc(raw: {
     fechaCobro50: raw.fechaCobro50,
     montoCobrado50: raw.montoCobrado50,
     accountingRecordId: raw.accountingRecordId,
+    cambioPendiente: Boolean(raw.cambioPendiente),
+    solicitudTasks: Array.isArray(raw.solicitudTasks) ? raw.solicitudTasks : undefined,
   };
 }
 

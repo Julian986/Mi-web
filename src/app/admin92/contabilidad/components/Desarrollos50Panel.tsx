@@ -11,6 +11,7 @@ import {
   type Desarrollo50Item,
 } from "@/app/admin92/contabilidad/lib/desarrollos50";
 import { formatLocalDate, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
+import Desarrollo50TasksBlock from "@/app/admin92/contabilidad/components/Desarrollo50TasksBlock";
 
 type Props = {
   onCountChange?: (count: number) => void;
@@ -265,6 +266,15 @@ export default function Desarrollos50Panel({ onCountChange, onAccountingChange }
                   </button>
                 </div>
               )}
+              <div className="mt-2 border-t border-sky-100 pt-2">
+                <Desarrollo50TasksBlock
+                  desarrollo={d}
+                  onUpdated={() => {
+                    void load();
+                    onAccountingChange?.();
+                  }}
+                />
+              </div>
             </li>
           ))}
         </ul>
