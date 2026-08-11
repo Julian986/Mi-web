@@ -547,6 +547,7 @@ export default function ErpPage() {
               onPersistWorkEditLog={handlePersistWorkEditLog}
               workEditSaving={workEditSaving}
               activeWorkTimer={todayLog.activeWorkTimer ?? null}
+              countsLiveTimer={dates.includes(today)}
               onStartLiveTimer={handleStartLiveTimer}
               timerSaving={timerSaving}
               loading={loading}

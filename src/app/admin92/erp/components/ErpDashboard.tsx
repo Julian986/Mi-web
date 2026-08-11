@@ -57,8 +57,9 @@ import {
   type PeriodStats,
   type WeekCompareRow,
 } from "@/app/admin92/erp/lib/erpAggregates";
-import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, emptyDayLog, sumWorkHours, type ErpActiveWorkTimer, type ErpDayLog, type ErpMembershipMonth, type ErpMembershipServiceKey, type WorkCategoryKey } from "@/app/admin92/erp/lib/erpTypes";
+import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, emptyDayLog, elapsedActiveSeconds, normalizeActiveWorkTimer, sumWorkHours, type ErpActiveWorkTimer, type ErpDayLog, type ErpMembershipMonth, type ErpMembershipServiceKey, type WorkCategoryKey } from "@/app/admin92/erp/lib/erpTypes";
 import { formatCurrency, formatLocalDate, formatMonthLabel, MONTH_NAMES, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
+import { formatSecondsAsClock } from "@/app/admin92/erp/lib/parseWorkTimersPaste";
 import WorkCategoriesEditor from "@/app/admin92/erp/components/WorkCategoriesEditor";
 import WorkCategoriesHistory from "@/app/admin92/erp/components/WorkCategoriesHistory";
 
@@ -133,6 +134,8 @@ type Props = {
   onPersistWorkEditLog: (log: ErpDayLog) => Promise<void>;
   workEditSaving?: boolean;
   activeWorkTimer?: ErpActiveWorkTimer | null;
+  /** Si el timer live de hoy cuenta para el período visible */
+  countsLiveTimer?: boolean;
   onStartLiveTimer?: (category: WorkCategoryKey, name: string) => Promise<void>;
   timerSaving?: boolean;
   loading: boolean;
@@ -715,6 +718,7 @@ export default function ErpDashboard({
   onPersistWorkEditLog,
   workEditSaving = false,
   activeWorkTimer = null,
+  countsLiveTimer = false,
   onStartLiveTimer,
   timerSaving = false,
   loading,
@@ -732,6 +736,20 @@ export default function ErpDashboard({
   const [categoriesTab, setCategoriesTab] = useState<"categories" | "history">(
     "categories",
   );
+  const [liveNowMs, setLiveNowMs] = useState(() => Date.now());
+  const liveActive = useMemo(
+    () => normalizeActiveWorkTimer(activeWorkTimer ?? null),
+    [activeWorkTimer],
+  );
+  const liveTicking = Boolean(liveActive && countsLiveTimer);
+
+  useEffect(() => {
+    if (!liveTicking) return;
+    setLiveNowMs(Date.now());
+    const id = window.setInterval(() => setLiveNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, [liveTicking, liveActive?.startedAt]);
+
   const trainingCats = trainingCategoryCards(current);
   const workTotal = current.workHours;
   const trainingTotal = current.trainingDays;
@@ -750,9 +768,17 @@ export default function ErpDashboard({
     current.workByCategory,
     current.workTimersByCategory,
   ]);
-  const categoriesHours = categoriesPeriodMode
+  const categoriesHoursBase = categoriesPeriodMode
     ? current.workHours
     : sumWorkHours(workEditLog.work);
+  const categoriesBaseSeconds = Math.max(0, Math.round(categoriesHoursBase * 3600));
+  const liveExtraSeconds =
+    liveTicking && liveActive
+      ? elapsedActiveSeconds(liveActive, liveNowMs)
+      : 0;
+  const categoriesLiveLabel = liveTicking
+    ? `${formatSecondsAsClock(categoriesBaseSeconds + liveExtraSeconds)} hs`
+    : `${formatHoursAsHm(categoriesHoursBase)} hs`;
   const categoriesSubtitle = categoriesPeriodMode
     ? `${rangeLabel} · resumen del período`
     : undefined;
@@ -850,8 +876,8 @@ export default function ErpDashboard({
               </p>
             </div>
             <span className="erp-categories-total inline-flex items-center gap-1.5">
-              <span className="text-sm font-bold text-slate-950">
-                {formatHoursAsHm(categoriesHours)} hs
+              <span className="text-sm font-bold tabular-nums text-slate-950">
+                {categoriesLiveLabel}
               </span>
               <LampDesk
                 className="h-4 w-4 shrink-0 text-slate-400"

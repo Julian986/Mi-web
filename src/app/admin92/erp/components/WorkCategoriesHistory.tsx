@@ -125,7 +125,10 @@ export default function WorkCategoriesHistory({
                       </span>
                       <span className="shrink-0 text-sm font-bold text-slate-950">
                         {formatHoursAsHm(cat.hours)} hs
-                        <span className="ml-1.5 text-xs font-semibold text-slate-500">
+                        <span
+                          className="ml-2 text-sm font-bold tabular-nums"
+                          style={{ color: "#1571d4" }}
+                        >
                           {pct}%
                         </span>
                       </span>

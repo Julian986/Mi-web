@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
-import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronRight, Trash2 } from "lucide-react";
 import {
   formatHoursAsHm,
   normalizeWork,
@@ -62,6 +62,10 @@ type EditingTarget =
   | { kind: "timer"; category: WorkCategoryKey; index: number }
   | { kind: "orphan"; category: WorkCategoryKey };
 
+type DeleteConfirm =
+  | { kind: "timer"; category: WorkCategoryKey; index: number; name: string }
+  | { kind: "orphan"; category: WorkCategoryKey };
+
 export default function WorkCategoriesEditor({
   editLog,
   onPersist,
@@ -81,6 +85,7 @@ export default function WorkCategoriesEditor({
   const [draftTime, setDraftTime] = useState("");
   const [draftItems, setDraftItems] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirm | null>(null);
   const editingRef = useRef<HTMLLIElement | null>(null);
 
   const workTimers = useMemo(
@@ -120,6 +125,7 @@ export default function WorkCategoriesEditor({
 
   useEffect(() => {
     setEditingKey(null);
+    setDeleteConfirm(null);
   }, [editLog.date, readOnly]);
 
   useEffect(() => {
@@ -145,7 +151,16 @@ export default function WorkCategoriesEditor({
   }, [editingKey, workTimers, work]);
 
   useEffect(() => {
-    if (!editingKey) return;
+    if (!deleteConfirm) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setDeleteConfirm(null);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [deleteConfirm]);
+
+  useEffect(() => {
+    if (!editingKey || deleteConfirm) return;
     const onPointerDown = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node | null;
       if (!target || editingRef.current?.contains(target)) return;
@@ -158,7 +173,7 @@ export default function WorkCategoriesEditor({
       document.removeEventListener("touchstart", onPointerDown);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- cerrar al click afuera del timer en edición
-  }, [editingKey, draftName, draftTime, draftItems, workTimers, work, editLog]);
+  }, [editingKey, deleteConfirm, draftName, draftTime, draftItems, workTimers, work, editLog]);
 
   const persist = async (next: ErpDayLog) => {
     setError(null);
@@ -262,21 +277,36 @@ export default function WorkCategoriesEditor({
     setEditingKey(key);
   };
 
-  const deleteTimer = async (category: WorkCategoryKey, index: number) => {
+  const deleteTimer = (category: WorkCategoryKey, index: number) => {
     const current = workTimers[category][index];
     if (!current) return;
-    if (!window.confirm(`¿Eliminar el timer “${current.name}”?`)) return;
-    setEditingKey(null);
-    await updateTimers(category, (list) => list.filter((_, i) => i !== index));
+    setDeleteConfirm({
+      kind: "timer",
+      category,
+      index,
+      name: current.name,
+    });
   };
 
-  const deleteOrphan = async (category: WorkCategoryKey) => {
-    if (!window.confirm("¿Eliminar estas horas sin desglose?")) return;
+  const deleteOrphan = (category: WorkCategoryKey) => {
+    setDeleteConfirm({ kind: "orphan", category });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm) return;
+    const pending = deleteConfirm;
+    setDeleteConfirm(null);
     setEditingKey(null);
+    if (pending.kind === "timer") {
+      await updateTimers(pending.category, (list) =>
+        list.filter((_, i) => i !== pending.index),
+      );
+      return;
+    }
     await persist({
       ...editLog,
-      work: { ...work, [category]: 0 },
-      workTimers: { ...workTimers, [category]: [] },
+      work: { ...work, [pending.category]: 0 },
+      workTimers: { ...workTimers, [pending.category]: [] },
     });
   };
 
@@ -459,7 +489,10 @@ export default function WorkCategoriesEditor({
                   </span>
                   <span className="shrink-0 text-sm font-bold text-slate-950">
                     {formatHoursAsHm(cat.hours)} hs
-                    <span className="ml-1.5 text-xs font-semibold text-slate-500">
+                    <span
+                      className="ml-2 text-sm font-bold tabular-nums"
+                      style={{ color: "#1571d4" }}
+                    >
                       {pct}%
                     </span>
                   </span>
@@ -627,6 +660,73 @@ export default function WorkCategoriesEditor({
       })}
 
       {error && <p className="text-sm font-medium text-rose-700">{error}</p>}
+
+      {deleteConfirm && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-[2px]"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setDeleteConfirm(null);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="erp-delete-timer-title"
+            className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.22)]"
+          >
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-rose-50 p-2.5 text-rose-600 ring-1 ring-rose-100">
+                <AlertTriangle className="h-5 w-5" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3
+                  id="erp-delete-timer-title"
+                  className="text-base font-bold text-slate-950"
+                >
+                  {deleteConfirm.kind === "timer"
+                    ? "Eliminar timer"
+                    : "Eliminar horas sin desglose"}
+                </h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                  {deleteConfirm.kind === "timer" ? (
+                    <>
+                      ¿Eliminar el timer{" "}
+                      <span className="font-semibold text-slate-900">
+                        “{deleteConfirm.name}”
+                      </span>
+                      ? Esta acción no se puede deshacer.
+                    </>
+                  ) : (
+                    <>
+                      ¿Eliminar estas horas sin desglose? Esta acción no se puede
+                      deshacer.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                className="cursor-pointer rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmDelete()}
+                disabled={persisting}
+                className="cursor-pointer rounded-xl bg-rose-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-60"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
