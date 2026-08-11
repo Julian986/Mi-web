@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import {
   Check,
+  ChevronDown,
   Clock3,
   LoaderCircle,
   Play,
@@ -31,6 +32,20 @@ type RecentTimer = {
   category: WorkCategoryKey;
 };
 
+/** Opciones del menú Categoría con atajos 1…N (incluye Sin filtrar). */
+const CATEGORY_MENU_OPTIONS: {
+  key: WorkCategoryKey | null;
+  name: string;
+  color: string | null;
+}[] = [
+  { key: null, name: "Sin filtrar", color: null },
+  ...WORK_CATEGORY_META.map((c) => ({
+    key: c.key as WorkCategoryKey | null,
+    name: c.name,
+    color: c.color as string | null,
+  })),
+];
+
 type Props = {
   todayLog: ErpDayLog;
   dayLogs: ErpDayLog[];
@@ -38,26 +53,41 @@ type Props = {
   persisting: boolean;
 };
 
-function buildRecentTimers(logs: ErpDayLog[], limit = 14): RecentTimer[] {
+function categoriesToScan(category: WorkCategoryKey | null): WorkCategoryKey[] {
+  if (category) return [category];
+  return WORK_CATEGORY_META.map((c) => c.key);
+}
+
+function buildRecentTimers(
+  logs: ErpDayLog[],
+  category: WorkCategoryKey | null,
+  limit = 14,
+): RecentTimer[] {
   const sorted = [...logs].sort((a, b) => b.date.localeCompare(a.date));
   const seen = new Set<string>();
   const out: RecentTimer[] = [];
+  const cats = categoriesToScan(category);
+
   for (const log of sorted) {
     const timers = normalizeWorkTimers(log.workTimers);
-    // Prefer newer categories first by walking meta order isn't needed; walk all
-    for (const cat of WORK_CATEGORY_META) {
-      for (const timer of [...timers[cat.key]].reverse()) {
+    for (const cat of cats) {
+      for (const timer of [...timers[cat]].reverse()) {
         const name = timer.name.trim();
         if (!name || name === UNNAMED_WORK_TIMER) continue;
-        const key = `${cat.key}::${name.toLowerCase()}`;
+        const key = `${cat}::${name.toLowerCase()}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        out.push({ name, category: cat.key });
+        out.push({ name, category: cat });
         if (out.length >= limit) return out;
       }
     }
     const active = normalizeActiveWorkTimer(log.activeWorkTimer ?? null);
-    if (active?.name.trim() && active.name !== UNNAMED_WORK_TIMER) {
+    if (
+      active &&
+      cats.includes(active.category) &&
+      active.name.trim() &&
+      active.name !== UNNAMED_WORK_TIMER
+    ) {
       const key = `${active.category}::${active.name.trim().toLowerCase()}`;
       if (!seen.has(key)) {
         seen.add(key);
@@ -67,6 +97,50 @@ function buildRecentTimers(logs: ErpDayLog[], limit = 14): RecentTimer[] {
     }
   }
   return out;
+}
+
+/** Nombres más usados (frecuencia, desempate por más reciente). Null = todas las categorías. */
+function buildFavoriteTimers(
+  logs: ErpDayLog[],
+  category: WorkCategoryKey | null,
+  limit = 8,
+): RecentTimer[] {
+  const sorted = [...logs].sort((a, b) => b.date.localeCompare(a.date));
+  const counts = new Map<
+    string,
+    { name: string; category: WorkCategoryKey; count: number; lastIndex: number }
+  >();
+  const cats = categoriesToScan(category);
+
+  sorted.forEach((log, dateIndex) => {
+    const bump = (raw: string, cat: WorkCategoryKey) => {
+      const name = raw.trim();
+      if (!name || name === UNNAMED_WORK_TIMER) return;
+      const key = `${cat}::${name.toLowerCase()}`;
+      const prev = counts.get(key);
+      if (prev) {
+        prev.count += 1;
+        prev.lastIndex = Math.min(prev.lastIndex, dateIndex);
+      } else {
+        counts.set(key, { name, category: cat, count: 1, lastIndex: dateIndex });
+      }
+    };
+
+    const timers = normalizeWorkTimers(log.workTimers);
+    for (const cat of cats) {
+      for (const timer of timers[cat]) bump(timer.name, cat);
+    }
+
+    const active = normalizeActiveWorkTimer(log.activeWorkTimer ?? null);
+    if (active && cats.includes(active.category)) {
+      bump(active.name, active.category);
+    }
+  });
+
+  return [...counts.values()]
+    .sort((a, b) => b.count - a.count || a.lastIndex - b.lastIndex)
+    .slice(0, limit)
+    .map(({ name, category: cat }) => ({ name, category: cat }));
 }
 
 export default function ErpLiveTimer({
@@ -80,38 +154,70 @@ export default function ErpLiveTimer({
     [todayLog.activeWorkTimer],
   );
 
-  const [category, setCategory] = useState<WorkCategoryKey>("software");
+  const [category, setCategory] = useState<WorkCategoryKey | null>("software");
   const [name, setName] = useState("");
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [itemDraft, setItemDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [categoryOpen, setCategoryOpen] = useState(false);
   const pickerRootRef = useRef<HTMLDivElement>(null);
+  const categoryRootRef = useRef<HTMLDivElement>(null);
   const blurTimer = useRef<number | null>(null);
 
-  const recentTimers = useMemo(() => buildRecentTimers(dayLogs), [dayLogs]);
+  const categoryMeta = useMemo(
+    () =>
+      category ? WORK_CATEGORY_META.find((c) => c.key === category) : undefined,
+    [category],
+  );
+  const showAllNames = category === null;
+
+  const favoriteTimers = useMemo(
+    () => buildFavoriteTimers(dayLogs, category),
+    [dayLogs, category],
+  );
+
+  const recentTimers = useMemo(
+    () => buildRecentTimers(dayLogs, category),
+    [dayLogs, category],
+  );
 
   const query = name.trim().toLowerCase();
   const filteredFavorites = useMemo(() => {
-    if (!query) return WORK_CATEGORY_META;
-    return WORK_CATEGORY_META.filter(
-      (c) =>
-        c.name.toLowerCase().includes(query) ||
-        c.shortLabel.toLowerCase().includes(query) ||
-        c.key.toLowerCase().includes(query),
-    );
-  }, [query]);
-
-  const filteredRecent = useMemo(() => {
-    if (!query) return recentTimers;
-    return recentTimers.filter(
+    if (!query) return favoriteTimers;
+    return favoriteTimers.filter(
       (t) =>
         t.name.toLowerCase().includes(query) ||
-        WORK_CATEGORY_META.find((c) => c.key === t.category)
-          ?.name.toLowerCase()
-          .includes(query),
+        (showAllNames &&
+          WORK_CATEGORY_META.find((c) => c.key === t.category)
+            ?.name.toLowerCase()
+            .includes(query)),
     );
-  }, [query, recentTimers]);
+  }, [query, favoriteTimers, showAllNames]);
+
+  const favoriteKeys = useMemo(
+    () =>
+      new Set(
+        filteredFavorites.map((t) => `${t.category}::${t.name.toLowerCase()}`),
+      ),
+    [filteredFavorites],
+  );
+
+  const filteredRecent = useMemo(() => {
+    const base = query
+      ? recentTimers.filter(
+          (t) =>
+            t.name.toLowerCase().includes(query) ||
+            (showAllNames &&
+              WORK_CATEGORY_META.find((c) => c.key === t.category)
+                ?.name.toLowerCase()
+                .includes(query)),
+        )
+      : recentTimers;
+    return base.filter(
+      (t) => !favoriteKeys.has(`${t.category}::${t.name.toLowerCase()}`),
+    );
+  }, [query, recentTimers, favoriteKeys, showAllNames]);
 
   useEffect(() => {
     if (!active) return;
@@ -122,8 +228,12 @@ export default function ErpLiveTimer({
   useEffect(() => {
     if (!active) return;
     setCategory(active.category);
+  }, [active?.startedAt, active?.category]);
+
+  useEffect(() => {
+    if (!active) return;
     setName(active.name);
-  }, [active?.category, active?.name, active]);
+  }, [active?.startedAt, active?.name]);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -139,6 +249,21 @@ export default function ErpLiveTimer({
       document.removeEventListener("touchstart", onPointerDown);
     };
   }, [pickerOpen]);
+
+  useEffect(() => {
+    if (!categoryOpen) return;
+    const onPointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+      if (!target || categoryRootRef.current?.contains(target)) return;
+      setCategoryOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+    };
+  }, [categoryOpen]);
 
   useEffect(() => {
     return () => {
@@ -159,6 +284,7 @@ export default function ErpLiveTimer({
 
   const openPicker = () => {
     if (blurTimer.current) window.clearTimeout(blurTimer.current);
+    setCategoryOpen(false);
     setPickerOpen(true);
   };
 
@@ -167,7 +293,46 @@ export default function ErpLiveTimer({
     blurTimer.current = window.setTimeout(() => setPickerOpen(false), 140);
   };
 
-  const handleStart = async (nextCategory = category, nextName = name) => {
+  const selectCategory = async (next: WorkCategoryKey | null) => {
+    if (next === category) {
+      setCategoryOpen(false);
+      return;
+    }
+    setCategory(next);
+    setName("");
+    setCategoryOpen(false);
+    if (active && next) {
+      await patchActive({ category: next, name: "" });
+    }
+  };
+
+  useEffect(() => {
+    if (!categoryOpen) return;
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setCategoryOpen(false);
+        return;
+      }
+      if (event.key < "1" || event.key > "9") return;
+      const option = CATEGORY_MENU_OPTIONS[Number(event.key) - 1];
+      if (!option) return;
+      event.preventDefault();
+      void selectCategory(option.key);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+    // selectCategory cierra el menú; alcanza reaccionar a categoryOpen + category
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- atajos del menú abierto
+  }, [categoryOpen, category, active]);
+
+  const handleStart = async (
+    nextCategory: WorkCategoryKey | null = category,
+    nextName = name,
+  ) => {
+    if (!nextCategory) {
+      setError("Elegí una categoría o un nombre de la lista");
+      return;
+    }
     const next = startActiveWorkTimerOnLog(todayLog, nextCategory, nextName);
     setCategory(nextCategory);
     setName(nextName.trim());
@@ -197,25 +362,23 @@ export default function ErpLiveTimer({
     await patchActive({ name: trimmed });
   };
 
-  const pickFavorite = async (key: WorkCategoryKey) => {
-    setCategory(key);
-    setPickerOpen(false);
-    if (active) {
-      if (key !== active.category) await patchActive({ category: key });
-      return;
-    }
-    await handleStart(key, name);
-  };
-
-  const pickRecent = async (entry: RecentTimer) => {
-    setCategory(entry.category);
+  const pickName = async (entry: RecentTimer) => {
+    const nextCategory = category ?? entry.category;
+    setCategory(nextCategory);
     setName(entry.name);
     setPickerOpen(false);
     if (active) {
-      await patchActive({ category: entry.category, name: entry.name });
+      const patch: Partial<ErpActiveWorkTimer> = {};
+      if (entry.name !== active.name) patch.name = entry.name;
+      if (nextCategory !== active.category) patch.category = nextCategory;
+      if (Object.keys(patch).length > 0) await patchActive(patch);
       return;
     }
-    await handleStart(entry.category, entry.name);
+    await handleStart(nextCategory, entry.name);
+  };
+
+  const pickRecent = async (entry: RecentTimer) => {
+    await pickName(entry);
   };
 
   const handleAddItem = async () => {
@@ -256,7 +419,7 @@ export default function ErpLiveTimer({
       const fav = filteredFavorites[Number(e.key) - 1];
       if (fav) {
         e.preventDefault();
-        void pickFavorite(fav.key);
+        void pickName(fav);
         return;
       }
     }
@@ -278,51 +441,37 @@ export default function ErpLiveTimer({
             Favoritos
           </p>
           <ul>
-            {filteredFavorites.map((fav, index) => (
-              <li key={fav.key}>
-                <button
-                  type="button"
-                  onClick={() => void pickFavorite(fav.key)}
-                  className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold text-slate-950 hover:bg-slate-50"
-                >
-                  <span className="inline-flex min-w-0 items-center gap-2">
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ backgroundColor: fav.color }}
-                    />
-                    <span className="truncate font-semibold">{fav.name}</span>
-                  </span>
-                  {index < 5 && (
-                    <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-slate-200 text-[11px] font-semibold text-slate-400">
-                      {index + 1}
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {filteredRecent.length > 0 && (
-        <div className="border-t border-slate-100 px-2 pt-2">
-          <p className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-600">
-            <Clock3 className="h-3 w-3" />
-            Recientes
-          </p>
-          <ul>
-            {filteredRecent.map((entry) => {
-              const meta = WORK_CATEGORY_META.find((c) => c.key === entry.category);
+            {filteredFavorites.map((fav, index) => {
+              const meta =
+                WORK_CATEGORY_META.find((c) => c.key === fav.category) ??
+                categoryMeta;
               return (
-                <li key={`${entry.category}-${entry.name}`}>
+                <li key={`${fav.category}::${fav.name.toLowerCase()}`}>
                   <button
                     type="button"
-                    onClick={() => void pickRecent(entry)}
+                    onClick={() => void pickName(fav)}
                     className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold text-slate-950 hover:bg-slate-50"
                   >
-                    <span className="min-w-0 truncate font-semibold text-slate-950">{entry.name}</span>
-                    <span className="shrink-0 text-[11px] font-semibold text-slate-400">
-                      {meta?.shortLabel ?? entry.category}
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: meta?.color ?? "#94a3b8",
+                        }}
+                      />
+                      <span className="truncate font-semibold">{fav.name}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      {showAllNames && (
+                        <span className="text-[11px] font-semibold text-slate-400">
+                          {meta?.shortLabel ?? fav.category}
+                        </span>
+                      )}
+                      {index < 5 && (
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-[11px] font-semibold text-slate-400">
+                          {index + 1}
+                        </span>
+                      )}
                     </span>
                   </button>
                 </li>
@@ -332,8 +481,48 @@ export default function ErpLiveTimer({
         </div>
       )}
 
+      {filteredRecent.length > 0 && (
+        <div
+          className={`px-2 ${filteredFavorites.length > 0 ? "border-t border-slate-100 pt-2" : ""}`}
+        >
+          <p className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-bold uppercase tracking-wide text-slate-600">
+            <Clock3 className="h-3 w-3" />
+            Recientes
+          </p>
+          <ul>
+            {filteredRecent.map((entry) => {
+              const meta = WORK_CATEGORY_META.find(
+                (c) => c.key === entry.category,
+              );
+              return (
+                <li key={`${entry.category}-${entry.name}`}>
+                  <button
+                    type="button"
+                    onClick={() => void pickRecent(entry)}
+                    className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold text-slate-950 hover:bg-slate-50"
+                  >
+                    <span className="min-w-0 truncate font-semibold text-slate-950">
+                      {entry.name}
+                    </span>
+                    {showAllNames && (
+                      <span className="shrink-0 text-[11px] font-semibold text-slate-400">
+                        {meta?.shortLabel ?? entry.category}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
       {filteredFavorites.length === 0 && filteredRecent.length === 0 && (
-        <p className="px-4 py-3 text-xs text-slate-400">Sin coincidencias</p>
+        <p className="px-4 py-3 text-xs text-slate-400">
+          {showAllNames
+            ? "Sin nombres guardados"
+            : "Sin nombres en esta categoría"}
+        </p>
       )}
     </div>
   );
@@ -356,7 +545,9 @@ export default function ErpLiveTimer({
             {active ? "En curso" : "Empezar a trabajar"}
           </h2>
           <p className="mt-0.5 text-xs font-medium text-slate-600">
-            Favoritos e historial al enfocar el nombre · atajos 1–5
+            {showAllNames
+              ? "Todos los nombres · atajos 1–5"
+              : "Nombres de la categoría · atajos 1–5"}
           </p>
         </div>
         {persisting && (
@@ -368,26 +559,93 @@ export default function ErpLiveTimer({
       </div>
 
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-        <label className="block min-w-0 flex-1 text-xs font-semibold text-slate-800">
-          Categoría
-          <select
-            value={category}
-            onChange={(e) => {
-              const next = e.target.value as WorkCategoryKey;
-              setCategory(next);
-              if (active && next !== active.category) {
-                void patchActive({ category: next });
-              }
+        <div className="relative min-w-0 flex-1" ref={categoryRootRef}>
+          <p className="text-xs font-semibold text-slate-800">Categoría</p>
+          <button
+            type="button"
+            onClick={() => {
+              setPickerOpen(false);
+              setCategoryOpen((open) => !open);
             }}
-            className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-950"
+            className="mt-1 flex w-full cursor-pointer items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left text-sm font-semibold text-slate-950"
           >
-            {WORK_CATEGORY_META.map((c) => (
-              <option key={c.key} value={c.key}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            <span className="inline-flex min-w-0 items-center gap-2">
+              {showAllNames ? (
+                <span className="inline-flex h-2 w-2 shrink-0 rounded-full border border-dashed border-slate-300" />
+              ) : (
+                <span
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor: categoryMeta?.color ?? "#94a3b8",
+                  }}
+                />
+              )}
+              <span
+                className={`truncate ${showAllNames ? "font-medium text-slate-500" : ""}`}
+              >
+                {showAllNames
+                  ? "Sin filtrar"
+                  : (categoryMeta?.name ?? category)}
+              </span>
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-slate-400 transition-transform ${
+                categoryOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+          {categoryOpen && (
+            <div
+              onMouseDown={(e) => e.preventDefault()}
+              className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-40 max-h-80 overflow-y-auto rounded-xl border border-slate-200 bg-white py-2 shadow-[0_16px_40px_rgba(15,23,42,0.14)]"
+            >
+              <ul className="px-2">
+                {CATEGORY_MENU_OPTIONS.map((option, index) => {
+                  const selected = option.key === category;
+                  return (
+                    <li key={option.key ?? "none"}>
+                      <button
+                        type="button"
+                        onClick={() => void selectCategory(option.key)}
+                        className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm font-semibold text-slate-950 hover:bg-slate-50"
+                      >
+                        <span className="inline-flex min-w-0 items-center gap-2">
+                          {option.color ? (
+                            <span
+                              className="h-2 w-2 shrink-0 rounded-full"
+                              style={{ backgroundColor: option.color }}
+                            />
+                          ) : (
+                            <span className="inline-flex h-2 w-2 shrink-0 rounded-full border border-dashed border-slate-300" />
+                          )}
+                          <span
+                            className={`truncate ${
+                              option.key === null
+                                ? "font-medium text-slate-500"
+                                : "font-semibold"
+                            }`}
+                          >
+                            {option.name}
+                          </span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          {selected && (
+                            <Check className="h-4 w-4 text-blue-600" />
+                          )}
+                          {index < 9 && (
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-slate-200 text-[11px] font-semibold text-slate-400">
+                              {index + 1}
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
 
         <div className="relative min-w-0 flex-[1.5]" ref={pickerRootRef}>
           <label className="block text-xs font-semibold text-slate-800">
@@ -462,11 +720,6 @@ export default function ErpLiveTimer({
         <div className="mt-4 border-t border-slate-100 pt-4">
           <p className="mb-2 text-xs font-bold text-slate-800">Ramas / ítems</p>
           <ul className="space-y-1.5">
-            {active.items.length === 0 && (
-              <li className="rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-medium text-slate-500">
-                Agregá lo que vas a hacer bajo este timer
-              </li>
-            )}
             {active.items.map((item) => (
               <li
                 key={item.id}

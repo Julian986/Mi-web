@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ComponentType } from "react";
+import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import {
   Activity,
   AlarmClock,
@@ -18,6 +18,7 @@ import {
   FlaskConical,
   Home,
   Layers,
+  LampDesk,
   Megaphone,
   Moon,
   Newspaper,
@@ -56,9 +57,10 @@ import {
   type PeriodStats,
   type WeekCompareRow,
 } from "@/app/admin92/erp/lib/erpAggregates";
-import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, sumWorkHours, type ErpDayLog, type ErpMembershipMonth, type ErpMembershipServiceKey, type WorkCategoryKey } from "@/app/admin92/erp/lib/erpTypes";
+import { formatHoursAsHm, formatMinutesAsHm, emptyMembershipMonth, emptyDayLog, sumWorkHours, type ErpActiveWorkTimer, type ErpDayLog, type ErpMembershipMonth, type ErpMembershipServiceKey, type WorkCategoryKey } from "@/app/admin92/erp/lib/erpTypes";
 import { formatCurrency, formatLocalDate, formatMonthLabel, MONTH_NAMES, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 import WorkCategoriesEditor from "@/app/admin92/erp/components/WorkCategoriesEditor";
+import WorkCategoriesHistory from "@/app/admin92/erp/components/WorkCategoriesHistory";
 
 const MEMBERSHIP_SERVICES: {
   key: ErpMembershipServiceKey;
@@ -130,6 +132,9 @@ type Props = {
   workEditLog: ErpDayLog;
   onPersistWorkEditLog: (log: ErpDayLog) => Promise<void>;
   workEditSaving?: boolean;
+  activeWorkTimer?: ErpActiveWorkTimer | null;
+  onStartLiveTimer?: (category: WorkCategoryKey, name: string) => Promise<void>;
+  timerSaving?: boolean;
   loading: boolean;
   hasData: boolean;
   membershipMonth: string;
@@ -709,6 +714,9 @@ export default function ErpDashboard({
   workEditLog,
   onPersistWorkEditLog,
   workEditSaving = false,
+  activeWorkTimer = null,
+  onStartLiveTimer,
+  timerSaving = false,
   loading,
   hasData,
   membershipMonth,
@@ -721,10 +729,33 @@ export default function ErpDashboard({
   weekCompare,
 }: Props) {
   const [chartsReady, setChartsReady] = useState(false);
+  const [categoriesTab, setCategoriesTab] = useState<"categories" | "history">(
+    "categories",
+  );
   const trainingCats = trainingCategoryCards(current);
   const workTotal = current.workHours;
   const trainingTotal = current.trainingDays;
   const trainingMinutesTotal = current.trainingMinutes;
+  const categoriesPeriodMode = period !== "day";
+  const categoriesDisplayLog = useMemo((): ErpDayLog => {
+    if (!categoriesPeriodMode) return workEditLog;
+    return {
+      ...emptyDayLog(workEditLog.date),
+      work: { ...current.workByCategory },
+      workTimers: current.workTimersByCategory,
+    };
+  }, [
+    categoriesPeriodMode,
+    workEditLog,
+    current.workByCategory,
+    current.workTimersByCategory,
+  ]);
+  const categoriesHours = categoriesPeriodMode
+    ? current.workHours
+    : sumWorkHours(workEditLog.work);
+  const categoriesSubtitle = categoriesPeriodMode
+    ? `${rangeLabel} · resumen del período`
+    : undefined;
   const primaryKpis = kpis.filter(
     (item) => item.kind !== "english" && item.kind !== "creatine",
   );
@@ -811,19 +842,68 @@ export default function ErpDashboard({
             <div>
               <h2 className="text-base font-bold text-slate-950">Categorías de trabajo</h2>
               <p className="mt-1 text-xs font-medium text-slate-500">
-                Editá nombres, tiempos e ítems · click en un timer
+                {categoriesTab === "history"
+                  ? "Por fecha · más reciente primero"
+                  : categoriesPeriodMode
+                    ? "Desglose del período · expandí una categoría para ver timers"
+                    : "Editá nombres, tiempos e ítems · click en un timer"}
               </p>
             </div>
-            <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-              {formatHoursAsHm(sumWorkHours(workEditLog.work))} hs
+            <span className="erp-categories-total inline-flex items-center gap-1.5">
+              <span className="text-sm font-bold text-slate-950">
+                {formatHoursAsHm(categoriesHours)} hs
+              </span>
+              <LampDesk
+                className="h-4 w-4 shrink-0 text-slate-400"
+                aria-hidden
+                strokeWidth={1.75}
+              />
             </span>
           </div>
-          <WorkCategoriesEditor
-            editLog={workEditLog}
-            onPersist={onPersistWorkEditLog}
-            persisting={workEditSaving}
-            icons={workIcons}
-          />
+
+          <div className="mb-4 inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1">
+            {(
+              [
+                { key: "categories", label: "Categorías" },
+                { key: "history", label: "Historial" },
+              ] as const
+            ).map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setCategoriesTab(tab.key)}
+                className={`cursor-pointer rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  categoriesTab === tab.key
+                    ? "bg-white text-slate-950 shadow-sm"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {categoriesTab === "categories" ? (
+            <WorkCategoriesEditor
+              editLog={categoriesDisplayLog}
+              onPersist={onPersistWorkEditLog}
+              persisting={workEditSaving}
+              readOnly={categoriesPeriodMode}
+              subtitle={categoriesSubtitle}
+              icons={workIcons}
+              activeWorkTimer={activeWorkTimer}
+              onStartLiveTimer={onStartLiveTimer}
+              timerSaving={timerSaving}
+            />
+          ) : (
+            <WorkCategoriesHistory
+              logs={periodLogs}
+              icons={workIcons}
+              activeWorkTimer={activeWorkTimer}
+              onStartLiveTimer={onStartLiveTimer}
+              timerSaving={timerSaving}
+            />
+          )}
         </article>
       </section>
 
@@ -885,6 +965,46 @@ export default function ErpDashboard({
           )}
         </div>
       </section>
+
+      {(period === "day" || period === "week") && notesEntries.length > 0 && (
+        <section>
+          <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <div className="mb-4 flex items-center gap-3">
+              <div className="rounded-xl bg-slate-100 p-2.5 text-slate-700 ring-1 ring-slate-200">
+                <StickyNote className="h-5 w-5" aria-hidden />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-950">
+                  {period === "day" ? "Notas del día" : "Notas del período"}
+                </h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {period === "day"
+                    ? "Lo que anotaste al cargar el día"
+                    : `${notesEntries.length} día${notesEntries.length === 1 ? "" : "s"} con notas`}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {notesEntries.map((entry) => (
+                <div
+                  key={entry.date}
+                  className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3"
+                >
+                  {period !== "day" && (
+                    <p className="mb-1.5 text-xs font-semibold text-slate-500">
+                      {dayShortLabel(entry.date)} · {formatLocalDate(entry.date)}
+                    </p>
+                  )}
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+                    {entry.notes}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </article>
+        </section>
+      )}
 
       {period === "week" && weekCompare && (
         <WeekCompareSection weekCompare={weekCompare} />
@@ -1014,46 +1134,6 @@ export default function ErpDashboard({
                 </div>
               </div>
             )}
-          </article>
-        </section>
-      )}
-
-      {notesEntries.length > 0 && (
-        <section>
-          <article className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="rounded-xl bg-slate-100 p-2.5 text-slate-700 ring-1 ring-slate-200">
-                <StickyNote className="h-5 w-5" aria-hidden />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-slate-950">
-                  {period === "day" ? "Notas del día" : "Notas del período"}
-                </h2>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {period === "day"
-                    ? "Lo que anotaste al cargar el día"
-                    : `${notesEntries.length} día${notesEntries.length === 1 ? "" : "s"} con notas`}
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {notesEntries.map((entry) => (
-                <div
-                  key={entry.date}
-                  className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3"
-                >
-                  {period !== "day" && (
-                    <p className="mb-1.5 text-xs font-semibold text-slate-500">
-                      {dayShortLabel(entry.date)} · {formatLocalDate(entry.date)}
-                    </p>
-                  )}
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
-                    {entry.notes}
-                  </p>
-                </div>
-              ))}
-            </div>
           </article>
         </section>
       )}

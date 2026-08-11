@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, LayoutDashboard, PenLine } from "
 import ErpDashboard from "@/app/admin92/erp/components/ErpDashboard";
 import ErpDayForm from "@/app/admin92/erp/components/ErpDayForm";
 import ErpLiveTimer from "@/app/admin92/erp/components/ErpLiveTimer";
+import ErpPeriodPicker from "@/app/admin92/erp/components/ErpPeriodPicker";
 import {
   buildKpis,
   buildWeekCompareRows,
@@ -23,8 +24,12 @@ import {
 import {
   emptyDayLog,
   emptyMembershipMonth,
+  normalizeActiveWorkTimer,
+  startActiveWorkTimerOnLog,
+  stopActiveWorkTimerOnLog,
   type ErpDayLog,
   type ErpMembershipMonth,
+  type WorkCategoryKey,
 } from "@/app/admin92/erp/lib/erpTypes";
 import {
   getMonthKeySafe,
@@ -366,6 +371,21 @@ export default function ErpPage() {
     }
   };
 
+  const handleStartLiveTimer = async (
+    category: WorkCategoryKey,
+    name: string,
+  ): Promise<void> => {
+    const active = normalizeActiveWorkTimer(todayLog.activeWorkTimer ?? null);
+    const same =
+      active &&
+      active.category === category &&
+      active.name.trim().toLowerCase() === name.trim().toLowerCase();
+    const next = same
+      ? stopActiveWorkTimerOnLog(todayLog)
+      : startActiveWorkTimerOnLog(todayLog, category, name);
+    await handlePersistLiveTimer(next);
+  };
+
   const handleDeleteDay = async (date: string): Promise<void> => {
     setSaving(true);
     setSaveError(null);
@@ -496,26 +516,13 @@ export default function ErpPage() {
                   <ChevronLeft className="h-4 w-4" />
                 </button>
 
-                {period === "month" ? (
-                  <input
-                    type="month"
-                    value={getMonthKeySafe(selectedDate)}
-                    onChange={(e) => {
-                      const ym = e.target.value;
-                      if (ym) setSelectedDate(`${ym}-01`);
-                    }}
-                    className="rounded-lg border-0 bg-transparent px-2 py-1 text-sm font-medium text-slate-700 outline-none"
-                  />
-                ) : (
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="rounded-lg border-0 bg-transparent px-2 py-1 text-sm font-medium text-slate-700 outline-none"
-                  />
-                )}
-
-                <span className="hidden text-sm text-slate-400 sm:inline">{rangeLabel}</span>
+                <ErpPeriodPicker
+                  period={period}
+                  value={selectedDate}
+                  rangeLabel={rangeLabel}
+                  onChange={setSelectedDate}
+                  logsDates={dayLogs.map((log) => log.date)}
+                />
 
                 <button
                   type="button"
@@ -539,6 +546,9 @@ export default function ErpPage() {
               workEditLog={workEditLog}
               onPersistWorkEditLog={handlePersistWorkEditLog}
               workEditSaving={workEditSaving}
+              activeWorkTimer={todayLog.activeWorkTimer ?? null}
+              onStartLiveTimer={handleStartLiveTimer}
+              timerSaving={timerSaving}
               loading={loading}
               hasData={currentLogs.length > 0}
               membershipMonth={editMembershipMonth}

@@ -11,6 +11,7 @@ import {
   sumWorkTimerSeconds,
   UNNAMED_WORK_TIMER,
   WORK_CATEGORY_META,
+  type ErpActiveWorkTimer,
   type ErpDayLog,
   type ErpWorkTimer,
   type WorkCategoryKey,
@@ -20,12 +21,20 @@ import {
   parseClockDurationToSeconds,
 } from "@/app/admin92/erp/lib/parseWorkTimersPaste";
 import { formatLocalDate } from "@/app/admin92/contabilidad/lib/utils";
+import LiveTimerPlayButton from "@/app/admin92/erp/components/LiveTimerPlayButton";
 
 type Props = {
   editLog: ErpDayLog;
   onPersist: (log: ErpDayLog) => Promise<void>;
   persisting?: boolean;
+  /** Vista agregada (semana/mes): solo lectura */
+  readOnly?: boolean;
+  /** Texto bajo el título; por defecto la fecha del log */
+  subtitle?: string;
   icons: Record<WorkCategoryKey, ComponentType<{ className?: string }>>;
+  activeWorkTimer?: ErpActiveWorkTimer | null;
+  onStartLiveTimer?: (category: WorkCategoryKey, name: string) => Promise<void>;
+  timerSaving?: boolean;
 };
 
 function syncWorkFromTimers(log: ErpDayLog): ErpDayLog {
@@ -57,7 +66,12 @@ export default function WorkCategoriesEditor({
   editLog,
   onPersist,
   persisting = false,
+  readOnly = false,
+  subtitle,
   icons,
+  activeWorkTimer = null,
+  onStartLiveTimer,
+  timerSaving = false,
 }: Props) {
   const [expanded, setExpanded] = useState<Partial<Record<WorkCategoryKey, boolean>>>(
     {},
@@ -106,7 +120,7 @@ export default function WorkCategoriesEditor({
 
   useEffect(() => {
     setEditingKey(null);
-  }, [editLog.date]);
+  }, [editLog.date, readOnly]);
 
   useEffect(() => {
     const parsed = parseEditingKey(editingKey);
@@ -240,6 +254,7 @@ export default function WorkCategoriesEditor({
   };
 
   const startEdit = (key: string) => {
+    if (readOnly) return;
     if (editingKey && editingKey !== key) {
       void commitCurrentEdits().then(() => setEditingKey(key));
       return;
@@ -400,8 +415,9 @@ export default function WorkCategoriesEditor({
   return (
     <div className="space-y-3">
       <p className="text-xs font-medium text-slate-500">
-        {formatLocalDate(editLog.date)} · click en un timer para editar
-        {persisting ? " · Guardando…" : ""}
+        {subtitle ??
+          `${formatLocalDate(editLog.date)} · click en un timer para editar`}
+        {!readOnly && persisting ? " · Guardando…" : ""}
       </p>
 
       {categories.map((cat) => {
@@ -410,38 +426,52 @@ export default function WorkCategoriesEditor({
         const open = Boolean(expanded[cat.key]);
         return (
           <div key={cat.key}>
-            <button
-              type="button"
-              onClick={() =>
-                setExpanded((prev) => ({ ...prev, [cat.key]: !prev[cat.key] }))
-              }
-              aria-expanded={open}
-              className="group w-full cursor-pointer rounded-lg text-left transition hover:bg-slate-50/80"
-            >
-              <div className="mb-1.5 flex items-center justify-between gap-2 px-1 py-0.5">
-                <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-800">
-                  {open ? (
-                    <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-                  ) : (
-                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-                  )}
-                  <Icon className="h-4 w-4 shrink-0 text-slate-500" />
-                  <span className="truncate">{cat.name}</span>
-                </span>
-                <span className="shrink-0 text-sm font-bold text-slate-950">
-                  {formatHoursAsHm(cat.hours)} hs
-                  <span className="ml-1.5 text-xs font-semibold text-slate-500">
-                    {pct}%
+            <div className="flex items-start gap-1.5">
+              {onStartLiveTimer && (
+                <div className="pt-0.5">
+                  <LiveTimerPlayButton
+                    category={cat.key}
+                    name=""
+                    activeWorkTimer={activeWorkTimer}
+                    onToggle={onStartLiveTimer}
+                    disabled={timerSaving}
+                    label={`Iniciar ${cat.name}`}
+                  />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  setExpanded((prev) => ({ ...prev, [cat.key]: !prev[cat.key] }))
+                }
+                aria-expanded={open}
+                className="group min-w-0 flex-1 cursor-pointer rounded-lg text-left transition hover:bg-slate-50/80"
+              >
+                <div className="mb-1.5 flex items-center justify-between gap-2 px-1 py-0.5">
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-800">
+                    {open ? (
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                    )}
+                    <Icon className="h-4 w-4 shrink-0 text-slate-500" />
+                    <span className="truncate">{cat.name}</span>
                   </span>
-                </span>
-              </div>
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{ width: `${pct}%`, backgroundColor: cat.color }}
-                />
-              </div>
-            </button>
+                  <span className="shrink-0 text-sm font-bold text-slate-950">
+                    {formatHoursAsHm(cat.hours)} hs
+                    <span className="ml-1.5 text-xs font-semibold text-slate-500">
+                      {pct}%
+                    </span>
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${pct}%`, backgroundColor: cat.color }}
+                  />
+                </div>
+              </button>
+            </div>
 
             <div
               className="grid transition-[grid-template-rows,opacity] duration-300 ease-out"
@@ -472,23 +502,48 @@ export default function WorkCategoriesEditor({
                       }
                       return (
                         <li key={key}>
-                          <button
-                            type="button"
-                            onClick={() => startEdit(key)}
-                            className="w-full cursor-pointer rounded-lg px-1.5 py-1 text-left transition hover:bg-slate-50"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <span className="min-w-0 truncate text-xs font-semibold text-amber-800">
-                                Horas sin desglose
-                              </span>
-                              <span className="shrink-0 font-mono text-xs font-semibold text-slate-950">
-                                {formatSecondsAsClock(orphanSeconds)}
-                              </span>
-                            </div>
-                            <p className="mt-0.5 text-[11px] font-medium text-slate-500">
-                              Click para nombrar o editar este tiempo
-                            </p>
-                          </button>
+                          <div className="flex items-start gap-1.5">
+                            {onStartLiveTimer && (
+                              <LiveTimerPlayButton
+                                category={cat.key}
+                                name=""
+                                activeWorkTimer={activeWorkTimer}
+                                onToggle={onStartLiveTimer}
+                                disabled={timerSaving}
+                                label={`Iniciar ${cat.name} sin nombre`}
+                              />
+                            )}
+                            {readOnly ? (
+                              <div className="min-w-0 flex-1 rounded-lg px-1.5 py-1">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="min-w-0 truncate text-xs font-semibold text-amber-800">
+                                    Horas sin desglose
+                                  </span>
+                                  <span className="shrink-0 font-mono text-xs font-semibold text-slate-950">
+                                    {formatSecondsAsClock(orphanSeconds)}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => startEdit(key)}
+                                className="min-w-0 flex-1 cursor-pointer rounded-lg px-1.5 py-1 text-left transition hover:bg-slate-50"
+                              >
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="min-w-0 truncate text-xs font-semibold text-amber-800">
+                                    Horas sin desglose
+                                  </span>
+                                  <span className="shrink-0 font-mono text-xs font-semibold text-slate-950">
+                                    {formatSecondsAsClock(orphanSeconds)}
+                                  </span>
+                                </div>
+                                <p className="mt-0.5 text-[11px] font-medium text-slate-500">
+                                  Click para nombrar o editar este tiempo
+                                </p>
+                              </button>
+                            )}
+                          </div>
                         </li>
                       );
                     })()
@@ -498,38 +553,60 @@ export default function WorkCategoriesEditor({
                       const isEditing = editingKey === key;
 
                       if (!isEditing) {
+                        const timerBody = (
+                          <>
+                            <div className="flex items-center justify-between gap-3">
+                              <span className="min-w-0 truncate text-xs font-semibold text-slate-800">
+                                {timer.name}
+                              </span>
+                              <span className="shrink-0 font-mono text-xs font-semibold text-slate-950">
+                                {formatSecondsAsClock(timer.seconds)}
+                              </span>
+                            </div>
+                            {(timer.items ?? []).length > 0 && (
+                              <ul className="mt-1 space-y-0.5 pl-2">
+                                {(timer.items ?? []).map((item) => (
+                                  <li
+                                    key={item.id}
+                                    className={`truncate text-[11px] ${
+                                      item.done
+                                        ? "text-slate-400 line-through"
+                                        : "text-slate-600"
+                                    }`}
+                                  >
+                                    · {item.text}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </>
+                        );
                         return (
                           <li key={`${cat.key}-${index}-${timer.name}`}>
-                            <button
-                              type="button"
-                              onClick={() => startEdit(key)}
-                              className="w-full cursor-pointer rounded-lg px-1.5 py-1 text-left transition hover:bg-slate-50"
-                            >
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="min-w-0 truncate text-xs font-semibold text-slate-800">
-                                  {timer.name}
-                                </span>
-                                <span className="shrink-0 font-mono text-xs font-semibold text-slate-950">
-                                  {formatSecondsAsClock(timer.seconds)}
-                                </span>
-                              </div>
-                              {(timer.items ?? []).length > 0 && (
-                                <ul className="mt-1 space-y-0.5 pl-2">
-                                  {(timer.items ?? []).map((item) => (
-                                    <li
-                                      key={item.id}
-                                      className={`truncate text-[11px] ${
-                                        item.done
-                                          ? "text-slate-400 line-through"
-                                          : "text-slate-600"
-                                      }`}
-                                    >
-                                      · {item.text}
-                                    </li>
-                                  ))}
-                                </ul>
+                            <div className="flex items-start gap-1.5">
+                              {onStartLiveTimer && (
+                                <LiveTimerPlayButton
+                                  category={cat.key}
+                                  name={timer.name}
+                                  activeWorkTimer={activeWorkTimer}
+                                  onToggle={onStartLiveTimer}
+                                  disabled={timerSaving}
+                                />
                               )}
-                            </button>
+                              {readOnly ? (
+                                <div className="min-w-0 flex-1 rounded-lg px-1.5 py-1">
+                                  {timerBody}
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => startEdit(key)}
+                                  className="min-w-0 flex-1 cursor-pointer rounded-lg px-1.5 py-1 text-left transition hover:bg-slate-50"
+                                >
+                                  {timerBody}
+                                </button>
+                              )}
+                            </div>
                           </li>
                         );
                       }

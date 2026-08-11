@@ -1,5 +1,4 @@
 import {
-  formatLocalDate,
   formatMonthLabel,
   getMonthKeySafe,
   shiftDate,
@@ -85,7 +84,10 @@ export function formatWeekRangeLabel(monday: string): string {
 }
 
 export function formatPeriodLabel(anchor: string, period: ErpPeriod): string {
-  if (period === "day") return formatLocalDate(anchor);
+  if (period === "day") {
+    const [, m, d] = anchor.split("-").map(Number);
+    return `${dayShortLabel(anchor)} ${d}/${m}`;
+  }
   if (period === "week") return formatWeekRangeLabel(mondayOfWeek(anchor));
   return formatMonthLabel(getMonthKeySafe(anchor));
 }
