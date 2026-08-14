@@ -16,11 +16,15 @@ import ConfirmarPagoCobro from "@/app/admin92/contabilidad/components/ConfirmarP
 import {
   mapDesarrollo50Doc,
   sortDesarrollos50,
+  getDesarrollo50AlertDate,
   type Desarrollo50Item,
 } from "@/app/admin92/contabilidad/lib/desarrollos50";
 import {
   buildTareasCambioDelMes,
+  buildDesarrollosCambioItems,
+  buildTareasCambioDesarrollos,
   getMesesConCambiosAtrasados,
+  sortTareasCambioPorFecha,
   type CambiosSortMode,
 } from "@/app/admin92/contabilidad/lib/cambiosPendientes";
 import { buildCalendarMarkers } from "@/app/admin92/contabilidad/lib/calendarMarkers";
@@ -197,6 +201,7 @@ function Admin92PageContent() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   /** Cuota enfocada desde el panel de cambios (scroll + resaltado) */
   const [focusedCobroId, setFocusedCobroId] = useState<string | null>(null);
+  const [focusedDesarrolloId, setFocusedDesarrolloId] = useState<string | null>(null);
   const [cambiosSortMode, setCambiosSortMode] = useState<CambiosSortMode>("tareas");
   const [contabilidadToolPanel, setContabilidadToolPanel] = useState<
     null | "objetivos" | "mantenimientos" | "buscar-clientes"
@@ -604,7 +609,7 @@ function Admin92PageContent() {
 
   const cuotasConCambioPendiente = useMemo(() => {
     const today = todayYmd();
-    return cobrosEnMes
+    const fromCobros = cobrosEnMes
       .filter((c) => Boolean(c.cambioPendiente))
       .map((c) => {
         const p = getProyectoForClient(c.clientName, proyectoByClient);
@@ -616,20 +621,25 @@ function Admin92PageContent() {
           prioridad: c.prioridad,
           estado: getCuotaEstado(c),
           border: getCuotaOperativaBorder(c, p, today),
+          source: "cobro" as const,
         };
       });
-  }, [cobrosEnMes, proyectoByClient]);
+    const fromDesarrollos = buildDesarrollosCambioItems(desarrollos50, today);
+    return [...fromCobros, ...fromDesarrollos];
+  }, [cobrosEnMes, proyectoByClient, desarrollos50]);
 
   const tareasCambioMes = useMemo(() => {
     const today = todayYmd();
-    return buildTareasCambioDelMes(cobrosEnMes, (c) => {
+    const fromCobros = buildTareasCambioDelMes(cobrosEnMes, (c) => {
       const p = getProyectoForClient(c.clientName, proyectoByClient);
       return {
         estado: getCuotaEstado(c),
         border: getCuotaOperativaBorder(c, p, today),
       };
     });
-  }, [cobrosEnMes, proyectoByClient]);
+    const fromDesarrollos = buildTareasCambioDesarrollos(desarrollos50, today);
+    return sortTareasCambioPorFecha([...fromCobros, ...fromDesarrollos]);
+  }, [cobrosEnMes, proyectoByClient, desarrollos50]);
 
   const mesesConCambiosAtrasados = useMemo(
     () => getMesesConCambiosAtrasados(cobros, contabilidadMonth),
@@ -666,7 +676,12 @@ function Admin92PageContent() {
 
   const dayDesarrollos50 = useMemo(() => {
     if (!selectedDate) return [];
-    return desarrollos50.filter((d) => d.fechaCobro50 === selectedDate);
+    const today = todayYmd();
+    return desarrollos50.filter((d) => {
+      if (d.fechaCobro50 === selectedDate) return true;
+      if (!d.cambioPendiente) return false;
+      return getDesarrollo50AlertDate(d, today) === selectedDate;
+    });
   }, [desarrollos50, selectedDate]);
 
   const cuotaEsperadaLabel = (c: Cobro) =>
@@ -1052,18 +1067,60 @@ function Admin92PageContent() {
     }
   };
 
-  const handleSelectCuotaFromSidebar = (c: { id: string; dueDate: string }) => {
+  const handleSelectCuotaFromSidebar = (c: {
+    id: string;
+    dueDate: string;
+    source?: "cobro" | "desarrollo50";
+  }) => {
+    if (c.source === "desarrollo50") {
+      const alertDate = /^\d{4}-\d{2}-\d{2}$/.test(c.dueDate) ? c.dueDate : todayYmd();
+      setContabilidadMonth(getMonthKeySafe(alertDate));
+      setSelectedDate(alertDate);
+      setFocusedDesarrolloId(c.id);
+      setFocusedCobroId(null);
+      return;
+    }
     setSelectedDate(c.dueDate);
     setFocusedCobroId(c.id);
+    setFocusedDesarrolloId(null);
   };
 
   const handleGoToMesCambiosAtrasados = (monthKey: string) => {
     setContabilidadMonth(monthKey);
     setSelectedDate(null);
     setFocusedCobroId(null);
+    setFocusedDesarrolloId(null);
   };
 
   const handleDismissTaskFromColaActiva = async (cobroId: string, taskId: string) => {
+    const desarrollo = desarrollos50.find((d) => d.id === cobroId);
+    if (desarrollo) {
+      const nextTasks = (desarrollo.solicitudTasks ?? []).map((t) =>
+        t.id === taskId ? { ...t, fueraColaActiva: true } : t,
+      );
+      setDesarrollos50((prev) =>
+        prev.map((d) => (d.id === cobroId ? { ...d, solicitudTasks: nextTasks } : d)),
+      );
+      try {
+        const res = await fetch(`/api/admin/desarrollos-50/${cobroId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ solicitudTasks: nextTasks }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setCobroError(data?.error || "No se pudo quitar la tarea de la cola activa.");
+          void fetchDesarrollos50();
+        } else {
+          setDesarrollosRefreshKey((k) => k + 1);
+        }
+      } catch (e: unknown) {
+        setCobroError(e instanceof Error ? e.message : "Error al actualizar.");
+        void fetchDesarrollos50();
+      }
+      return;
+    }
+
     const cobro = cobros.find((c) => c.id === cobroId);
     if (!cobro) return;
     const nextTasks = (cobro.solicitudTasks ?? []).map((t) =>
@@ -1129,17 +1186,31 @@ function Admin92PageContent() {
   }, [focusedCobroId, selectedDate, dayCuotas]);
 
   useEffect(() => {
-    if (!focusedCobroId) return;
+    if (!focusedDesarrolloId || !selectedDate) return;
+    const t = window.setTimeout(() => {
+      document.getElementById(`desarrollo-row-${focusedDesarrolloId}`)?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    }, 80);
+    return () => window.clearTimeout(t);
+  }, [focusedDesarrolloId, selectedDate, dayDesarrollos50]);
+
+  useEffect(() => {
+    if (!focusedCobroId && !focusedDesarrolloId) return;
     const onPointerDown = (e: MouseEvent) => {
       const el = e.target as Element | null;
       if (!el) return;
       if (el.closest("[data-cambios-sidebar]")) return;
-      if (el.closest(`[data-cuota-block="${focusedCobroId}"]`)) return;
+      if (focusedCobroId && el.closest(`[data-cuota-block="${focusedCobroId}"]`)) return;
+      if (focusedDesarrolloId && el.closest(`[data-desarrollo-block="${focusedDesarrolloId}"]`))
+        return;
       setFocusedCobroId(null);
+      setFocusedDesarrolloId(null);
     };
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
-  }, [focusedCobroId]);
+  }, [focusedCobroId, focusedDesarrolloId]);
 
   const handleToggleRecordatorio = async (c: Cobro) => {
     try {
@@ -1788,17 +1859,20 @@ function Admin92PageContent() {
                 }}
                 onSelectDate={(date) => {
                   setFocusedCobroId(null);
+                  setFocusedDesarrolloId(null);
                   setSelectedDate((prev) => (prev === date ? null : date));
                 }}
                 onPrevMonth={() => {
                   setContabilidadMonth((m) => shiftMonth(m, -1));
                   setSelectedDate(null);
                   setFocusedCobroId(null);
+                  setFocusedDesarrolloId(null);
                 }}
                 onNextMonth={() => {
                   setContabilidadMonth((m) => shiftMonth(m, 1));
                   setSelectedDate(null);
                   setFocusedCobroId(null);
+                  setFocusedDesarrolloId(null);
                 }}
               />
               <CambiosPendientesSidebar
@@ -1808,11 +1882,14 @@ function Admin92PageContent() {
                 mesesAtrasados={mesesConCambiosAtrasados}
                 onGoToMesAtrasado={handleGoToMesCambiosAtrasados}
                 labelFor={(c) =>
-                  c.servicio
-                    ? `${c.clientName} (${c.servicio}) - Cuota`
-                    : `${c.clientName} - Cuota`
+                  c.source === "desarrollo50"
+                    ? `${c.clientName} — ${c.servicio || "Desarrollo"} · 50%`
+                    : c.servicio
+                      ? `${c.clientName} (${c.servicio}) - Cuota`
+                      : `${c.clientName} - Cuota`
                 }
                 selectedCobroId={focusedCobroId}
+                selectedDesarrolloId={focusedDesarrolloId}
                 sortMode={cambiosSortMode}
                 onSortModeChange={setCambiosSortMode}
                 onSelectCuota={handleSelectCuotaFromSidebar}
@@ -1827,11 +1904,14 @@ function Admin92PageContent() {
               mesesAtrasados={mesesConCambiosAtrasados}
               onGoToMesAtrasado={handleGoToMesCambiosAtrasados}
               labelFor={(c) =>
-                c.servicio
-                  ? `${c.clientName} (${c.servicio}) - Cuota`
-                  : `${c.clientName} - Cuota`
+                c.source === "desarrollo50"
+                  ? `${c.clientName} — ${c.servicio || "Desarrollo"} · 50%`
+                  : c.servicio
+                    ? `${c.clientName} (${c.servicio}) - Cuota`
+                    : `${c.clientName} - Cuota`
               }
               selectedCobroId={focusedCobroId}
+              selectedDesarrolloId={focusedDesarrolloId}
               sortMode={cambiosSortMode}
               onSortModeChange={setCambiosSortMode}
               onSelectCuota={handleSelectCuotaFromSidebar}
@@ -1976,10 +2056,16 @@ function Admin92PageContent() {
                         Desarrollos 50% del día
                       </h3>
                       <div className="space-y-2">
-                        {dayDesarrollos50.map((d) => (
+                        {dayDesarrollos50.map((d) => {
+                          const isFocused = focusedDesarrolloId === d.id;
+                          return (
                           <div
                             key={d.id}
-                            className="rounded-xl border border-sky-200 bg-sky-50/40 p-3"
+                            id={`desarrollo-row-${d.id}`}
+                            data-desarrollo-block={d.id}
+                            className={`rounded-xl border border-sky-200 bg-sky-50/40 p-3 ${
+                              isFocused ? "ring-2 ring-amber-400 border-amber-300" : ""
+                            }`}
                           >
                             <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
                               <div className="min-w-0">
@@ -2004,7 +2090,8 @@ function Admin92PageContent() {
                               onUpdated={() => void fetchDesarrollos50()}
                             />
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}

@@ -20,6 +20,7 @@ type Props = {
   onGoToMesAtrasado?: (monthKey: string) => void;
   labelFor: (c: CuotaCambioItem) => string;
   selectedCobroId: string | null;
+  selectedDesarrolloId?: string | null;
   sortMode: CambiosSortMode;
   onSortModeChange: (mode: CambiosSortMode) => void;
   onSelectCuota: (c: CuotaCambioItem) => void;
@@ -113,6 +114,7 @@ export default function CambiosPendientesSidebar({
   onGoToMesAtrasado,
   labelFor,
   selectedCobroId,
+  selectedDesarrolloId = null,
   sortMode,
   onSortModeChange,
   onSelectCuota,
@@ -135,7 +137,11 @@ export default function CambiosPendientesSidebar({
   const panelTitle = sortMode === "saas" ? "SaaS" : "Cambios pendientes";
 
   const taskClientLabel = (t: CambioTaskListItem) =>
-    t.servicio ? `${t.clientName} (${t.servicio})` : t.clientName;
+    t.source === "desarrollo50"
+      ? `${t.clientName} — ${t.servicio || "Desarrollo"} · 50%`
+      : t.servicio
+        ? `${t.clientName} (${t.servicio})`
+        : t.clientName;
 
   useEffect(() => {
     if (mesesAtrasados.length === 0) setMesesAtrasadosOpen(false);
@@ -198,9 +204,12 @@ export default function CambiosPendientesSidebar({
         ) : (
           <ul className="space-y-1.5 max-h-[min(420px,50vh)] overflow-y-auto pr-0.5">
             {tareas.map((t) => {
-              const isSelected = selectedCobroId === t.cobroId;
+              const isSelected =
+                t.source === "desarrollo50"
+                  ? selectedDesarrolloId === t.cobroId
+                  : selectedCobroId === t.cobroId;
               return (
-                <li key={t.taskId}>
+                <li key={`${t.source ?? "cobro"}-${t.taskId}`}>
                   <div
                     className={`flex w-full items-start gap-1 rounded-lg border px-2 py-2 transition-colors ${
                       isSelected
@@ -218,6 +227,7 @@ export default function CambiosPendientesSidebar({
                           servicio: t.servicio,
                           estado: t.estado,
                           border: t.border,
+                          source: t.source,
                         })
                       }
                       className="min-w-0 flex-1 flex items-start gap-2 text-left cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-[#84b9ed]/50"
@@ -258,14 +268,17 @@ export default function CambiosPendientesSidebar({
         )
       ) : sorted.length === 0 ? (
         <p className="text-sm text-slate-500 py-4 text-center">
-          Ninguna cuota del mes con cambio pendiente.
+          Ninguna cuota ni desarrollo con cambio pendiente.
         </p>
       ) : (
         <ul className="space-y-1.5 max-h-[min(420px,50vh)] overflow-y-auto pr-0.5">
           {sorted.map((c) => {
-            const isSelected = selectedCobroId === c.id;
+            const isSelected =
+              c.source === "desarrollo50"
+                ? selectedDesarrolloId === c.id
+                : selectedCobroId === c.id;
             return (
-              <li key={c.id}>
+              <li key={`${c.source ?? "cobro"}-${c.id}`}>
                 <div
                   className={`flex w-full items-start gap-2 rounded-lg border px-2.5 py-2 transition-colors ${
                     isSelected
@@ -273,11 +286,15 @@ export default function CambiosPendientesSidebar({
                       : "border-slate-200 bg-white hover:border-amber-200 hover:bg-amber-50/40"
                   }`}
                 >
-                  <PrioridadInput
-                    cobroId={c.id}
-                    prioridad={c.prioridad}
-                    onPrioridadChange={onPrioridadChange}
-                  />
+                  {c.source === "desarrollo50" ? (
+                    <span className="w-[52px] shrink-0" aria-hidden />
+                  ) : (
+                    <PrioridadInput
+                      cobroId={c.id}
+                      prioridad={c.prioridad}
+                      onPrioridadChange={onPrioridadChange}
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => onSelectCuota(c)}
@@ -287,7 +304,9 @@ export default function CambiosPendientesSidebar({
                     <span className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-slate-900 truncate">{labelFor(c)}</p>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Vence {formatLocalDate(c.dueDate)}
+                        {c.source === "desarrollo50"
+                          ? `Cambio desde ${formatLocalDate(c.dueDate)}`
+                          : `Vence ${formatLocalDate(c.dueDate)}`}
                       </p>
                     </span>
                   </button>

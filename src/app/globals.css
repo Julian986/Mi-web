@@ -184,3 +184,27 @@ body.font-loaded {
     animation: none;
   }
 }
+
+/* Contabilidad: anillos de alerta (cambio / stats) en calendario */
+@keyframes contabilidad-alert-ring {
+  0%,
+  100% {
+    opacity: 0.75;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.25);
+  }
+}
+
+.contabilidad-alert-ring {
+  animation: contabilidad-alert-ring 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contabilidad-alert-ring {
+    animation: none;
+    opacity: 1;
+  }
+}

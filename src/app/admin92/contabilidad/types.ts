@@ -52,10 +52,10 @@ export const MARKER_COLORS = {
 } as const;
 
 export const BORDER_COLORS = {
-  /** Ámbar más oscuro — borde punteado (cambio) */
-  cambio: "#c2410c",
-  /** Violeta más intenso — borde punteado (stats) */
-  stats: "#6d28d9",
+  /** Ámbar vivo — borde punteado alerta (cambio) */
+  cambio: "#f59e0b",
+  /** Violeta más luminoso — borde punteado alerta (stats) */
+  stats: "#c084fc",
 } as const;
 
 /** Leyenda del calendario (texto fijo para evitar desajustes SSR/cliente) */

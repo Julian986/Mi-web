@@ -1,6 +1,7 @@
 import type { CuotaEstado } from "@/app/admin92/contabilidad/lib/cuotaEstilos";
 import type { CuotaOperativaBorder } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
 import { getTaskFechaRealizada, getTaskSortDate, type SolicitudTask } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
+import { getDesarrollo50AlertDate } from "@/app/admin92/contabilidad/lib/desarrollos50";
 import { getMonthKeySafe } from "@/app/admin92/contabilidad/lib/utils";
 
 export type CambiosSortMode = "fecha" | "prioridad" | "tareas" | "saas";
@@ -13,6 +14,8 @@ export type CuotaCambioItem = {
   prioridad?: number;
   estado: CuotaEstado;
   border: CuotaOperativaBorder;
+  /** Origen del ítem en la cola (default: cuota) */
+  source?: "cobro" | "desarrollo50";
 };
 
 export type CambioTaskListItem = {
@@ -27,6 +30,7 @@ export type CambioTaskListItem = {
   servicio?: string;
   estado: CuotaEstado;
   border: CuotaOperativaBorder;
+  source?: "cobro" | "desarrollo50";
 };
 
 type CobroConTareas = {
@@ -71,6 +75,73 @@ export function buildTareasCambioDelMes(
         servicio: c.servicio,
         estado,
         border,
+      });
+    }
+  }
+  return sortTareasCambioPorFecha(items);
+}
+
+type DesarrolloCambioLike = {
+  id: string;
+  clientName: string;
+  name: string;
+  type?: string;
+  fechaCobro50?: string;
+  cambioPendiente?: boolean;
+  solicitudTasks?: SolicitudTask[];
+};
+
+/** Desarrollos 50% activos con cambio pendiente → ítems de cola Fecha/Prioridad */
+export function buildDesarrollosCambioItems(
+  desarrollos: DesarrolloCambioLike[],
+  today: string,
+): CuotaCambioItem[] {
+  return desarrollos
+    .filter((d) => Boolean(d.cambioPendiente))
+    .map((d) => {
+      const alertDate = getDesarrollo50AlertDate(d, today);
+      return {
+        id: d.id,
+        clientName: d.clientName,
+        dueDate: alertDate,
+        servicio: d.name,
+        estado: "pagada" as const,
+        border: "cambio" as const,
+        source: "desarrollo50" as const,
+      };
+    });
+}
+
+/** Tareas de desarrollos 50% con cambio pendiente (cola Tareas) */
+export function buildTareasCambioDesarrollos(
+  desarrollos: DesarrolloCambioLike[],
+  today: string,
+): CambioTaskListItem[] {
+  const items: CambioTaskListItem[] = [];
+  for (const d of desarrollos) {
+    if (!d.cambioPendiente) continue;
+    const tasks = d.solicitudTasks ?? [];
+    if (tasks.length === 0) continue;
+    const alertDate = getDesarrollo50AlertDate(d, today);
+    const anchor =
+      d.fechaCobro50 && /^\d{4}-\d{2}-\d{2}$/.test(d.fechaCobro50)
+        ? d.fechaCobro50
+        : today;
+    for (const t of tasks) {
+      if (t.fueraColaActiva) continue;
+      items.push({
+        taskId: t.id,
+        text: t.text,
+        done: t.done,
+        fecha: getTaskSortDate(t, anchor),
+        fechaRealizada: getTaskFechaRealizada(t) ?? undefined,
+        cobroId: d.id,
+        clientName: d.clientName,
+        dueDate: alertDate,
+        servicio: d.name,
+        estado: "pagada",
+        border: "cambio",
+        source: "desarrollo50",
       });
     }
   }

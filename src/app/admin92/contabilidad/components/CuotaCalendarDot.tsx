@@ -16,6 +16,14 @@ type Props = {
   size?: "sm" | "md";
 };
 
+function alertGlow(color: string, kind: "cambio" | "stats" = "cambio"): string {
+  if (kind === "stats") {
+    // Violeta necesita más bloom para leerse igual de urgente que el ámbar
+    return `0 0 4px 1px #e9d5ff, 0 0 10px 3px ${color}ee, 0 0 18px 5px ${color}88`;
+  }
+  return `0 0 6px 1px ${color}99, 0 0 12px 2px ${color}55`;
+}
+
 /** Solo borde punteado (leyenda del calendario, sin relleno) */
 export function CalendarLegendBorder({
   border,
@@ -24,14 +32,18 @@ export function CalendarLegendBorder({
   border: "cambio" | "stats";
   size?: "sm" | "md";
 }) {
-  const outer = size === "sm" ? "h-[14px] w-[14px]" : "h-[18px] w-[18px]";
-  const ringWidth = size === "sm" ? 1.5 : 2;
+  const outer = size === "sm" ? "h-[18px] w-[18px]" : "h-[22px] w-[22px]";
+  const ringWidth = size === "sm" ? 2.5 : 3;
   const color = border === "cambio" ? BORDER_COLORS.cambio : BORDER_COLORS.stats;
 
   return (
     <span
-      className={`${outer} shrink-0 rounded-full border-dashed bg-transparent`}
-      style={{ borderWidth: ringWidth, borderColor: color }}
+      className={`contabilidad-alert-ring ${outer} shrink-0 rounded-full border-dashed bg-transparent`}
+      style={{
+        borderWidth: ringWidth,
+        borderColor: color,
+        boxShadow: alertGlow(color, border),
+      }}
       aria-hidden
     />
   );
@@ -43,9 +55,9 @@ export default function CuotaCalendarDot({ estado, border, size = "sm" }: Props)
   const hasStats = border === "stats" || border === "both";
   const hasBorder = border !== "none";
 
-  const outer = size === "sm" ? "h-[14px] w-[14px]" : "h-[18px] w-[18px]";
+  const outer = size === "sm" ? "h-[18px] w-[18px]" : "h-[22px] w-[22px]";
   const inner = size === "sm" ? "h-1.5 w-1.5" : "h-2 w-2";
-  const ringWidth = size === "sm" ? 1.5 : 2;
+  const ringWidth = size === "sm" ? 2.5 : 3;
 
   if (!hasBorder) {
     return (
@@ -72,23 +84,23 @@ export default function CuotaCalendarDot({ estado, border, size = "sm" }: Props)
       <span className={`${inner} rounded-full`} style={{ backgroundColor: fill }} />
       {hasCambio && (
         <span
-          className="pointer-events-none absolute inset-0 rounded-full border-dashed"
+          className="contabilidad-alert-ring pointer-events-none absolute inset-0 rounded-full border-dashed"
           style={{
             borderWidth: ringWidth,
             borderColor: BORDER_COLORS.cambio,
-            boxShadow: `0 0 0 0.5px ${BORDER_COLORS.cambio}33`,
+            boxShadow: alertGlow(BORDER_COLORS.cambio, "cambio"),
           }}
         />
       )}
       {hasStats && (
         <span
-          className={`pointer-events-none absolute rounded-full border-dashed ${
+          className={`contabilidad-alert-ring pointer-events-none absolute rounded-full border-dashed ${
             hasCambio ? "-inset-0.5" : "inset-0"
           }`}
           style={{
             borderWidth: ringWidth,
             borderColor: BORDER_COLORS.stats,
-            boxShadow: `0 0 0 0.5px ${BORDER_COLORS.stats}40`,
+            boxShadow: alertGlow(BORDER_COLORS.stats, "stats"),
           }}
         />
       )}

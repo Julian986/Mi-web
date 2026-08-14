@@ -51,7 +51,8 @@ export default function WorkCategoriesHistory({
         const categories = WORK_CATEGORY_META.map((c) => ({
           ...c,
           hours: work[c.key] ?? 0,
-          timers: workTimers[c.key] ?? [],
+          // Array se guarda antiguo→nuevo; en Historial se muestra nuevo→antiguo
+          timers: [...(workTimers[c.key] ?? [])].reverse(),
         })).filter((c) => c.hours > 0 || c.timers.length > 0);
         return { log, total, categories };
       });
@@ -72,7 +73,7 @@ export default function WorkCategoriesHistory({
   return (
     <div className="space-y-5">
       <p className="text-xs font-medium text-slate-500">
-        Más reciente → más antiguo · Play inicia el timer de hoy
+        Más reciente primero · Play inicia el timer de hoy
       </p>
 
       {days.map(({ log, total, categories }) => (

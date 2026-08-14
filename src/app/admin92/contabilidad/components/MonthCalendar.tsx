@@ -13,6 +13,7 @@ import CuotaCalendarDot, {
   CalendarLegendBorder,
 } from "@/app/admin92/contabilidad/components/CuotaCalendarDot";
 import Desarrollos50Panel from "@/app/admin92/contabilidad/components/Desarrollos50Panel";
+import { buildDesarrollo50CalendarDots } from "@/app/admin92/contabilidad/lib/desarrollos50";
 
 const WEEKDAYS = ["Lu", "Ma", "Mi", "Ju", "Vi", "Sa", "Do"];
 const LEGEND_VISIBLE_KEY = "glomun-calendario-leyenda";
@@ -93,9 +94,9 @@ export default function MonthCalendar({
   const [showLegend, setShowLegend] = useState(false);
   const [desarrollosOpen, setDesarrollosOpen] = useState(false);
   const [desarrollosCount, setDesarrollosCount] = useState(0);
-  /** Markers de desarrollos activos para el calendario (fecha + borde cambio) */
+  /** Markers de desarrollos activos (cobro + alerta viva en hoy) */
   const [desarrolloDots, setDesarrolloDots] = useState<
-    { fechaCobro50: string; cambioPendiente: boolean }[]
+    { date: string; cambioPendiente: boolean }[]
   >([]);
 
   useEffect(() => {
@@ -110,17 +111,7 @@ export default function MonthCalendar({
       if (!res.ok) return;
       const list = Array.isArray(data.desarrollos) ? data.desarrollos : [];
       setDesarrollosCount(list.length);
-      setDesarrolloDots(
-        list
-          .map((d: { fechaCobro50?: string; cambioPendiente?: boolean }) => ({
-            fechaCobro50: d.fechaCobro50,
-            cambioPendiente: Boolean(d.cambioPendiente),
-          }))
-          .filter(
-            (d: { fechaCobro50?: string }): d is { fechaCobro50: string; cambioPendiente: boolean } =>
-              typeof d.fechaCobro50 === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.fechaCobro50),
-          ),
-      );
+      setDesarrolloDots(buildDesarrollo50CalendarDots(list, todayYmd()));
     } catch {
       /* ignore */
     }
@@ -185,7 +176,7 @@ export default function MonthCalendar({
           const isSelected = selectedDate === date;
           const isToday = clientToday !== null && date === clientToday;
           const hasCuotas = (dayMarkers?.cuotas.length ?? 0) > 0;
-          const desarrollosDelDia = desarrolloDots.filter((d) => d.fechaCobro50 === date);
+          const desarrollosDelDia = desarrolloDots.filter((d) => d.date === date);
           const hasDesarrollos = desarrollosDelDia.length > 0;
           const showDots =
             Boolean(dayMarkers?.inversion) || hasCuotas || hasDesarrollos;

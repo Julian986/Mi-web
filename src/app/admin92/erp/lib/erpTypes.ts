@@ -387,11 +387,12 @@ export function stopActiveWorkTimerOnLog(
   );
   if (idx >= 0) {
     const prev = list[idx];
-    list[idx] = {
+    list.splice(idx, 1);
+    list.push({
       name: prev.name,
       seconds: prev.seconds + elapsed,
       items: mergeWorkTimerItems(prev.items, active.items),
-    };
+    });
   } else {
     list.push({
       name: resolvedName,

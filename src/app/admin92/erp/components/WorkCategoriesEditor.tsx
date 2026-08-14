@@ -98,7 +98,9 @@ export default function WorkCategoriesEditor({
   const categories = WORK_CATEGORY_META.map((c) => ({
     ...c,
     hours: work[c.key] ?? 0,
-    timers: workTimers[c.key] ?? [],
+    timers: (workTimers[c.key] ?? [])
+      .map((timer, index) => ({ timer, index }))
+      .sort((a, b) => b.timer.seconds - a.timer.seconds || a.timer.name.localeCompare(b.timer.name)),
   }));
 
   const timerKey = (category: WorkCategoryKey, index: number) => `${category}:${index}`;
@@ -581,7 +583,7 @@ export default function WorkCategoriesEditor({
                       );
                     })()
                   ) : (
-                    cat.timers.map((timer, index) => {
+                    cat.timers.map(({ timer, index }) => {
                       const key = timerKey(cat.key, index);
                       const isEditing = editingKey === key;
 
