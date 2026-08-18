@@ -468,13 +468,6 @@ export function buildKpis(
       ? pctChange(current.foodMealsAvg, previous.foodMealsAvg)
       : null;
 
-  const startedWorkLabel =
-    current.startedWorkAvgMinutes === null
-      ? null
-      : period === "day"
-        ? `Inicio · ${formatStartedWorkAvg(current)}`
-        : `Inicio promedio · ${formatStartedWorkAvg(current)}`;
-
   const dailyKpi =
     period === "day"
       ? {
@@ -502,7 +495,6 @@ export function buildKpis(
       change: previous ? pctChange(current.workHours, previous.workHours) : null,
       color: "blue" as const,
       kind: "work" as const,
-      detail: startedWorkLabel,
     },
     dailyKpi,
     {

@@ -1632,7 +1632,15 @@ function Admin92PageContent() {
 
             {/* Resumen contable */}
             <div>
-              <p className="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wide">Real contable</p>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Real contable</p>
+                <Link
+                  href="/admin92/contabilidad/cartera"
+                  className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:border-blue-300 hover:bg-blue-100"
+                >
+                  Cartera de inversiones
+                </Link>
+              </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="rounded-xl border border-slate-200 bg-green-50/50 p-4">
                 <p className="text-xs font-medium text-slate-600 mb-1">Ingresos</p>

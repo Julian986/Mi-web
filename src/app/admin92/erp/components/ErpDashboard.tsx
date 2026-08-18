@@ -3,10 +3,8 @@
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import {
   Activity,
-  AlarmClock,
   ArrowDownRight,
   ArrowUpRight,
-  BellRing,
   BookOpen,
   BriefcaseBusiness,
   ChevronDown,
@@ -22,7 +20,6 @@ import {
   Megaphone,
   Moon,
   Newspaper,
-  Play,
   Radio,
   Salad,
   Sparkles,
@@ -300,6 +297,91 @@ function KpiCard({ item, compareLabel }: { item: KpiView; compareLabel: string }
       </div>
       {item.detail ? (
         <p className="mt-2 text-xs font-semibold text-blue-700">{item.detail}</p>
+      ) : null}
+      <p className="mt-3 text-xs text-slate-400">{compareLabel}</p>
+    </article>
+  );
+}
+
+/** KPI Sueño: misma altura que el resto; inicio a la izq. y dormidas a la der. */
+function SleepKpiCard({
+  period,
+  alarm,
+  sleepLabel,
+  startedWorkAvgLabel,
+  compareLabel,
+  change,
+}: {
+  period: ErpPeriod;
+  alarm: ReturnType<typeof alarmFromLog>;
+  sleepLabel: string;
+  startedWorkAvgLabel: string | null;
+  compareLabel: string;
+  change: number | null;
+}) {
+  const improved = change !== null && change >= 0;
+  const mainValue =
+    period === "day"
+      ? (alarm?.startedWorkAt ?? "—")
+      : (startedWorkAvgLabel ?? "—");
+  const mainHint = period === "day" ? "empecé" : "inicio";
+  const snoozeLabel =
+    alarm?.snoozedTimes !== null && alarm?.snoozedTimes !== undefined
+      ? `×${alarm.snoozedTimes}`
+      : "Sin dato";
+
+  return (
+    <article className="group rounded-2xl border border-indigo-200/70 bg-gradient-to-br from-indigo-50/40 via-white to-amber-50/30 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+      <div className="flex items-start justify-between gap-3">
+        <div className={`rounded-xl p-2.5 ring-1 ${colorClasses.indigo}`}>
+          <Moon className="h-5 w-5" aria-hidden />
+        </div>
+        {change === null ? (
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-400">
+            —
+          </span>
+        ) : (
+          <span
+            className={`inline-flex items-center gap-0.5 rounded-full px-2 py-1 text-xs font-semibold ${
+              improved ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+            }`}
+          >
+            {improved ? (
+              <ArrowUpRight className="h-3.5 w-3.5" />
+            ) : (
+              <ArrowDownRight className="h-3.5 w-3.5" />
+            )}
+            {Math.abs(change)}%
+          </span>
+        )}
+      </div>
+      <p className="mt-5 text-sm font-medium text-slate-500">Sueño</p>
+      <div className="mt-1 flex items-baseline justify-between gap-3">
+        <div className="flex min-w-0 items-baseline gap-1.5">
+          <strong
+            className={`tracking-tight ${
+              mainValue !== "—"
+                ? "text-3xl font-bold text-slate-950"
+                : "text-3xl font-bold text-slate-300"
+            }`}
+          >
+            {mainValue}
+          </strong>
+          <span className="text-sm font-semibold text-indigo-600">{mainHint}</span>
+        </div>
+        <p className="shrink-0 text-right text-xs font-semibold text-amber-700">
+          <span className="mr-1 text-[10px] font-bold uppercase tracking-[0.14em] text-amber-600">
+            Dormidas
+          </span>
+          {sleepLabel}
+        </p>
+      </div>
+      {period === "day" ? (
+        <p className="mt-2 text-xs font-semibold text-slate-600">
+          <span className="text-amber-700">Sonó</span> · {alarm?.rangAt ?? "Sin dato"}
+          <span className="mx-1.5 text-slate-300">·</span>
+          <span className="text-orange-600">Pospuesta</span> · {snoozeLabel}
+        </p>
       ) : null}
       <p className="mt-3 text-xs text-slate-400">{compareLabel}</p>
     </article>
@@ -783,10 +865,14 @@ export default function ErpDashboard({
     ? `${rangeLabel} · resumen del período`
     : undefined;
   const primaryKpis = kpis.filter(
-    (item) => item.kind !== "english" && item.kind !== "creatine",
+    (item) =>
+      item.kind !== "english" &&
+      item.kind !== "creatine" &&
+      item.kind !== "sleep",
   );
   const englishKpi = kpis.find((item) => item.kind === "english");
   const creatineKpi = kpis.find((item) => item.kind === "creatine");
+  const sleepKpi = kpis.find((item) => item.kind === "sleep");
   const alarm = alarmFromLog(focusLog);
   const notesEntries = periodLogs
     .filter((log) => (log.notes ?? "").trim().length > 0)
@@ -823,7 +909,26 @@ export default function ErpDashboard({
       : period === "day"
         ? "Desglose del día por categoría"
         : "Apilado por categoría · software · saas · planificación · branding · IT news";
-  const alarmTitle = period === "day" ? "Alarma del día" : "Alarma";
+  const sleepHoursLabel = (() => {
+    if (period === "day") {
+      const h = focusLog?.sleepHours;
+      if (h === null || h === undefined) return "Sin dato";
+      return `${formatHoursAsHm(h)} hs`;
+    }
+    if (current.sleepAvg !== null) {
+      return `${formatHoursAsHm(current.sleepAvg)} hs`;
+    }
+    return "Sin dato";
+  })();
+  const startedWorkAvgLabel =
+    current.startedWorkAvgMinutes === null
+      ? null
+      : (() => {
+          const m = Math.round(current.startedWorkAvgMinutes);
+          const hh = String(Math.floor(m / 60)).padStart(2, "0");
+          const mm = String(m % 60).padStart(2, "0");
+          return `${hh}:${mm}`;
+        })();
 
   useEffect(() => {
     setChartsReady(true);
@@ -989,6 +1094,16 @@ export default function ErpDashboard({
               compareLabel={compareLabel}
             />
           )}
+          {sleepKpi && (
+            <SleepKpiCard
+              period={period}
+              alarm={alarm}
+              sleepLabel={sleepHoursLabel}
+              startedWorkAvgLabel={startedWorkAvgLabel}
+              compareLabel={compareLabel}
+              change={sleepKpi.change}
+            />
+          )}
         </div>
       </section>
 
@@ -1034,134 +1149,6 @@ export default function ErpDashboard({
 
       {period === "week" && weekCompare && (
         <WeekCompareSection weekCompare={weekCompare} />
-      )}
-
-      {alarm && (
-        <section>
-          <article className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50 via-white to-orange-50/60 p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl bg-amber-100 p-2.5 text-amber-700 ring-1 ring-amber-200">
-                  <AlarmClock className="h-5 w-5" aria-hidden />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-slate-950">{alarmTitle}</h2>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    Despertar → posponer → inicio de trabajo
-                  </p>
-                </div>
-              </div>
-              {alarm.delayMinutes !== null ? (
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                  Retraso {alarm.delayMinutes} min
-                </span>
-              ) : (
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-400">
-                  Retraso · Sin dato
-                </span>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border border-amber-100 bg-white/90 p-4">
-                <div className="flex items-center gap-2 text-amber-700">
-                  <BellRing className="h-4 w-4" />
-                  <span className="text-xs font-semibold uppercase tracking-wide">Sonó</span>
-                </div>
-                <p
-                  className={`mt-3 tracking-tight ${
-                    alarm.rangAt
-                      ? "text-3xl font-bold text-slate-950"
-                      : "text-xl font-semibold text-slate-400"
-                  }`}
-                >
-                  {alarm.rangAt ?? "Sin dato"}
-                </p>
-                <p className="mt-1 text-xs text-slate-400">Hora de la alarma</p>
-              </div>
-              <div className="rounded-xl border border-amber-100 bg-white/90 p-4">
-                <div className="flex items-center gap-2 text-orange-600">
-                  <AlarmClock className="h-4 w-4" />
-                  <span className="text-xs font-semibold uppercase tracking-wide">Pospuesta</span>
-                </div>
-                {alarm.snoozedTimes !== null ? (
-                  <>
-                    <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
-                      {alarm.snoozedTimes}
-                      <span className="ml-1 text-base font-semibold text-slate-400">veces</span>
-                    </p>
-                    <p className="mt-1 text-xs text-slate-400">
-                      {alarm.snoozedTimes === 0 ? "Sin snooze" : "Snooze activado"}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="mt-3 text-xl font-semibold tracking-tight text-slate-400">
-                      Sin dato
-                    </p>
-                    <p className="mt-1 text-xs text-slate-400">Veces pospuesta</p>
-                  </>
-                )}
-              </div>
-              <div className="rounded-xl border border-amber-100 bg-white/90 p-4">
-                <div className="flex items-center gap-2 text-emerald-700">
-                  <Play className="h-4 w-4" />
-                  <span className="text-xs font-semibold uppercase tracking-wide">
-                    Empecé a trabajar
-                  </span>
-                </div>
-                <p
-                  className={`mt-3 tracking-tight ${
-                    alarm.startedWorkAt
-                      ? "text-3xl font-bold text-slate-950"
-                      : "text-xl font-semibold text-slate-400"
-                  }`}
-                >
-                  {alarm.startedWorkAt ?? "Sin dato"}
-                </p>
-                <p className="mt-1 text-xs text-slate-400">Primer bloque de trabajo</p>
-              </div>
-            </div>
-
-            {(alarm.rangAt || alarm.startedWorkAt || alarm.snoozedTimes !== null) && (
-              <div className="mt-5 flex items-center gap-2 overflow-x-auto">
-                <div className="flex min-w-0 flex-1 items-center gap-2">
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                      alarm.rangAt
-                        ? "bg-amber-500 text-white"
-                        : "bg-slate-100 text-slate-400"
-                    }`}
-                  >
-                    {alarm.rangAt ?? "Sin dato"}
-                  </span>
-                  <div className="h-1.5 min-w-8 flex-1 rounded-full bg-amber-200" />
-                  <span
-                    className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${
-                      alarm.snoozedTimes !== null
-                        ? "border-orange-300 bg-orange-50 text-orange-700"
-                        : "border-slate-200 bg-slate-50 text-slate-400"
-                    }`}
-                  >
-                    {alarm.snoozedTimes !== null
-                      ? `×${alarm.snoozedTimes} snooze`
-                      : "Sin dato"}
-                  </span>
-                  <div className="h-1.5 min-w-8 flex-1 rounded-full bg-emerald-200" />
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold ${
-                      alarm.startedWorkAt
-                        ? "bg-emerald-600 text-white"
-                        : "bg-slate-100 text-slate-400"
-                    }`}
-                  >
-                    {alarm.startedWorkAt ?? "Sin dato"}
-                  </span>
-                </div>
-              </div>
-            )}
-          </article>
-        </section>
       )}
 
       <section>

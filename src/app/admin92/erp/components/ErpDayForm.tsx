@@ -2,13 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlarmClock,
   BookOpen,
   Check,
   Dumbbell,
   FlaskConical,
   Home,
   LoaderCircle,
+  Moon,
   Trash2,
   Waves,
   X,
@@ -454,8 +454,8 @@ export default function ErpDayForm({
 
       <section className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50 via-white to-orange-50/40 p-5">
         <div className="mb-4 flex items-center gap-2">
-          <AlarmClock className="h-5 w-5 text-amber-700" />
-          <h3 className="text-sm font-bold text-slate-950">Alarma</h3>
+          <Moon className="h-5 w-5 text-amber-700" />
+          <h3 className="text-sm font-bold text-slate-950">Sueño</h3>
           <span className="ml-1 text-[11px] font-normal text-slate-400">· opcional</span>
           {delay !== null && (
             <span className="ml-auto rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
@@ -512,6 +512,30 @@ export default function ErpDayForm({
                 }))
               }
               className="mt-1 block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+        <div className="mt-4 border-t border-amber-100 pt-3">
+          <label className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+            <span className="shrink-0">
+              Horas dormidas
+              <span className="ml-1 font-normal text-slate-400">· opcional</span>
+            </span>
+            <input
+              type="number"
+              min={0}
+              max={24}
+              step={0.1}
+              value={draft.sleepHours ?? ""}
+              placeholder="Sin dato"
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                setDraft((p) => ({
+                  ...p,
+                  sleepHours: raw === "" ? null : Math.max(0, parseFloat(raw) || 0),
+                }));
+              }}
+              className="w-28 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm placeholder:text-slate-300"
             />
           </label>
         </div>
@@ -731,29 +755,6 @@ export default function ErpDayForm({
             );
           })}
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-        <label className="block text-xs font-medium text-slate-600">
-          Sueño (hs)
-          <span className="ml-1 font-normal text-slate-400">· opcional</span>
-          <input
-            type="number"
-            min={0}
-            max={24}
-            step={0.1}
-            value={draft.sleepHours ?? ""}
-            placeholder="Sin dato"
-            onChange={(e) => {
-              const raw = e.target.value.trim();
-              setDraft((p) => ({
-                ...p,
-                sleepHours: raw === "" ? null : Math.max(0, parseFloat(raw) || 0),
-              }));
-            }}
-            className="mt-2 block w-full max-w-xs rounded-xl border border-slate-200 px-3 py-2 text-sm placeholder:text-slate-300"
-          />
-        </label>
       </section>
 
       <section className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-orange-50/40 p-4 shadow-sm">
