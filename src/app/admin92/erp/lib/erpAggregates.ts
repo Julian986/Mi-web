@@ -159,6 +159,8 @@ function periodGoals(period: ErpPeriod, dayCount: number) {
 export type PeriodStats = {
   workHours: number;
   dailyAvg: number;
+  /** Promedio diario sin contar hoy. null si hoy no está en el período. */
+  dailyAvgExcludingToday: number | null;
   trainingDays: number;
   /** Minutos totales de entrenamiento físico registrados */
   trainingMinutes: number;
@@ -306,6 +308,15 @@ export function computePeriodStats(
   }).length;
   const dailyAvg = workHours / Math.max(daysForAvg || 1, 1);
 
+  const todayInPeriod = dates.includes(today);
+  const todayHours = todayInPeriod
+    ? sumWorkHours(normalizeWork(byDate.get(today)?.work))
+    : 0;
+  const daysExcludingToday = periodLogs.filter((log) => log.date !== today).length;
+  const dailyAvgExcludingToday = todayInPeriod
+    ? (workHours - todayHours) / Math.max(daysExcludingToday || 1, 1)
+    : null;
+
   const trainingHours =
     trainingMinutes > 0 ? trainingMinutes / 60 : trainingDays * 1.25;
   const restPool = Math.max(workHours + trainingHours, 1);
@@ -411,6 +422,7 @@ export function computePeriodStats(
   return {
     workHours,
     dailyAvg,
+    dailyAvgExcludingToday,
     trainingDays,
     trainingMinutes,
     englishDays,
@@ -485,6 +497,10 @@ export function buildKpis(
           change: previous ? pctChange(current.dailyAvg, previous.dailyAvg) : null,
           color: "cyan" as const,
           kind: "daily" as const,
+          detail:
+            current.dailyAvgExcludingToday !== null
+              ? `sin hoy · ${formatHoursAsHm(current.dailyAvgExcludingToday)} hs`
+              : null,
         };
 
   return [
