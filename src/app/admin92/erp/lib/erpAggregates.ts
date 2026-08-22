@@ -161,6 +161,8 @@ export type PeriodStats = {
   dailyAvg: number;
   /** Promedio diario sin contar hoy. null si hoy no está en el período. */
   dailyAvgExcludingToday: number | null;
+  /** Horas totales / 5 (lun–vie). Solo en vista semana. */
+  dailyAvgWeekdays: number | null;
   trainingDays: number;
   /** Minutos totales de entrenamiento físico registrados */
   trainingMinutes: number;
@@ -316,6 +318,7 @@ export function computePeriodStats(
   const dailyAvgExcludingToday = todayInPeriod
     ? (workHours - todayHours) / Math.max(daysExcludingToday || 1, 1)
     : null;
+  const dailyAvgWeekdays = period === "week" ? workHours / 5 : null;
 
   const trainingHours =
     trainingMinutes > 0 ? trainingMinutes / 60 : trainingDays * 1.25;
@@ -423,6 +426,7 @@ export function computePeriodStats(
     workHours,
     dailyAvg,
     dailyAvgExcludingToday,
+    dailyAvgWeekdays,
     trainingDays,
     trainingMinutes,
     englishDays,
@@ -462,8 +466,8 @@ export type KpiView = {
   change: number | null;
   color: "blue" | "cyan" | "violet" | "emerald" | "indigo" | "amber";
   kind: "work" | "daily" | "training" | "english" | "creatine" | "sleep" | "food";
-  /** Línea secundaria compacta (ej. inicio de trabajo) */
-  detail?: string | null;
+  /** Líneas secundarias compactas (ej. sin hoy, lun–vie) */
+  details?: string[];
 };
 
 export function buildKpis(
@@ -497,10 +501,14 @@ export function buildKpis(
           change: previous ? pctChange(current.dailyAvg, previous.dailyAvg) : null,
           color: "cyan" as const,
           kind: "daily" as const,
-          detail:
-            current.dailyAvgExcludingToday !== null
-              ? `sin hoy · ${formatHoursAsHm(current.dailyAvgExcludingToday)} hs`
-              : null,
+          details: [
+            ...(current.dailyAvgExcludingToday !== null
+              ? [`sin hoy · ${formatHoursAsHm(current.dailyAvgExcludingToday)} hs`]
+              : []),
+            ...(current.dailyAvgWeekdays !== null
+              ? [`lun–vie · ${formatHoursAsHm(current.dailyAvgWeekdays)} hs`]
+              : []),
+          ],
         };
 
   return [
