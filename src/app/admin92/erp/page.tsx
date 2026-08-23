@@ -7,6 +7,7 @@ import ErpDashboard from "@/app/admin92/erp/components/ErpDashboard";
 import ErpDayForm from "@/app/admin92/erp/components/ErpDayForm";
 import ErpLiveTimer from "@/app/admin92/erp/components/ErpLiveTimer";
 import ErpPeriodPicker from "@/app/admin92/erp/components/ErpPeriodPicker";
+import ErpReflection from "@/app/admin92/erp/components/ErpReflection";
 import {
   buildKpis,
   buildWeekCompareRows,
@@ -534,6 +535,8 @@ export default function ErpPage() {
                 </button>
               </div>
             </div>
+
+            <ErpReflection />
 
             <ErpDashboard
               period={period}
