@@ -17,8 +17,9 @@ export default function ErpObservations() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<"list" | "create" | "edit">("list");
+  const [mode, setMode] = useState<"list" | "create" | "edit" | "view">("list");
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [notedOn, setNotedOn] = useState("");
 
@@ -64,14 +65,25 @@ export default function ErpObservations() {
 
   const startCreate = () => {
     setEditingId(null);
+    setViewingId(null);
     setText("");
     setNotedOn("");
     setMode("create");
     setError(null);
   };
 
-  const startEdit = (item: ErpObservation) => {
+  const startView = (item: ErpObservation) => {
+    setViewingId(item._id);
+    setEditingId(null);
+    setText(item.text);
+    setNotedOn(item.notedOn ?? "");
+    setMode("view");
+    setError(null);
+  };
+
+  const startEdit = (item: ErpObservation, fromView = false) => {
     setEditingId(item._id);
+    if (!fromView) setViewingId(null);
     setText(item.text);
     setNotedOn(item.notedOn ?? "");
     setMode("edit");
@@ -79,10 +91,21 @@ export default function ErpObservations() {
   };
 
   const cancelForm = () => {
+    if (mode === "edit" && viewingId) {
+      const current = items.find((item) => item._id === viewingId);
+      if (current) {
+        startView(current);
+        return;
+      }
+    }
     setMode("list");
     setEditingId(null);
+    setViewingId(null);
     setText("");
   };
+
+  const viewingItem =
+    viewingId != null ? items.find((item) => item._id === viewingId) ?? null : null;
 
   const handleSave = async () => {
     const payload = { text: text.trim(), notedOn: notedOn.trim() || null };
@@ -115,7 +138,17 @@ export default function ErpObservations() {
           : [data.observation!, ...prev];
         return sortErpObservations(next);
       });
-      cancelForm();
+      if (isEdit && viewingId && data.observation) {
+        setText(data.observation.text);
+        setNotedOn(data.observation.notedOn ?? "");
+        setEditingId(null);
+        setMode("view");
+      } else {
+        setMode("list");
+        setEditingId(null);
+        setViewingId(null);
+        setText("");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar la observación.");
     } finally {
@@ -206,7 +239,36 @@ export default function ErpObservations() {
                 </p>
               ) : null}
 
-              {mode !== "list" ? (
+              {mode === "view" && viewingItem ? (
+                <div className="space-y-4">
+                  <p className="text-xs font-semibold text-slate-500">
+                    {viewingItem.notedOn ? formatLocalDate(viewingItem.notedOn) : "Sin fecha"}
+                  </p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
+                    {viewingItem.text}
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMode("list");
+                        setViewingId(null);
+                      }}
+                      className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Volver
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => startEdit(viewingItem, true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 cursor-pointer"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      Editar
+                    </button>
+                  </div>
+                </div>
+              ) : mode === "create" || mode === "edit" ? (
                 <form
                   className="space-y-3"
                   onSubmit={(event) => {
@@ -301,7 +363,7 @@ export default function ErpObservations() {
                       </div>
                       <p
                         className="mt-1 cursor-pointer whitespace-pre-wrap text-sm leading-relaxed text-slate-800"
-                        onClick={() => startEdit(item)}
+                        onClick={() => startView(item)}
                       >
                         {previewText(item.text)}
                       </p>
