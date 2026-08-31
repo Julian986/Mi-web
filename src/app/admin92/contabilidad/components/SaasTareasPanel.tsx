@@ -22,7 +22,8 @@ import {
   sortSaasTareas,
   type SaasTarea,
 } from "@/app/admin92/contabilidad/lib/saasTareas";
-import { formatLocalDate, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
+import DatePickerField from "@/app/admin92/contabilidad/components/DatePickerField";
+import { todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 
 type Props = {
   onCountChange?: (count: number) => void;
@@ -137,30 +138,31 @@ function SortableSaasTaskRow({
         />
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
           <span className="text-slate-400">Ped.</span>
-          <input
-            type="date"
+          <DatePickerField
             value={t.createdAt}
             disabled={saving}
             onFocus={() => onDateFocus(t.id)}
-            onChange={(e) => onDateChange(t.id, e.target.value)}
-            onBlur={(e) => onDateBlur(t.id, e.target.value)}
-            className="rounded border border-slate-200 px-1 py-0.5 text-[11px] cursor-pointer"
+            onChange={(ymd) => onDateChange(t.id, ymd)}
+            onBlur={(ymd) => onDateBlur(t.id, ymd)}
+            title="Fecha pedido"
+            aria-label="Fecha pedido"
+            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[11px] text-slate-700"
           />
           {t.done && (
             <>
               <span className="text-slate-400">Real.</span>
-              <input
-                type="date"
+              <DatePickerField
                 value={t.fechaRealizada ?? todayYmd()}
                 disabled={saving}
                 onFocus={() => onRealDateFocus(t.id)}
-                onChange={(e) => onRealDateChange(t.id, e.target.value)}
-                onBlur={(e) => onRealDateBlur(t.id, e.target.value)}
-                className="rounded border border-green-200 bg-green-50/50 px-1 py-0.5 text-[11px] text-green-800 cursor-pointer"
+                onChange={(ymd) => onRealDateChange(t.id, ymd)}
+                onBlur={(ymd) => onRealDateBlur(t.id, ymd)}
+                title="Fecha realizada"
+                aria-label="Fecha realizada"
+                className="rounded border border-green-200 bg-green-50 px-1 py-0.5 text-[11px] text-green-800"
               />
             </>
           )}
-          {!t.done && <span className="text-slate-400">· {formatLocalDate(t.createdAt)}</span>}
         </div>
       </div>
       <button
@@ -216,24 +218,26 @@ function DoneSaasTaskRow({
         />
         <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
           <span className="text-slate-400">Ped.</span>
-          <input
-            type="date"
+          <DatePickerField
             value={t.createdAt}
             disabled={saving}
             onFocus={() => onDateFocus(t.id)}
-            onChange={(e) => onDateChange(t.id, e.target.value)}
-            onBlur={(e) => onDateBlur(t.id, e.target.value)}
-            className="rounded border border-slate-200 px-1 py-0.5 text-[11px] cursor-pointer"
+            onChange={(ymd) => onDateChange(t.id, ymd)}
+            onBlur={(ymd) => onDateBlur(t.id, ymd)}
+            title="Fecha pedido"
+            aria-label="Fecha pedido"
+            className="rounded border border-slate-200 bg-white px-1 py-0.5 text-[11px] text-slate-700"
           />
           <span className="text-slate-400">Real.</span>
-          <input
-            type="date"
+          <DatePickerField
             value={t.fechaRealizada ?? todayYmd()}
             disabled={saving}
             onFocus={() => onRealDateFocus(t.id)}
-            onChange={(e) => onRealDateChange(t.id, e.target.value)}
-            onBlur={(e) => onRealDateBlur(t.id, e.target.value)}
-            className="rounded border border-green-200 bg-green-50/50 px-1 py-0.5 text-[11px] text-green-800 cursor-pointer"
+            onChange={(ymd) => onRealDateChange(t.id, ymd)}
+            onBlur={(ymd) => onRealDateBlur(t.id, ymd)}
+            title="Fecha realizada"
+            aria-label="Fecha realizada"
+            className="rounded border border-green-200 bg-green-50 px-1 py-0.5 text-[11px] text-green-800"
           />
         </div>
       </div>
@@ -587,13 +591,12 @@ export default function SaasTareasPanel({ onCountChange }: Props) {
           </div>
           <label className="text-xs text-slate-700">
             Fecha realizada
-            <input
-              type="date"
+            <DatePickerField
               value={pendingComplete.fecha}
-              onChange={(e) =>
-                setPendingComplete((prev) => (prev ? { ...prev, fecha: e.target.value } : prev))
+              onChange={(ymd) =>
+                setPendingComplete((prev) => (prev ? { ...prev, fecha: ymd } : prev))
               }
-              className="mt-1 block rounded border border-slate-300 px-2 py-1 text-xs"
+              className="mt-1 rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
             />
           </label>
           <button
@@ -627,13 +630,12 @@ export default function SaasTareasPanel({ onCountChange }: Props) {
           disabled={saving}
           className="min-w-[140px] flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm"
         />
-        <input
-          type="date"
+        <DatePickerField
           value={newTaskDate}
-          onChange={(e) => setNewTaskDate(e.target.value)}
+          onChange={setNewTaskDate}
           disabled={saving}
           title="Fecha pedido"
-          className="rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+          className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700"
         />
         <button
           type="button"

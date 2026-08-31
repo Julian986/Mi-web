@@ -1,5 +1,6 @@
 "use client";
 
+import DatePickerField from "@/app/admin92/contabilidad/components/DatePickerField";
 import { formatLocalDate, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 
 type CobroPendiente = {
@@ -45,11 +46,11 @@ export default function ConfirmarPagoCobro({
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Fecha del cobro</label>
-          <input
-            type="date"
+          <DatePickerField
             value={fechaCobro}
-            onChange={(e) => onFechaCobroChange(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-[#84b9ed] focus:border-transparent"
+            onChange={onFechaCobroChange}
+            aria-label="Fecha del cobro"
+            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
           />
         </div>
         <div className="flex flex-wrap gap-2 pb-0.5">

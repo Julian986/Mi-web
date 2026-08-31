@@ -10,6 +10,7 @@ import {
   sortDesarrollos50,
   type Desarrollo50Item,
 } from "@/app/admin92/contabilidad/lib/desarrollos50";
+import DatePickerField from "@/app/admin92/contabilidad/components/DatePickerField";
 import { formatLocalDate, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 import Desarrollo50TasksBlock from "@/app/admin92/contabilidad/components/Desarrollo50TasksBlock";
 
@@ -230,11 +231,10 @@ export default function Desarrollos50Panel({ onCountChange, onAccountingChange }
                 <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-sky-100 pt-2">
                   <label className="text-[11px] text-slate-700">
                     Fecha cobro final
-                    <input
-                      type="date"
+                    <DatePickerField
                       value={finalFecha}
-                      onChange={(e) => setFinalFecha(e.target.value)}
-                      className="mt-0.5 block rounded border border-slate-300 px-2 py-1 text-xs"
+                      onChange={setFinalFecha}
+                      className="mt-0.5 rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
                     />
                   </label>
                   <label className="text-[11px] text-slate-700">
@@ -321,11 +321,11 @@ export default function Desarrollos50Panel({ onCountChange, onAccountingChange }
               placeholder="Monto 50% inicial (ARS)"
               className="rounded border border-slate-300 px-2 py-1.5 text-xs"
             />
-            <input
-              type="date"
+            <DatePickerField
               value={formFecha}
-              onChange={(e) => setFormFecha(e.target.value)}
-              className="rounded border border-slate-300 px-2 py-1.5 text-xs"
+              onChange={setFormFecha}
+              aria-label="Fecha del 50% inicial"
+              className="rounded border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-700"
             />
           </div>
           <div className="flex flex-wrap gap-2">

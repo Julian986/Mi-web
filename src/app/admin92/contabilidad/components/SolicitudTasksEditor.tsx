@@ -10,6 +10,7 @@ import {
   sortSolicitudTasksByFecha,
   type SolicitudTask,
 } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
+import DatePickerField from "@/app/admin92/contabilidad/components/DatePickerField";
 import { formatLocalDate, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 
 type Props = {
@@ -230,65 +231,51 @@ export default function SolicitudTasksEditor({
             />
             <span className="flex shrink-0 items-center gap-1">
               <span className="text-[10px] text-slate-400 w-7 text-right">Ped.</span>
-              <input
-                type="date"
+              <DatePickerField
                 value={taskDisplayDate(t)}
                 disabled={busy}
                 onFocus={() => {
                   editingTaskDateRef.current = t.id;
                 }}
-                onChange={(e) =>
+                onChange={(ymd) =>
                   setTasks((prev) =>
                     prev.map((x) =>
-                      x.id === t.id ? { ...x, createdAt: e.target.value } : x,
+                      x.id === t.id ? { ...x, createdAt: ymd } : x,
                     ),
                   )
                 }
-                onBlur={(e) => {
+                onBlur={(ymd) => {
                   editingTaskDateRef.current = null;
-                  void commitTaskDate(t.id, e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    e.currentTarget.blur();
-                  }
+                  void commitTaskDate(t.id, ymd);
                 }}
                 title="Fecha pedido"
                 aria-label="Fecha pedido"
-                className="rounded border border-slate-300 px-2 py-1 text-sm text-slate-700 cursor-pointer disabled:opacity-50"
+                className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700"
               />
             </span>
             {t.done ? (
               <span className="flex shrink-0 items-center gap-1">
                 <span className="text-[10px] text-slate-400 w-12 text-right">Entregado</span>
-                <input
-                  type="date"
+                <DatePickerField
                   value={taskDisplayFechaRealizada(t)}
                   disabled={busy}
                   onFocus={() => {
                     editingCompletedDateRef.current = t.id;
                   }}
-                  onChange={(e) =>
+                  onChange={(ymd) =>
                     setTasks((prev) =>
                       prev.map((x) =>
-                        x.id === t.id ? { ...x, fechaRealizada: e.target.value } : x,
+                        x.id === t.id ? { ...x, fechaRealizada: ymd } : x,
                       ),
                     )
                   }
-                  onBlur={(e) => {
+                  onBlur={(ymd) => {
                     editingCompletedDateRef.current = null;
-                    void commitTaskFechaRealizada(t.id, e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      e.currentTarget.blur();
-                    }
+                    void commitTaskFechaRealizada(t.id, ymd);
                   }}
                   title="Fecha entregado"
                   aria-label="Fecha entregado"
-                  className="rounded border border-green-200 bg-green-50/50 px-2 py-1 text-sm text-green-800 cursor-pointer disabled:opacity-50"
+                  className="rounded border border-green-200 bg-green-50 px-2 py-1 text-sm text-green-800"
                 />
               </span>
             ) : null}
@@ -313,15 +300,14 @@ export default function SolicitudTasksEditor({
           </div>
           <label className="text-xs text-slate-700">
             Fecha entregado
-            <input
-              type="date"
+            <DatePickerField
               value={pendingTaskComplete.fecha}
-              onChange={(e) =>
+              onChange={(ymd) =>
                 setPendingTaskComplete((prev) =>
-                  prev ? { ...prev, fecha: e.target.value } : prev,
+                  prev ? { ...prev, fecha: ymd } : prev,
                 )
               }
-              className="mt-1 block rounded border border-slate-300 px-2 py-1 text-sm"
+              className="mt-1 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700"
             />
           </label>
           <button
@@ -358,13 +344,12 @@ export default function SolicitudTasksEditor({
           disabled={busy}
           className="min-w-[120px] flex-1 rounded border border-slate-300 px-2 py-1 text-xs"
         />
-        <input
-          type="date"
+        <DatePickerField
           value={newTaskDate}
           disabled={busy}
-          onChange={(e) => setNewTaskDate(e.target.value)}
+          onChange={setNewTaskDate}
           title="Fecha pedido de la nueva tarea"
-          className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 cursor-pointer disabled:opacity-50"
+          className="shrink-0 rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
         />
         <button
           type="button"

@@ -17,6 +17,7 @@ import {
   type SolicitudTask,
 } from "@/app/admin92/contabilidad/lib/cuotaOperativa";
 import CuotaCalendarDot from "@/app/admin92/contabilidad/components/CuotaCalendarDot";
+import DatePickerField from "@/app/admin92/contabilidad/components/DatePickerField";
 import { getCuotaEstado } from "@/app/admin92/contabilidad/lib/cuotaEstilos";
 import { formatLocalDate, todayYmd } from "@/app/admin92/contabilidad/lib/utils";
 
@@ -430,12 +431,13 @@ export default function CuotaOperativaPanel({
                 {cobro.estadisticasEnviadas ? "Quitar envío" : "Marcar enviadas"}
               </button>
               {cobro.estadisticasEnviadas && cobro.fechaEnvioEstadisticas && (
-                <input
-                  type="date"
+                <DatePickerField
                   value={cobro.fechaEnvioEstadisticas}
                   disabled={saving}
-                  onChange={(e) => patchCobro({ fechaEnvioEstadisticas: e.target.value })}
-                  className="rounded border border-slate-300 px-2 py-1 text-xs"
+                  onChange={(ymd) => patchCobro({ fechaEnvioEstadisticas: ymd })}
+                  title="Fecha de envío de estadísticas"
+                  aria-label="Fecha de envío de estadísticas"
+                  className="rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
                 />
               )}
             </>
@@ -451,11 +453,10 @@ export default function CuotaOperativaPanel({
         <div className="flex flex-wrap items-end gap-2 rounded-md border border-violet-200 bg-violet-50/60 p-2">
           <label className="text-xs text-slate-700">
             Fecha de envío
-            <input
-              type="date"
+            <DatePickerField
               value={statsFecha}
-              onChange={(e) => setStatsFecha(e.target.value)}
-              className="mt-1 block rounded border border-slate-300 px-2 py-1 text-xs"
+              onChange={setStatsFecha}
+              className="mt-1 rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
             />
           </label>
           <button
@@ -528,27 +529,20 @@ export default function CuotaOperativaPanel({
                 </span>
                 <span className="flex shrink-0 items-center gap-1">
                   <span className="text-[10px] text-slate-400 w-7 text-right">Ped.</span>
-                  <input
-                    type="date"
+                  <DatePickerField
                     value={taskDisplayDate(t)}
                     disabled={saving}
                     onFocus={() => {
                       editingTaskDateRef.current = t.id;
                     }}
-                    onChange={(e) => handleTaskDateLocalChange(t.id, e.target.value)}
-                    onBlur={(e) => {
+                    onChange={(ymd) => handleTaskDateLocalChange(t.id, ymd)}
+                    onBlur={(ymd) => {
                       editingTaskDateRef.current = null;
-                      void commitTaskDate(t.id, e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        e.currentTarget.blur();
-                      }
+                      void commitTaskDate(t.id, ymd);
                     }}
                     title="Fecha pedido"
                     aria-label="Fecha pedido"
-                    className="rounded border border-slate-300 px-2 py-1 text-sm text-slate-700 cursor-pointer disabled:opacity-50"
+                    className="rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700"
                   />
                 </span>
                 {t.done ? (
@@ -556,29 +550,22 @@ export default function CuotaOperativaPanel({
                     <span className="text-[10px] text-slate-400 w-12 text-right">
                       Entregado
                     </span>
-                    <input
-                      type="date"
+                    <DatePickerField
                       value={taskDisplayFechaRealizada(t)}
                       disabled={saving}
                       onFocus={() => {
                         editingCompletedDateRef.current = t.id;
                       }}
-                      onChange={(e) =>
-                        handleTaskFechaRealizadaLocalChange(t.id, e.target.value)
+                      onChange={(ymd) =>
+                        handleTaskFechaRealizadaLocalChange(t.id, ymd)
                       }
-                      onBlur={(e) => {
+                      onBlur={(ymd) => {
                         editingCompletedDateRef.current = null;
-                        void commitTaskFechaRealizada(t.id, e.target.value);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.currentTarget.blur();
-                        }
+                        void commitTaskFechaRealizada(t.id, ymd);
                       }}
                       title="Fecha entregado"
                       aria-label="Fecha entregado"
-                      className="rounded border border-green-200 bg-green-50/50 px-2 py-1 text-sm text-green-800 cursor-pointer disabled:opacity-50"
+                      className="rounded border border-green-200 bg-green-50 px-2 py-1 text-sm text-green-800"
                     />
                   </span>
                 ) : null}
@@ -614,15 +601,14 @@ export default function CuotaOperativaPanel({
               </div>
               <label className="text-xs text-slate-700">
                 Fecha entregado
-                <input
-                  type="date"
+                <DatePickerField
                   value={pendingTaskComplete.fecha}
-                  onChange={(e) =>
+                  onChange={(ymd) =>
                     setPendingTaskComplete((prev) =>
-                      prev ? { ...prev, fecha: e.target.value } : prev,
+                      prev ? { ...prev, fecha: ymd } : prev,
                     )
                   }
-                  className="mt-1 block rounded border border-slate-300 px-2 py-1 text-sm"
+                  className="mt-1 rounded border border-slate-300 bg-white px-2 py-1 text-sm text-slate-700"
                 />
               </label>
               <button
@@ -659,13 +645,12 @@ export default function CuotaOperativaPanel({
               disabled={saving}
               className="min-w-[120px] flex-1 rounded border border-slate-300 px-2 py-1 text-xs"
             />
-            <input
-              type="date"
+            <DatePickerField
               value={newTaskDate}
               disabled={saving}
-              onChange={(e) => setNewTaskDate(e.target.value)}
+              onChange={setNewTaskDate}
               title="Fecha pedido de la nueva tarea"
-              className="shrink-0 rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 cursor-pointer disabled:opacity-50"
+              className="shrink-0 rounded border border-slate-300 bg-white px-2 py-1 text-xs text-slate-700"
             />
             <button
               type="button"
